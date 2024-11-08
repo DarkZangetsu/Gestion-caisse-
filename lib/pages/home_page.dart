@@ -1,7 +1,10 @@
-import 'package:caisse/composants/boutons.dart';
-import 'package:caisse/composants/textfields.dart';
+import 'package:caisse/classHelper/class_account.dart';
 import 'package:caisse/composants/texts.dart';
 import 'package:flutter/material.dart';
+
+class ListAccount {
+  static List<String> comptes = [];
+}
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -12,6 +15,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int? _value = 1;
+  String defaultAccount = "Livre de Caisse";
 
   final filterChoice = [
     "Tous",
@@ -29,106 +33,32 @@ class _HomePageState extends State<HomePage> {
         title: Expanded(
           child: TextButton(
             onPressed: () {
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  shape: RoundedRectangleBorder(
-                    side: const BorderSide(color: Colors.grey, width: 1.0),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                  titlePadding: const EdgeInsets.all(0.0),
-                  title: Container(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 8.0, horizontal: 16.0),
-                    decoration: const BoxDecoration(
-                        border: Border(
-                            bottom:
-                                BorderSide(width: 0.5, color: Colors.grey))),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Row(
-                          children: [
-                            Icon(Icons.account_balance_outlined,
-                                color: Colors.blue),
-                            SizedBox(width: 8.0),
-                            Text(
-                              "Comptes",
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 16),
-                            )
-                          ],
-                        ),
-                        ElevatedButton.icon(
-                          onPressed: () {},
-                          icon: Icon(Icons.edit, color: Colors.blue.shade400),
-                          label: Text(
-                            "Modifier",
-                            style: TextStyle(
-                                fontWeight: FontWeight.w500,
-                                color: Colors.blue.shade400),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            elevation: 0,
-                            backgroundColor: Colors.transparent,
-                            padding: EdgeInsets.zero,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const MyContainer(
-                        border: Border(bottom: BorderSide(width: 0.2, color: Colors.grey)),
-                        child: MyTextfields(
-                          prefixIcon: Icon(Icons.search),
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 16.0),
-                      Container(
-                        padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        width: double.infinity,
-                        child: const Column(
-                          children: [
-                            Text("Texte"),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16.0),
-                      MyContainer(
-                        border: const Border(top: BorderSide(width: 0.2, color: Colors.grey)),
-                        child: MyButtons(
-                          backgroundColor: Colors.blue,
-                          onPressed: () {},
-                          child: const MyText(
-                            texte: "Ajouter un compte",
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+              DialogCompte.show(
+                context,
+                comptes: ListAccount.comptes,
+                onModifier: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, '/modification');
+                },
+                onAjouterCompte: (String compte) {
+                  // Action quand on sélectionne un compte
+                  setState(() {
+                    defaultAccount = compte;
+                  });
+                  Navigator.pop(context);
+                },
               );
-              ;
             },
-            //child:
-            child: const Row(
+            child: Row(
               children: [
                 Text(
-                  "Livre de Caisse",
-                  style: TextStyle(
+                  defaultAccount,
+                  style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                       fontSize: 14.0),
                 ),
-                Icon(Icons.arrow_drop_down_outlined, color: Colors.white)
+                const Icon(Icons.arrow_drop_down_outlined, color: Colors.white)
               ],
             ),
           ),
@@ -169,8 +99,8 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 10.0),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10.0),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
@@ -178,12 +108,14 @@ class _HomePageState extends State<HomePage> {
               child: TwoButtons(
                 texte: "Réçu",
                 backgroundColor: Colors.green,
+                onPressed: () => Navigator.pushNamed(context, '/payement'),
               ),
             ),
             Expanded(
               child: TwoButtons(
                 texte: "Payé",
                 backgroundColor: Colors.red,
+                onPressed: () => Navigator.pushNamed(context, '/payement'),
               ),
             ),
           ],
@@ -233,6 +165,178 @@ class _HomePageState extends State<HomePage> {
                   },
                 ),
               ),
+              Container(
+                width: double.infinity,
+                height: 40.0,
+                decoration: const BoxDecoration(
+                  color: Colors.blue,
+                ),
+                child: const Center(
+                  child: MyText(
+                    texte: "Tous",
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              Container(
+                width: double.infinity,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                ),
+                child: DataTable(
+                  columnSpacing: 20.0,
+                  headingRowColor:
+                      WidgetStateProperty.all(Colors.grey.shade300),
+                  columns: const [
+                    DataColumn(
+                      label: MyText(
+                        texte: "Date",
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    DataColumn(
+                      label: MyText(
+                        texte: "Reçu",
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green,
+                      ),
+                    ),
+                    DataColumn(
+                      label: MyText(
+                        texte: "Payé",
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red,
+                      ),
+                    ),
+                  ],
+                  rows: const [
+                    DataRow(
+                      cells: [
+                        DataCell(
+                          MyText(
+                            texte: "2024-11-07",
+                            color: Colors.black87,
+                          ),
+                        ),
+                        DataCell(
+                          MyText(
+                            texte: "1000 Ar",
+                            color: Colors.green,
+                          ),
+                        ),
+                        DataCell(
+                          MyText(
+                            texte: "500 Ar",
+                            color: Colors.red,
+                          ),
+                        ),
+                      ],
+                    ),
+                    DataRow(
+                      cells: [
+                        DataCell(
+                          MyText(
+                            texte: "2024-11-06",
+                            color: Colors.black87,
+                          ),
+                        ),
+                        DataCell(
+                          MyText(
+                            texte: "800 Ar",
+                            color: Colors.green,
+                          ),
+                        ),
+                        DataCell(
+                          MyText(
+                            texte: "400 Ar",
+                            color: Colors.red,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  border: Border(
+                    top: BorderSide(
+                      color: Colors.grey.shade300,
+                      width: 1.0,
+                    ),
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: const [
+                          MyText(
+                            texte: "Total Reçu:",
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                          MyText(
+                            texte: "1800 Ar",
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: const [
+                          MyText(
+                            texte: "Total Payé:",
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                          MyText(
+                            texte: "900 Ar",
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        decoration: BoxDecoration(
+                          border: Border(
+                            top: BorderSide(
+                              color: Colors.grey.shade300,
+                              width: 1.0,
+                            ),
+                          ),
+                        ),
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: const [
+                            MyText(
+                              texte: "Solde:",
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16.0,
+                              color: Colors.black87,
+                            ),
+                            MyText(
+                              texte: "900 Ar",
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16.0,
+                              color: Colors.blue,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -244,7 +348,8 @@ class _HomePageState extends State<HomePage> {
 class MyContainer extends StatelessWidget {
   const MyContainer({
     super.key,
-    this.child, this.border,
+    this.child,
+    this.border,
   });
 
   final Widget? child;
@@ -255,18 +360,19 @@ class MyContainer extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       width: double.infinity,
-      decoration: BoxDecoration(
-          border: border),
+      decoration: BoxDecoration(border: border),
       child: child,
     );
   }
 }
 
 class TwoButtons extends StatelessWidget {
-  const TwoButtons({super.key, required this.texte, this.backgroundColor});
+  const TwoButtons(
+      {super.key, required this.texte, this.backgroundColor, this.onPressed});
 
   final Color? backgroundColor;
   final String texte;
+  final void Function()? onPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -275,7 +381,7 @@ class TwoButtons extends StatelessWidget {
       child: FloatingActionButton(
         backgroundColor: backgroundColor,
         elevation: 0.3,
-        onPressed: () {},
+        onPressed: onPressed,
         child: Text(
           texte,
           style:
@@ -323,6 +429,245 @@ class DrawerListMenu extends StatelessWidget {
       leading: Icon(icon),
       title: Text(texte),
       onTap: onTap,
+    );
+  }
+}
+
+class DialogCompte extends StatefulWidget {
+  final List<String> comptes;
+  final Function() onModifier;
+  final Function(String) onAjouterCompte;
+
+  const DialogCompte({
+    super.key,
+    required this.comptes,
+    required this.onModifier,
+    required this.onAjouterCompte,
+  });
+
+  static void show(
+    BuildContext context, {
+    required List<String> comptes,
+    required Function() onModifier,
+    required Function(String) onAjouterCompte,
+  }) {
+    showDialog(
+      context: context,
+      builder: (context) => DialogCompte(
+        comptes: comptes,
+        onModifier: onModifier,
+        onAjouterCompte: onAjouterCompte,
+      ),
+    );
+  }
+
+  @override
+  State<DialogCompte> createState() => _DialogCompteState();
+}
+
+class _DialogCompteState extends State<DialogCompte> {
+  final TextEditingController _searchController = TextEditingController();
+  List<String> _filteredComptes = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _filteredComptes = widget.comptes;
+    _searchController.addListener(_filterComptes);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _filterComptes() {
+    setState(() {
+      _filteredComptes = widget.comptes
+          .where((compte) => compte
+              .toLowerCase()
+              .contains(_searchController.text.toLowerCase()))
+          .toList();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      elevation: 0,
+      backgroundColor: Colors.transparent,
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 500, maxHeight: 400),
+        decoration: BoxDecoration(
+          color: Theme.of(context).dialogBackgroundColor,
+          borderRadius: BorderRadius.circular(2),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildHeader(),
+            _buildSearchBar(),
+            _buildComptesList(),
+            _buildFooter(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: Colors.grey.withOpacity(0.2),
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.account_balance_wallet,
+            color: Colors.blue,
+            size: 24,
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Text(
+              'Comptes',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          IconButton(
+            onPressed: widget.onModifier,
+            icon: const Icon(Icons.edit),
+            tooltip: 'Modifier',
+            color: Colors.blue,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          hintText: 'Rechercher un compte...',
+          prefixIcon: const Icon(Icons.search, color: Colors.blue),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(
+              color: Colors.grey.withOpacity(0.3),
+            ),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(
+              color: Colors.grey.withOpacity(0.3),
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(
+              color: Colors.blue,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildComptesList() {
+    return Expanded(
+      child: _filteredComptes.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.search_off,
+                    size: 48,
+                    color: Colors.grey.withOpacity(0.5),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Aucun compte trouvé',
+                    style: TextStyle(
+                      color: Colors.grey.withOpacity(0.8),
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : ListView.builder(
+              itemCount: _filteredComptes.length,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              itemBuilder: (context, index) {
+                return ListTile(
+                  leading: const Icon(Icons.account_circle, color: Colors.blue),
+                  title: Text(
+                    _filteredComptes[index],
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  onTap: () => widget.onAjouterCompte(_filteredComptes[index]),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  hoverColor: Colors.blue.withOpacity(0.1),
+                );
+              },
+            ),
+    );
+  }
+
+  Widget _buildFooter() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(
+            color: Colors.grey.withOpacity(0.2),
+          ),
+        ),
+      ),
+      child: ElevatedButton.icon(
+        onPressed: () async {
+          Navigator.pop(context);
+          final CompteData? result = await CompteDialog.afficherDialog(context);
+          if (result != null) {
+            ListAccount.comptes.add(result.nom);
+          }
+        },
+        icon: const Icon(Icons.add),
+        label: const Text('Ajouter un compte'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.blue,
+          foregroundColor: Colors.white,
+          minimumSize: const Size(double.infinity, 48),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      ),
     );
   }
 }
