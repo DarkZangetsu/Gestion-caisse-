@@ -1,32 +1,45 @@
 import 'package:caisse/providers/users_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../models/chantier.dart';
 import '../services/database_helper.dart';
 
 final chantiersStateProvider = StateNotifierProvider<ChantiersNotifier, AsyncValue<List<Chantier>>>((ref) {
-  return ChantiersNotifier(ref.read(databaseHelperProvider));
+  final userId = ref.watch(currentUserProvider)?.id;  // Récupérer l'ID de l'utilisateur connecté
+  return ChantiersNotifier(ref.read(databaseHelperProvider), userId ?? '');
+
+});
+
+final chantiersProvider = FutureProvider.family<List<Chantier>, String>((ref, userId) {
+  return ref.read(chantiersStateProvider.notifier).getChantiers(userId);
 });
 
 class ChantiersNotifier extends StateNotifier<AsyncValue<List<Chantier>>> {
   final DatabaseHelper _db;
 
-  ChantiersNotifier(this._db) : super(const AsyncValue.data([]));
+  ChantiersNotifier(this._db, String userId) : super(const AsyncValue.data([]));
 
-  Future<void> getChantiers(String userId) async {
-    state = const AsyncValue.loading();
+  Future<List<Chantier>> getChantiers(String userId) async {
     try {
       final chantiers = await _db.getChantiers(userId);
-      state = AsyncValue.data(chantiers);
+      return chantiers;
     } catch (e) {
       state = AsyncValue.error(e, StackTrace.current);
+      rethrow;
     }
   }
 
+
   Future<void> createChantier(Chantier chantier) async {
     try {
+      // Crée le chantier
       final newChantier = await _db.createChantier(chantier);
+
+      // Met à jour la liste des chantiers en ajoutant le nouveau chantier
       state = AsyncValue.data([...state.value ?? [], newChantier]);
+
+      // Récupère les chantiers après la création
+      final userId = chantier.userId;
+      await getChantiers(userId);
     } catch (e) {
       state = AsyncValue.error(e, StackTrace.current);
     }
@@ -54,3 +67,4 @@ class ChantiersNotifier extends StateNotifier<AsyncValue<List<Chantier>>> {
     }
   }
 }
+

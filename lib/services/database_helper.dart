@@ -59,12 +59,20 @@ class DatabaseHelper {
 
   Future<AppUser?> signInUser(String email, String password) async {
     try {
+      // Add debug print to see the values
+      print('Attempting login with email: $email');
+
+      final hashedPassword = _hashPassword(password);
+      print('Hashed password: $hashedPassword');
+
       final response = await _supabase
           .from('users')
           .select()
           .eq('email', email)
-          .eq('password', _hashPassword(password))
+          .eq('password', hashedPassword)
           .maybeSingle();
+
+      print('Supabase response: $response'); // Add debug print
 
       if (response == null) {
         throw Exception('Email ou mot de passe incorrect');
@@ -72,9 +80,11 @@ class DatabaseHelper {
 
       return AppUser.fromJson(response);
     } catch (e) {
+      print('Error during login: $e'); // Add debug print
       throw Exception('Erreur lors de la connexion: $e');
     }
   }
+
 
   Future<void> signOutUser() async {
     // Ici vous pouvez implémenter une logique de déconnexion locale
@@ -180,6 +190,7 @@ class DatabaseHelper {
           .select()
           .eq('user_id', userId);
 
+      print("Réponse brute des chantiers : $response"); // Debug
       return (response as List).map((json) => Chantier.fromJson(json)).toList();
     } catch (e) {
       throw Exception('Erreur lors de la récupération des chantiers: $e');
@@ -188,15 +199,17 @@ class DatabaseHelper {
 
   Future<Chantier> createChantier(Chantier chantier) async {
     try {
+      print('Creating chantier: $chantier');
       final response = await _supabase
           .from('chantiers')
           .insert(chantier.toJson())
           .select()
           .single();
-
+      print('Created chantier: ${Chantier.fromJson(response)}');
       return Chantier.fromJson(response);
     } catch (e) {
-      throw Exception('Erreur lors de la création du chantier: $e');
+      print('Error creating chantier: $e');
+      rethrow;
     }
   }
 

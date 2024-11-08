@@ -1,25 +1,25 @@
 class AppUser {
   final String id;
   final String email;
-  final String password;
+  final String? password; // Make password optional
   final DateTime createdAt;
-  final DateTime updatedAt;
+  final DateTime? updatedAt; // Make updatedAt optional
 
   AppUser({
     required this.id,
     required this.email,
-    required this.password,
+    this.password,
     required this.createdAt,
-    required this.updatedAt,
+    this.updatedAt,
   });
 
   factory AppUser.fromJson(Map<String, dynamic> json) {
     return AppUser(
-      id: json['id'],
+      id: json['id'].toString(), // Ensure id is converted to String
       email: json['email'],
       password: json['password'],
       createdAt: DateTime.parse(json['created_at']),
-      updatedAt: DateTime.parse(json['updated_at']),
+      updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at']) : null,
     );
   }
 
@@ -27,9 +27,9 @@ class AppUser {
     return {
       'id': id,
       'email': email,
-      'password': password,
+      if (password != null) 'password': password,
       'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
+      if (updatedAt != null) 'updated_at': updatedAt!.toIso8601String(),
     };
   }
 }

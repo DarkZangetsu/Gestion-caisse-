@@ -72,29 +72,38 @@ class _HomePageState extends State<HomePage> {
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
-          children: const [
-            DrawerHeader(child: Text("Header")),
+          children: [
+            const DrawerHeader(child: Text("Header")),
             DrawerListMenu(
-                icon: Icons.phone_android_outlined,
-                texte: "Supprimer la publicité"),
-            DrawerListMenu(icon: Icons.list_alt_rounded, texte: "Résumé"),
+              icon: Icons.business,
+              texte: "Chantier",
+              onTap: () {
+                Navigator.pushNamed(context, '/chantier');
+              },
+            ),
             DrawerListMenu(
+                icon: Icons.people,
+                texte: "Personnel",
+                onTap: () {
+                  Navigator.pushNamed(context, '/personnel');
+                  },
+            ),
+            const DrawerListMenu(icon: Icons.list_alt_rounded, texte: "Résumé"),
+            const DrawerListMenu(
                 icon: Icons.list_alt_rounded, texte: "Comptes Résumé"),
-            DrawerListMenu(icon: Icons.list, texte: "Transactions-Tous les"),
-            DrawerListMenu(icon: Icons.group, texte: "Comptes"),
-            DrawerListMenu(icon: Icons.swap_horiz, texte: "Transférer"),
-            DrawerListMenu(
+            const DrawerListMenu(icon: Icons.list, texte: "Transactions-Tous les"),
+            const DrawerListMenu(icon: Icons.group, texte: "Comptes"),
+            const DrawerListMenu(icon: Icons.swap_horiz, texte: "Transférer"),
+            const DrawerListMenu(
                 icon: Icons.save_sharp, texte: "Rapports-Tous les comptes"),
-            DrawerListMenu(
+            const DrawerListMenu(
                 icon: Icons.swap_horiz, texte: "Changer en Revenu Dépenses"),
-            DrawerListMenu(
+            const DrawerListMenu(
                 icon: Icons.money_rounded, texte: "Calculatrice de trésorerie"),
-            DrawerListMenu(
+            const DrawerListMenu(
                 icon: Icons.swap_vert, texte: "Sauvegarde et Restauration"),
-            DrawerListMenu(icon: Icons.settings, texte: "Paramètres"),
-            DrawerListMenu(icon: Icons.help_outline, texte: "Aide"),
-            DrawerListMenu(icon: Icons.star, texte: "Evaluez-nous"),
-            DrawerListMenu(icon: Icons.share, texte: "Recommander"),
+            const DrawerListMenu(icon: Icons.settings, texte: "Paramètres"),
+            const DrawerListMenu(icon: Icons.help_outline, texte: "Aide"),
           ],
         ),
       ),

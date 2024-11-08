@@ -8,6 +8,11 @@ final userStateProvider = StateNotifierProvider<UserNotifier, AsyncValue<AppUser
   return UserNotifier(ref.read(databaseHelperProvider));
 });
 
+final currentUserProvider = Provider<AppUser?>((ref) {
+  final user = ref.watch(userStateProvider).value;
+  return user;
+});
+
 class UserNotifier extends StateNotifier<AsyncValue<AppUser?>> {
   final DatabaseHelper _db;
 
