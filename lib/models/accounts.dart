@@ -20,7 +20,7 @@ class Account {
       id: json['id'],
       userId: json['user_id'],
       name: json['name'],
-      solde: json['solde'],
+      solde: json['solde']?.toDouble(),
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
     );
@@ -33,7 +33,7 @@ class Account {
       'name': name,
       'solde': solde,
       'created_at': createdAt?.toIso8601String(),
-      'updated_at': updatedAt?.toIso8601String(),
+      'updated_at': updatedAt?.toIso8601String()
     };
   }
 }

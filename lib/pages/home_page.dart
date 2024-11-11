@@ -1,3 +1,5 @@
+import 'package:caisse/composants/boutons.dart';
+import 'package:caisse/composants/texts.dart';
 import 'package:caisse/pages/payment_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -313,7 +315,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               label,
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
-                color: Colors.blue,
+                color: Color(0xffea6b24),
               ),
             ),
           ),
@@ -338,7 +340,7 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.blue,
+        backgroundColor: const Color(0xffea6b24),
         title: Expanded(
           child: TextButton(
             onPressed: _showAccountDialog,
@@ -365,7 +367,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           children: [
             const DrawerHeader(
               decoration: BoxDecoration(
-                color: Colors.blue,
+                color: Color(0xffea6b24),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -400,12 +402,12 @@ class _HomePageState extends ConsumerState<HomePage> {
             ),
             //const DrawerListMenu(icon: Icons.list_alt_rounded, texte: "Résumé"),
             //const DrawerListMenu(icon: Icons.list_alt_rounded, texte: "Comptes Résumé"),
-            const DrawerListMenu(icon: Icons.list, texte: "Transactions-Tous les"),
+            //const DrawerListMenu(icon: Icons.list, texte: "Transactions-Tous les"),
             //const DrawerListMenu(icon: Icons.group, texte: "Comptes"),
-            const DrawerListMenu(icon: Icons.swap_horiz, texte: "Transférer"),
+            //const DrawerListMenu(icon: Icons.swap_horiz, texte: "Transférer"),
             //const DrawerListMenu(icon: Icons.save_sharp, texte: "Rapports-Tous les comptes"),
             //const DrawerListMenu(icon: Icons.swap_horiz, texte: "Changer en Revenu Dépenses"),
-            const DrawerListMenu(icon: Icons.money_rounded, texte: "Calculatrice de trésorerie"),
+            //const DrawerListMenu(icon: Icons.money_rounded, texte: "Calculatrice de trésorerie"),
             //const DrawerListMenu(icon: Icons.swap_vert, texte: "Sauvegarde et Restauration"),
             const DrawerListMenu(icon: Icons.settings, texte: "Paramètres"),
             const DrawerListMenu(icon: Icons.help_outline, texte: "Aide"),
@@ -418,7 +420,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             Container(
               padding: const EdgeInsets.all(8.0),
               height: 60,
-              decoration: const BoxDecoration(color: Colors.blue),
+              decoration: const BoxDecoration(color: Color(0xffea6b24)),
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 itemCount: filterChoice.length,
@@ -426,7 +428,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4.0),
                     child: ChoiceChip(
-                      selectedColor: Colors.blue,
+                      selectedColor: const Color(0xffea6b24),
                       labelPadding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
                       side: const BorderSide(color: Colors.white),
@@ -460,10 +462,12 @@ class _HomePageState extends ConsumerState<HomePage> {
                             style: TextStyle(fontSize: 18, color: Colors.grey, fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 8),
-                          ElevatedButton(
+                          MyButtons(
+                            backgroundColor: const Color(0xffea6b24),
                             onPressed: () => Navigator.pushNamed(context, '/payement'),
-                            child: const Text("Ajouter une transaction"),
-                          ),
+                            child: const MyText(texte: "Ajouter une transaction", color: Colors.white,),
+                            ),
+                          
                         ],
                       ),
                     );
@@ -741,7 +745,7 @@ class DrawerListMenu extends StatelessWidget {
     return ListTile(
       leading: Icon(
         icon,
-        color: Colors.blue,
+        color: const Color(0xffea6b24),
         size: 24,
       ),
       title: Text(
@@ -760,8 +764,8 @@ class DrawerListMenu extends StatelessWidget {
         horizontal: 16.0,
         vertical: 4.0,
       ),
-      hoverColor: Colors.blue.withOpacity(0.1),
-      selectedTileColor: Colors.blue.withOpacity(0.1),
+      hoverColor: const Color(0xffea6b24).withOpacity(0.1),
+      selectedTileColor: const Color(0xffea6b24).withOpacity(0.1),
     );
   }
 }

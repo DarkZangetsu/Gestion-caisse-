@@ -1,3 +1,4 @@
+import 'package:caisse/composants/boutons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
@@ -65,9 +66,13 @@ class _CompteDialogState extends ConsumerState<CompteDialog> {
         side: const BorderSide(color: Colors.grey, width: 1.0),
         borderRadius: BorderRadius.circular(2),
       ),
-      title: const SizedBox(
+      title: Container(
         width: double.infinity,
-        child: MyText(
+        padding: const EdgeInsets.all(8.0),
+        decoration: const BoxDecoration(
+          border: Border(bottom: BorderSide(width: 0.2, color: Colors.grey))
+        ),
+        child: const MyText(
           texte: "Ajouter un compte",
           fontSize: 16,
         ),
@@ -111,11 +116,12 @@ class _CompteDialogState extends ConsumerState<CompteDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: const Text("ANNULER"),
+          child: const MyText(texte: "ANNULER", color: Colors.black,),
         ),
-        TextButton(
+        MyButtons(
+          backgroundColor: const Color(0xffea6b24),
           onPressed: _sauvegarderCompte,
-          child: const Text("SAUVEGARDER"),
+          child: const MyText(texte: "SAUVEGARDER", color: Colors.white,),
         ),
       ],
     );

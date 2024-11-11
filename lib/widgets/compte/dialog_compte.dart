@@ -83,7 +83,7 @@ class _DialogCompteState extends ConsumerState<DialogCompte> {
       ),
       child: const Row(
         children: [
-          Icon(Icons.account_balance_wallet, color: Colors.blue, size: 24),
+          Icon(Icons.account_balance_wallet, color: Color(0xffea6b24), size: 24),
           SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -104,7 +104,7 @@ class _DialogCompteState extends ConsumerState<DialogCompte> {
         onChanged: (value) => setState(() => _searchQuery = value),
         decoration: InputDecoration(
           hintText: 'Rechercher un compte...',
-          prefixIcon: const Icon(Icons.search, color: Colors.blue),
+          prefixIcon: const Icon(Icons.search, color: Color(0xffea6b24)),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
             borderSide: BorderSide(color: Colors.grey.withOpacity(0.3)),
@@ -115,7 +115,7 @@ class _DialogCompteState extends ConsumerState<DialogCompte> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Colors.blue),
+            borderSide: const BorderSide(color: Color(0xffea6b24)),
           ),
         ),
       ),
@@ -149,7 +149,7 @@ class _DialogCompteState extends ConsumerState<DialogCompte> {
       itemBuilder: (context, index) {
         final compte = comptesFiltres[index];
         return ListTile(
-          leading: const Icon(Icons.account_circle, color: Colors.blue),
+          leading: const Icon(Icons.account_circle, color: Color(0xffea6b24)),
           title: Text(compte.name, style: const TextStyle(fontSize: 16)),
           subtitle: compte.solde != null
               ? Text(
@@ -188,7 +188,7 @@ class _DialogCompteState extends ConsumerState<DialogCompte> {
         icon: const Icon(Icons.add),
         label: const Text('Ajouter un compte'),
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blue,
+          backgroundColor: const Color(0xffea6b24),
           foregroundColor: Colors.white,
           minimumSize: const Size(double.infinity, 48),
           shape: RoundedRectangleBorder(
