@@ -1,148 +1,123 @@
-// Créez une classe pour stocker les données du compte
-import 'package:caisse/composants/textfields.dart';
-import 'package:caisse/composants/texts.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
+import '../models/accounts.dart';
+import '../providers/accounts_provider.dart';
+import '../composants/textfields.dart';
+import '../composants/texts.dart';
+import '../providers/users_provider.dart';
 
-class CompteData {
-  final String nom;
-  final double? soldeInitial;
-  final String type;
-  final DateTime date;
+class CompteDialog extends ConsumerStatefulWidget {
+  const CompteDialog({Key? key}) : super(key: key);
 
-  CompteData({
-    required this.nom,
-    this.soldeInitial,
-    required this.type,
-    required this.date,
-  });
+  static Future<bool?> afficherDialog(BuildContext context) async {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => const CompteDialog(),
+    );
+  }
+
+  @override
+  ConsumerState<CompteDialog> createState() => _CompteDialogState();
 }
 
-// Classe pour gérer le dialogue
-class CompteDialog {
-  static Future<CompteData?> afficherDialog(BuildContext context) async {
-    String type = '+';
-    DateTime selectedDate = DateTime.now();
-    String compteNom = '';
-    String? soldeInitial;
+class _CompteDialogState extends ConsumerState<CompteDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late String _nom;
+  String? _soldeInitial;
+  final _uuid = const Uuid();
 
-    return showDialog<CompteData>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          side: const BorderSide(color: Colors.grey, width: 1.0),
-          borderRadius: BorderRadius.circular(2),
-        ),
-        title: const SizedBox(
-          width: double.infinity,
-          child: MyText(
-            texte: "Ajouter un compte",
-            fontSize: 16,
-          ),
-        ),
-        content: StatefulBuilder(
-          builder: (BuildContext context, StateSetter setState) {
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                MyTextfields(
-                  hintText: "Nom",
-                  onChanged: (value) {
-                    compteNom = value;
-                  },
-                ),
-                const SizedBox(height: 8.0),
-                MyTextfields(
-                  hintText: "Solde d'ouverture [Facultatif]",
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    soldeInitial = value;
-                  },
-                ),
-                const SizedBox(height: 8.0),
-                Row(
-                  children: [
-                    Radio<String>(
-                      value: '+',
-                      groupValue: type,
-                      onChanged: (String? value) {
-                        setState(() {
-                          type = value!;
-                        });
-                      },
-                    ),
-                    const Text('+'),
-                    const SizedBox(width: 20),
-                    Radio<String>(
-                      value: '-',
-                      groupValue: type,
-                      onChanged: (String? value) {
-                        setState(() {
-                          type = value!;
-                        });
-                      },
-                    ),
-                    const Text('-'),
-                  ],
-                ),
-                const SizedBox(height: 8.0),
-                InkWell(
-                  onTap: () async {
-                    final DateTime? picked = await showDatePicker(
-                      context: context,
-                      initialDate: selectedDate,
-                      firstDate: DateTime(2000),
-                      lastDate: DateTime(2100),
-                    );
-                    if (picked != null && picked != selectedDate) {
-                      setState(() {
-                        selectedDate = picked;
-                      });
-                    }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          "${selectedDate.day}/${selectedDate.month}/${selectedDate.year}",
-                        ),
-                        const Icon(Icons.calendar_today),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("ANNULER"),
-          ),
-          TextButton(
-            onPressed: () {
-              if (compteNom.isNotEmpty) {
-                Navigator.pop(
-                  context,
-                  CompteData(
-                    nom: compteNom,
-                    soldeInitial: soldeInitial != null ? double.tryParse(soldeInitial!) : null,
-                    type: type,
-                    date: selectedDate,
-                  ),
-                );
-              }
-            },
-            child: const Text("SAUVEGARDER"),
-          ),
-        ],
+  void _sauvegarderCompte() {
+    if (!_formKey.currentState!.validate()) return;
+
+    final now = DateTime.now();
+    final userId = ref.read(currentUserProvider)?.id;
+
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erreur: Utilisateur non connecté')),
+      );
+      return;
+    }
+
+    final nouveauCompte = Account(
+      id: _uuid.v4(),
+      userId: userId,
+      name: _nom,
+      solde: _soldeInitial != null ? double.tryParse(_soldeInitial!) : null,
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    ref.read(accountsStateProvider.notifier).createAccount(nouveauCompte).then((_) {
+      Navigator.pop(context, true);
+    }).catchError((error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur lors de la création du compte: $error')),
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(
+        side: const BorderSide(color: Colors.grey, width: 1.0),
+        borderRadius: BorderRadius.circular(2),
       ),
+      title: const SizedBox(
+        width: double.infinity,
+        child: MyText(
+          texte: "Ajouter un compte",
+          fontSize: 16,
+        ),
+      ),
+      content: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            MyTextfields(
+              hintText: "Nom",
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Le nom du compte est requis';
+                }
+                return null;
+              },
+              onChanged: (value) {
+                _nom = value;
+              },
+            ),
+            const SizedBox(height: 16),
+            MyTextfields(
+              hintText: "Solde initial [Facultatif]",
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              validator: (value) {
+                if (value != null && value.isNotEmpty) {
+                  if (double.tryParse(value) == null) {
+                    return 'Veuillez entrer un nombre valide';
+                  }
+                }
+                return null;
+              },
+              onChanged: (value) {
+                _soldeInitial = value;
+              },
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text("ANNULER"),
+        ),
+        TextButton(
+          onPressed: _sauvegarderCompte,
+          child: const Text("SAUVEGARDER"),
+        ),
+      ],
     );
   }
 }

@@ -5,8 +5,8 @@ class Personnel {
   final String? role;
   final String? contact;
   final double? salaireMax;
-  final DateTime createdAt;
-  final DateTime updatedAt;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
 
   Personnel({
     required this.id,
@@ -15,8 +15,8 @@ class Personnel {
     this.role,
     this.contact,
     this.salaireMax,
-    required this.createdAt,
-    required this.updatedAt,
+    this.createdAt,
+    this.updatedAt,
   });
 
   factory Personnel.fromJson(Map<String, dynamic> json) {
@@ -40,8 +40,8 @@ class Personnel {
       'role': role,
       'contact': contact,
       'salaire_max': salaireMax,
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
+      'created_at': createdAt?.toIso8601String(),
+      'updated_at': updatedAt?.toIso8601String(),
     };
   }
 }

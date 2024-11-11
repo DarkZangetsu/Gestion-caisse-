@@ -1,12 +1,12 @@
 class PaymentMethod {
   final String id;
   final String name;
-  final DateTime createdAt;
+  final DateTime? createdAt;
 
   PaymentMethod({
     required this.id,
     required this.name,
-    required this.createdAt,
+    this.createdAt,
   });
 
   factory PaymentMethod.fromJson(Map<String, dynamic> json) {
@@ -21,7 +21,7 @@ class PaymentMethod {
     return {
       'id': id,
       'name': name,
-      'created_at': createdAt.toIso8601String(),
+      'created_at': createdAt?.toIso8601String(),
     };
   }
 }

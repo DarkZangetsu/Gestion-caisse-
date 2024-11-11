@@ -4,14 +4,28 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/accounts.dart';
 import '../services/database_helper.dart';
 
+// Provider pour la liste des comptes
 final accountsStateProvider = StateNotifierProvider<AccountsNotifier, AsyncValue<List<Account>>>((ref) {
-  return AccountsNotifier(ref.read(databaseHelperProvider));
+  final userId = ref.watch(currentUserProvider)?.id;
+  return AccountsNotifier(ref.read(databaseHelperProvider), userId ?? '');
+});
+
+// Provider pour le compte sélectionné
+final selectedAccountProvider = StateProvider<Account?>((ref) {
+  final accountsState = ref.watch(accountsStateProvider);
+  return accountsState.when(
+    data: (accounts) => accounts.isNotEmpty ? accounts.first : null,
+    loading: () => null,
+    error: (_, __) => null,
+  );
 });
 
 class AccountsNotifier extends StateNotifier<AsyncValue<List<Account>>> {
   final DatabaseHelper _db;
 
-  AccountsNotifier(this._db) : super(const AsyncValue.data([]));
+  AccountsNotifier(this._db, String userId) : super(const AsyncValue.data([])) {
+    getAccounts(userId); // Charger les comptes lors de l'initialisation
+  }
 
   Future<void> getAccounts(String userId) async {
     state = const AsyncValue.loading();

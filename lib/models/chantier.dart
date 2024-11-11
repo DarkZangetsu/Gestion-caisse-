@@ -5,8 +5,8 @@ class Chantier {
   final double? budgetMax;
   final DateTime? startDate;
   final DateTime? endDate;
-  final DateTime createdAt;
-  final DateTime updatedAt;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
 
   Chantier({
     required this.id,
@@ -15,8 +15,8 @@ class Chantier {
     this.budgetMax,
     this.startDate,
     this.endDate,
-    required this.createdAt,
-    required this.updatedAt,
+    this.createdAt,
+    this.updatedAt,
   });
 
   factory Chantier.fromJson(Map<String, dynamic> json) {
@@ -40,8 +40,8 @@ class Chantier {
       'budget_max': budgetMax,
       'start_date': startDate?.toIso8601String(),
       'end_date': endDate?.toIso8601String(),
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
+      'created_at': createdAt?.toIso8601String(),
+      'updated_at': updatedAt?.toIso8601String(),
     };
   }
 }

@@ -4,14 +4,22 @@ import '../models/chantier.dart';
 import '../services/database_helper.dart';
 
 final chantiersStateProvider = StateNotifierProvider<ChantiersNotifier, AsyncValue<List<Chantier>>>((ref) {
-  final userId = ref.watch(currentUserProvider)?.id;  // Récupérer l'ID de l'utilisateur connecté
-  return ChantiersNotifier(ref.read(databaseHelperProvider), userId ?? '');
+  final userId = ref.watch(currentUserProvider)?.id;
+  final notifier = ChantiersNotifier(ref.read(databaseHelperProvider), userId ?? '');
 
+  // Trigger initial load
+  if (userId != null) {
+    notifier.getChantiers(userId);
+  }
+
+  return notifier;
 });
+
 
 final chantiersProvider = FutureProvider.family<List<Chantier>, String>((ref, userId) {
   return ref.read(chantiersStateProvider.notifier).getChantiers(userId);
 });
+
 
 class ChantiersNotifier extends StateNotifier<AsyncValue<List<Chantier>>> {
   final DatabaseHelper _db;
@@ -28,6 +36,15 @@ class ChantiersNotifier extends StateNotifier<AsyncValue<List<Chantier>>> {
     }
   }
 
+  Future<void> loadChantiers(String userId) async {
+    state = const AsyncValue.loading();
+    try {
+      final chantiers = await _db.getChantiers(userId);
+      state = AsyncValue.data(chantiers);
+    } catch (e, stackTrace) {
+      state = AsyncValue.error(e, stackTrace);
+    }
+  }
 
   Future<void> createChantier(Chantier chantier) async {
     try {

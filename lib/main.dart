@@ -1,9 +1,9 @@
 import 'package:caisse/pages/PersonnelPage.dart';
 import 'package:caisse/pages/chantier_page.dart';
+import 'package:caisse/pages/todolist_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'pages/home_page.dart';
-import 'pages/modification_page.dart';
 import 'pages/payment_page.dart';
 import 'pages/login_page.dart';
 import 'providers/auth_guard.dart';
@@ -31,9 +31,9 @@ class MyApp extends ConsumerWidget {
         '/login': (context) => const LoginPage(),
         '/': (context) => const AuthGuard(child: HomePage()),
         '/payement': (context) => const AuthGuard(child: PaymentPage()),
-        '/modification': (context) => const AuthGuard(child: ModificationPage()),
         '/chantier': (context) => const ChantierPage(),
         '/personnel': (context) => const PersonnelPage(),
+        '/todos':(context) => const TodoListPage(),
       },
     );
   }

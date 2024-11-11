@@ -1,64 +1,354 @@
-import 'package:caisse/classHelper/class_account.dart';
-import 'package:caisse/composants/texts.dart';
+import 'package:caisse/pages/payment_page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/accounts.dart';
+import '../models/chantier.dart';
+import '../models/payment_method.dart';
+import '../models/payment_type.dart';
+import '../models/personnel.dart';
+import '../models/transaction.dart';
+import '../providers/accounts_provider.dart';
+import '../providers/chantiers_provider.dart';
+import '../providers/payment_methods_provider.dart';
+import '../providers/payment_types_provider.dart';
+import '../providers/personnel_provider.dart';
+import '../providers/transactions_provider.dart';
+import '../providers/users_provider.dart';
+import '../widgets/compte/dialog_compte.dart';
+import 'package:intl/intl.dart';
 
-class ListAccount {
-  static List<String> comptes = [];
-}
-
-class HomePage extends StatefulWidget {
+class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  ConsumerState<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends ConsumerState<HomePage> {
   int? _value = 1;
-  String defaultAccount = "Livre de Caisse";
+  final filterChoice = ["Tous", "Quotidien", "Hebdomadaire", "Mensuel", "Annuel"];
 
-  final filterChoice = [
-    "Tous",
-    "Quotidien",
-    "Hebdomadaire",
-    "Mensuel",
-    "Annuel"
-  ];
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final selectedAccount = ref.read(selectedAccountProvider);
+      final userId = ref.read(currentUserProvider)?.id;
+
+      print('InitState - Selected Account: ${selectedAccount?.id}');
+      print('InitState - UserId: $userId');
+
+      if (selectedAccount != null && userId != null) {
+        try {
+          // Chargement des chantiers
+          await ref.read(chantiersStateProvider.notifier).loadChantiers(userId);
+          final chantiers = ref.read(chantiersStateProvider).value ?? [];
+          print('Chantiers chargés: ${chantiers.length}');
+          print('Chantiers: ${chantiers.map((c) => '${c.id}: ${c.name}').join(', ')}');
+
+          // Chargement du personnel
+          await ref.read(personnelStateProvider.notifier).getPersonnel(userId);
+          final personnel = ref.read(personnelStateProvider).value ?? [];
+          print('Personnel chargé: ${personnel.length}');
+          print('Personnel: ${personnel.map((p) => '${p.id}: ${p.name}').join(', ')}');
+
+          // Chargement des méthodes de paiement
+          await ref.read(paymentMethodsProvider.notifier).getPaymentMethods();
+          final methods = ref.read(paymentMethodsProvider).value ?? [];
+          print('Méthodes de paiement chargées: ${methods.length}');
+          print('Méthodes: ${methods.map((m) => '${m.id}: ${m.name}').join(', ')}');
+
+          // Chargement des types de paiement
+          await ref.read(paymentTypesProvider.notifier).getPaymentTypes();
+          final types = ref.read(paymentTypesProvider).value ?? [];
+          print('Types de paiement chargés: ${types.length}');
+          print('Types: ${types.map((t) => '${t.id}: ${t.name}').join(', ')}');
+
+          // Chargement des transactions
+          await ref.read(transactionsStateProvider.notifier).loadTransactions(selectedAccount.id);
+          final transactions = ref.read(transactionsStateProvider).value ?? [];
+          print('Transactions chargées: ${transactions.length}');
+        } catch (e) {
+          print('Erreur lors du chargement des données: $e');
+        }
+      }
+    });
+  }
+
+  void _showAccountDialog() {
+    DialogCompte.show(
+      context,
+      onCompteSelectionne: (Account selectedAccount) {
+        ref.read(selectedAccountProvider.notifier).state = selectedAccount;
+        ref.read(transactionsStateProvider.notifier).loadTransactions(selectedAccount.id);
+      },
+    );
+  }
+  void _showTransactionDetails(Transaction transaction) async {
+    // Recharger les données avant d'afficher le dialogue
+    final userId = ref.read(currentUserProvider)?.id;
+
+    if (userId != null) {
+      // Charger toutes les données nécessaires
+      await Future.wait([
+        ref.read(chantiersStateProvider.notifier).loadChantiers(userId),
+        ref.read(personnelStateProvider.notifier).getPersonnel(userId),
+        ref.read(paymentMethodsProvider.notifier).getPaymentMethods(),
+        ref.read(paymentTypesProvider.notifier).getPaymentTypes(),
+      ]);
+    }
+
+    // Vérifier que le contexte est toujours valide
+    if (!context.mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => Consumer(
+        builder: (context, ref, child) {
+          // Vérifions l'état de chaque provider
+          final chantiersState = ref.watch(chantiersStateProvider);
+          final personnelState = ref.watch(personnelStateProvider);
+          final methodsState = ref.watch(paymentMethodsProvider);
+          final typesState = ref.watch(paymentTypesProvider);
+
+          // Afficher un indicateur de chargement si les données ne sont pas prêtes
+          if (chantiersState.isLoading ||
+              personnelState.isLoading ||
+              methodsState.isLoading ||
+              typesState.isLoading) {
+            return const AlertDialog(
+              content: Center(child: CircularProgressIndicator()),
+            );
+          }
+
+          // Afficher une erreur si le chargement a échoué
+          if (chantiersState.hasError ||
+              personnelState.hasError ||
+              methodsState.hasError ||
+              typesState.hasError) {
+            return AlertDialog(
+              title: const Text('Erreur'),
+              content: const Text('Une erreur est survenue lors du chargement des données.'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Fermer'),
+                ),
+              ],
+            );
+          }
+
+          // Récupérer les données
+          final chantiers = chantiersState.value ?? [];
+          final personnel = personnelState.value ?? [];
+          final methods = methodsState.value ?? [];
+          final types = typesState.value ?? [];
+
+          // Vérifier que toutes les données sont chargées
+          if (chantiers.isEmpty || personnel.isEmpty || methods.isEmpty || types.isEmpty) {
+            return AlertDialog(
+              title: const Text('Données manquantes'),
+              content: const Text('Certaines données n\'ont pas pu être chargées.'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Fermer'),
+                ),
+              ],
+            );
+          }
+
+          return AlertDialog(
+            title: const Text('Détails de la Transaction'),
+            content: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildTransactionDetails(ref, transaction),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Fermer'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+
+  Widget _buildTransactionDetails(WidgetRef ref, Transaction transaction) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _detailRow('Date:', DateFormat('dd/MM/yyyy HH:mm').format(transaction.transactionDate)),
+        _detailRow('Type:', transaction.type == 'reçu' ? 'Reçu' : 'Payé'),
+        _detailRow('Montant:', '${transaction.amount.toStringAsFixed(2)} \Ar'),
+        if (transaction.description?.isNotEmpty ?? false)
+          _detailRow('Description:', transaction.description!),
+
+        // Chantier
+        Consumer(
+          builder: (context, ref, _) {
+            final chantiersAsync = ref.watch(chantiersStateProvider);
+            return chantiersAsync.when(
+              data: (chantiers) {
+                final chantier = chantiers.firstWhere(
+                      (c) => c.id == transaction.chantierId,
+                  orElse: () {
+                    print('Chantier non trouvé pour l\'ID: ${transaction.chantierId}');
+                    print('Chantiers disponibles: ${chantiers.map((c) => '${c.id}: ${c.name}').join(', ')}');
+                    return Chantier(id: '', name: 'Non trouvé', userId: '');
+                  },
+                );
+                return _detailRow('Chantier:', chantier.name);
+              },
+              loading: () => _detailRow('Chantier:', 'Chargement...'),
+              error: (error, stack) {
+                print('Erreur lors du chargement des chantiers: $error');
+                print(stack);
+                return _detailRow('Chantier:', 'Erreur de chargement');
+              },
+            );
+          },
+        ),
+
+        // Personnel
+        Consumer(
+          builder: (context, ref, _) {
+            final personnelAsync = ref.watch(personnelStateProvider);
+            return personnelAsync.when(
+              data: (personnel) {
+                final person = personnel.firstWhere(
+                      (p) => p.id == transaction.personnelId,
+                  orElse: () {
+                    print('Personnel non trouvé pour l\'ID: ${transaction.personnelId}');
+                    print('Personnel disponible: ${personnel.map((p) => '${p.id}: ${p.name}').join(', ')}');
+                    return Personnel(id: '', name: 'Non trouvé', userId: '');
+                  },
+                );
+                return _detailRow('Personnel:', person.name);
+              },
+              loading: () => _detailRow('Personnel:', 'Chargement...'),
+              error: (error, stack) {
+                print('Erreur lors du chargement du personnel: $error');
+                print(stack);
+                return _detailRow('Personnel:', 'Erreur de chargement');
+              },
+            );
+          },
+        ),
+
+        // Méthode de paiement
+        Consumer(
+          builder: (context, ref, _) {
+            final methodsAsync = ref.watch(paymentMethodsProvider);
+            return methodsAsync.when(
+              data: (methods) {
+                final method = methods.firstWhere(
+                      (m) => m.id == transaction.paymentMethodId,
+                  orElse: () {
+                    print('Méthode de paiement non trouvée pour l\'ID: ${transaction.paymentMethodId}');
+                    print('Méthodes disponibles: ${methods.map((m) => '${m.id}: ${m.name}').join(', ')}');
+                    return PaymentMethod(id: '', name: 'Non trouvé', createdAt: null);
+                  },
+                );
+                return _detailRow('Mode de paiement:', method.name);
+              },
+              loading: () => _detailRow('Mode de paiement:', 'Chargement...'),
+              error: (error, stack) {
+                print('Erreur lors du chargement des méthodes de paiement: $error');
+                print(stack);
+                return _detailRow('Mode de paiement:', 'Erreur de chargement');
+              },
+            );
+          },
+        ),
+
+        // Type de paiement
+        Consumer(
+          builder: (context, ref, _) {
+            final typesAsync = ref.watch(paymentTypesProvider);
+            return typesAsync.when(
+              data: (types) {
+                final type = types.firstWhere(
+                      (t) => t.id == transaction.paymentTypeId,
+                  orElse: () {
+                    print('Type de paiement non trouvé pour l\'ID: ${transaction.paymentTypeId}');
+                    print('Types disponibles: ${types.map((t) => '${t.id}: ${t.name}').join(', ')}');
+                    return PaymentType(id: '', name: 'Non trouvé', category: '');
+                  },
+                );
+                return _detailRow('Type de paiement:', '${type.name} (${type.category})');
+              },
+              loading: () => _detailRow('Type de paiement:', 'Chargement...'),
+              error: (error, stack) {
+                print('Erreur lors du chargement des types de paiement: $error');
+                print(stack);
+                return _detailRow('Type de paiement:', 'Erreur de chargement');
+              },
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+
+// Widget helper pour l'affichage des détails
+  Widget _detailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 150,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.blue,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
 
   @override
   Widget build(BuildContext context) {
+    final selectedAccount = ref.watch(selectedAccountProvider);
+    final transactionsAsync = ref.watch(transactionsStateProvider);
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.blue,
         title: Expanded(
           child: TextButton(
-            onPressed: () {
-              DialogCompte.show(
-                context,
-                comptes: ListAccount.comptes,
-                onModifier: () {
-                  Navigator.pop(context);
-                  Navigator.pushNamed(context, '/modification');
-                },
-                onAjouterCompte: (String compte) {
-                  // Action quand on sélectionne un compte
-                  setState(() {
-                    defaultAccount = compte;
-                  });
-                  Navigator.pop(context);
-                },
-              );
-            },
+            onPressed: _showAccountDialog,
             child: Row(
               children: [
                 Text(
-                  defaultAccount,
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14.0),
+                  selectedAccount?.name ?? 'Livre de Caisse',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14.0),
                 ),
-                const Icon(Icons.arrow_drop_down_outlined, color: Colors.white)
+                const Icon(Icons.arrow_drop_down_outlined, color: Colors.white),
               ],
             ),
           ),
@@ -73,354 +363,372 @@ class _HomePageState extends State<HomePage> {
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            const DrawerHeader(child: Text("Header")),
+            const DrawerHeader(
+              decoration: BoxDecoration(
+                color: Colors.blue,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text(
+                    "Menu Principal",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                ],
+              ),
+            ),
             DrawerListMenu(
               icon: Icons.business,
               texte: "Chantier",
-              onTap: () {
-                Navigator.pushNamed(context, '/chantier');
-              },
+              onTap: () => Navigator.pushNamed(context, '/chantier'),
             ),
             DrawerListMenu(
-                icon: Icons.people,
-                texte: "Personnel",
-                onTap: () {
-                  Navigator.pushNamed(context, '/personnel');
-                  },
+              icon: Icons.people,
+              texte: "Personnel",
+              onTap: () => Navigator.pushNamed(context, '/personnel'),
             ),
-            const DrawerListMenu(icon: Icons.list_alt_rounded, texte: "Résumé"),
-            const DrawerListMenu(
-                icon: Icons.list_alt_rounded, texte: "Comptes Résumé"),
+            DrawerListMenu(
+              icon: Icons.checklist,
+              texte: "ToDo List",
+              onTap: () => Navigator.pushNamed(context, '/todos'),
+            ),
+            //const DrawerListMenu(icon: Icons.list_alt_rounded, texte: "Résumé"),
+            //const DrawerListMenu(icon: Icons.list_alt_rounded, texte: "Comptes Résumé"),
             const DrawerListMenu(icon: Icons.list, texte: "Transactions-Tous les"),
-            const DrawerListMenu(icon: Icons.group, texte: "Comptes"),
+            //const DrawerListMenu(icon: Icons.group, texte: "Comptes"),
             const DrawerListMenu(icon: Icons.swap_horiz, texte: "Transférer"),
-            const DrawerListMenu(
-                icon: Icons.save_sharp, texte: "Rapports-Tous les comptes"),
-            const DrawerListMenu(
-                icon: Icons.swap_horiz, texte: "Changer en Revenu Dépenses"),
-            const DrawerListMenu(
-                icon: Icons.money_rounded, texte: "Calculatrice de trésorerie"),
-            const DrawerListMenu(
-                icon: Icons.swap_vert, texte: "Sauvegarde et Restauration"),
+            //const DrawerListMenu(icon: Icons.save_sharp, texte: "Rapports-Tous les comptes"),
+            //const DrawerListMenu(icon: Icons.swap_horiz, texte: "Changer en Revenu Dépenses"),
+            const DrawerListMenu(icon: Icons.money_rounded, texte: "Calculatrice de trésorerie"),
+            //const DrawerListMenu(icon: Icons.swap_vert, texte: "Sauvegarde et Restauration"),
             const DrawerListMenu(icon: Icons.settings, texte: "Paramètres"),
             const DrawerListMenu(icon: Icons.help_outline, texte: "Aide"),
           ],
         ),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            Expanded(
-              child: TwoButtons(
-                texte: "Réçu",
-                backgroundColor: Colors.green,
-                onPressed: () => Navigator.pushNamed(context, '/payement'),
-              ),
-            ),
-            Expanded(
-              child: TwoButtons(
-                texte: "Payé",
-                backgroundColor: Colors.red,
-                onPressed: () => Navigator.pushNamed(context, '/payement'),
-              ),
-            ),
-          ],
-        ),
-      ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8.0),
-                height: 60,
-                decoration: const BoxDecoration(
-                  color: Colors.blue,
-                ),
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: filterChoice.length,
-                  itemBuilder: (context, index) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                      child: ChoiceChip(
-                        selectedColor: Colors.blue,
-                        labelPadding: const EdgeInsets.symmetric(
-                            horizontal: 8.0, vertical: 2.0),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(50),
-                        ),
-                        side: const BorderSide(
-                          color: Colors.white,
-                        ),
-                        label: Text(
-                          filterChoice[index],
-                          style: TextStyle(
-                              color:
-                                  _value == index ? Colors.white : Colors.black,
-                              fontSize: 14.0),
-                        ),
-                        selected: _value == index,
-                        onSelected: (bool selected) {
-                          setState(() {
-                            _value = selected ? index : null;
-                          });
-                        },
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8.0),
+              height: 60,
+              decoration: const BoxDecoration(color: Colors.blue),
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: filterChoice.length,
+                itemBuilder: (context, index) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                    child: ChoiceChip(
+                      selectedColor: Colors.blue,
+                      labelPadding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
+                      side: const BorderSide(color: Colors.white),
+                      label: Text(
+                        filterChoice[index],
+                        style: TextStyle(color: _value == index ? Colors.white : Colors.black, fontSize: 14.0),
+                      ),
+                      selected: _value == index,
+                      onSelected: (bool selected) {
+                        setState(() {
+                          _value = selected ? index : null;
+                        });
+                      },
+                    ),
+                  );
+                },
+              ),
+            ),
+            Expanded(
+              child: transactionsAsync.when(
+                data: (transactions) {
+                  if (transactions.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.note_alt_outlined, size: 64, color: Colors.grey),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Aucune transaction',
+                            style: TextStyle(fontSize: 18, color: Colors.grey, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 8),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pushNamed(context, '/payement'),
+                            child: const Text("Ajouter une transaction"),
+                          ),
+                        ],
                       ),
                     );
-                  },
-                ),
-              ),
-              Container(
-                width: double.infinity,
-                height: 40.0,
-                decoration: const BoxDecoration(
-                  color: Colors.blue,
-                ),
-                child: const Center(
-                  child: MyText(
-                    texte: "Tous",
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              Container(
-                width: double.infinity,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                ),
-                child: DataTable(
-                  columnSpacing: 20.0,
-                  headingRowColor:
-                      WidgetStateProperty.all(Colors.grey.shade300),
-                  columns: const [
-                    DataColumn(
-                      label: MyText(
-                        texte: "Date",
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    DataColumn(
-                      label: MyText(
-                        texte: "Reçu",
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green,
-                      ),
-                    ),
-                    DataColumn(
-                      label: MyText(
-                        texte: "Payé",
-                        fontWeight: FontWeight.bold,
-                        color: Colors.red,
-                      ),
-                    ),
-                  ],
-                  rows: const [
-                    DataRow(
-                      cells: [
-                        DataCell(
-                          MyText(
-                            texte: "2024-11-07",
-                            color: Colors.black87,
-                          ),
-                        ),
-                        DataCell(
-                          MyText(
-                            texte: "1000 Ar",
-                            color: Colors.green,
-                          ),
-                        ),
-                        DataCell(
-                          MyText(
-                            texte: "500 Ar",
-                            color: Colors.red,
-                          ),
-                        ),
-                      ],
-                    ),
-                    DataRow(
-                      cells: [
-                        DataCell(
-                          MyText(
-                            texte: "2024-11-06",
-                            color: Colors.black87,
-                          ),
-                        ),
-                        DataCell(
-                          MyText(
-                            texte: "800 Ar",
-                            color: Colors.green,
-                          ),
-                        ),
-                        DataCell(
-                          MyText(
-                            texte: "400 Ar",
-                            color: Colors.red,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  border: Border(
-                    top: BorderSide(
-                      color: Colors.grey.shade300,
-                      width: 1.0,
-                    ),
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
+                  }
+
+                  final filteredTransactions = transactions.where((t) => t.accountId == selectedAccount?.id).toList();
+                  double totalReceived = 0;
+                  double totalPaid = 0;
+
+                  for (var transaction in filteredTransactions) {
+                    if (transaction.type == 'reçu') {
+                      totalReceived += transaction.amount;
+                    } else {
+                      totalPaid += transaction.amount;
+                    }
+                  }
+
+                  final balance = totalReceived - totalPaid;
+                  final totalBalance = balance + (selectedAccount?.solde ?? 0.0);
+
+                  return Column(
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: const [
-                          MyText(
-                            texte: "Total Reçu:",
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                          MyText(
-                            texte: "1800 Ar",
-                            fontWeight: FontWeight.bold,
-                            color: Colors.green,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: const [
-                          MyText(
-                            texte: "Total Payé:",
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                          MyText(
-                            texte: "900 Ar",
-                            fontWeight: FontWeight.bold,
-                            color: Colors.red,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        decoration: BoxDecoration(
-                          border: Border(
-                            top: BorderSide(
-                              color: Colors.grey.shade300,
-                              width: 1.0,
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: Container(
+                            margin: const EdgeInsets.all(8.0),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.grey.withOpacity(0.2),
+                                  spreadRadius: 1,
+                                  blurRadius: 5,
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(16.0),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[100],
+                                    borderRadius: const BorderRadius.only(
+                                      topLeft: Radius.circular(8),
+                                      topRight: Radius.circular(8),
+                                    ),
+                                  ),
+                                  child: const Row(
+                                    children: [
+                                      Expanded(
+                                        flex: 2,
+                                        child: Text(
+                                          'Date',
+                                          style: TextStyle(fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: Text(
+                                          'Reçu',
+                                          style: TextStyle(fontWeight: FontWeight.bold),
+                                          textAlign: TextAlign.right,
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: Text(
+                                          'Payé',
+                                          style: TextStyle(fontWeight: FontWeight.bold),
+                                          textAlign: TextAlign.right,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                ...filteredTransactions.map((transaction) {
+                                  final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
+                                  return InkWell(
+                                    onTap: () => _showTransactionDetails(transaction),
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        border: Border(
+                                          bottom: BorderSide(color: Colors.grey[200]!),
+                                        ),
+                                      ),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(16.0),
+                                        child: Row(
+                                          children: [
+                                            Expanded(
+                                              flex: 2,
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    dateFormat.format(transaction.transactionDate),
+                                                    style: const TextStyle(fontSize: 14),
+                                                  ),
+                                                  if (transaction.description != null && transaction.description!.isNotEmpty)
+                                                    Text(
+                                                      transaction.description!,
+                                                      style: TextStyle(
+                                                        fontSize: 12,
+                                                        color: Colors.grey[600],
+                                                      ),
+                                                    ),
+                                                ],
+                                              ),
+                                            ),
+                                            Expanded(
+                                              child: Text(
+                                                transaction.type == 'reçu'
+                                                    ? transaction.amount.toStringAsFixed(2)
+                                                    : '',
+                                                style: const TextStyle(
+                                                  color: Colors.green,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                                textAlign: TextAlign.right,
+                                              ),
+                                            ),
+                                            Expanded(
+                                              child: Text(
+                                                transaction.type == 'payé'
+                                                    ? transaction.amount.toStringAsFixed(2)
+                                                    : '',
+                                                style: const TextStyle(
+                                                  color: Colors.red,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                                textAlign: TextAlign.right,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              ],
                             ),
                           ),
                         ),
-                        padding: const EdgeInsets.only(top: 8.0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: const [
-                            MyText(
-                              texte: "Solde:",
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16.0,
-                              color: Colors.black87,
+                      ),
+                      Container(
+                        padding: const EdgeInsets.all(16.0),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey.withOpacity(0.2),
+                              spreadRadius: 1,
+                              blurRadius: 5,
+                              offset: const Offset(0, -3),
                             ),
-                            MyText(
-                              texte: "900 Ar",
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16.0,
-                              color: Colors.blue,
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  "Total Reçu: ${totalReceived.toStringAsFixed(2)}",
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green,
+                                  ),
+                                ),
+                                Text(
+                                  "Total Payé: ${totalPaid.toStringAsFixed(2)}",
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.red,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 8.0),
+                              child: Divider(),
+                            ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  "Solde Total:",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  totalBalance.toStringAsFixed(2),
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: totalBalance >= 0 ? Colors.green : Colors.red,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    icon: const Icon(Icons.add, color: Colors.white),
+                                    label: const Text("Réçu", style: TextStyle(color: Colors.white)),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.green,
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                    ),
+                                    onPressed: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => const PaymentPage(initialType: 'reçu'),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    icon: const Icon(Icons.remove, color: Colors.white),
+                                    label: const Text("Payé", style: TextStyle(color: Colors.white)),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.red,
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                    ),
+                                    onPressed: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => const PaymentPage(initialType: 'payé'),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
                       ),
                     ],
-                  ),
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, stackTrace) => const Center(
+                  child: Text('Erreur lors du chargement des transactions'),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-      ),
-    );
-  }
-}
-
-class MyContainer extends StatelessWidget {
-  const MyContainer({
-    super.key,
-    this.child,
-    this.border,
-  });
-
-  final Widget? child;
-  final BoxBorder? border;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      width: double.infinity,
-      decoration: BoxDecoration(border: border),
-      child: child,
-    );
-  }
-}
-
-class TwoButtons extends StatelessWidget {
-  const TwoButtons(
-      {super.key, required this.texte, this.backgroundColor, this.onPressed});
-
-  final Color? backgroundColor;
-  final String texte;
-  final void Function()? onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(4.0),
-      child: FloatingActionButton(
-        backgroundColor: backgroundColor,
-        elevation: 0.3,
-        onPressed: onPressed,
-        child: Text(
-          texte,
-          style:
-              const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-        ),
-      ),
-    );
-  }
-}
-
-class AppbarActionList extends StatelessWidget {
-  const AppbarActionList({super.key, this.onPressed, this.icon, this.color});
-
-  final void Function()? onPressed;
-  final IconData? icon;
-  final Color? color;
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      onPressed: () {},
-      icon: Icon(
-        icon,
-        color: color ?? Colors.black,
       ),
     );
   }
 }
 
 class DrawerListMenu extends StatelessWidget {
+  final IconData icon;
+  final String texte;
+  final GestureTapCallback? onTap;
+
   const DrawerListMenu({
     super.key,
     required this.icon,
@@ -428,255 +736,61 @@ class DrawerListMenu extends StatelessWidget {
     this.onTap,
   });
 
-  final IconData icon;
-  final String texte;
-  final void Function()? onTap;
-
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: Icon(icon),
-      title: Text(texte),
-      onTap: onTap,
-    );
-  }
-}
-
-class DialogCompte extends StatefulWidget {
-  final List<String> comptes;
-  final Function() onModifier;
-  final Function(String) onAjouterCompte;
-
-  const DialogCompte({
-    super.key,
-    required this.comptes,
-    required this.onModifier,
-    required this.onAjouterCompte,
-  });
-
-  static void show(
-    BuildContext context, {
-    required List<String> comptes,
-    required Function() onModifier,
-    required Function(String) onAjouterCompte,
-  }) {
-    showDialog(
-      context: context,
-      builder: (context) => DialogCompte(
-        comptes: comptes,
-        onModifier: onModifier,
-        onAjouterCompte: onAjouterCompte,
+      leading: Icon(
+        icon,
+        color: Colors.blue,
+        size: 24,
       ),
+      title: Text(
+        texte,
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      onTap: onTap,
+      dense: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+      ),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 16.0,
+        vertical: 4.0,
+      ),
+      hoverColor: Colors.blue.withOpacity(0.1),
+      selectedTileColor: Colors.blue.withOpacity(0.1),
     );
   }
-
-  @override
-  State<DialogCompte> createState() => _DialogCompteState();
 }
 
-class _DialogCompteState extends State<DialogCompte> {
-  final TextEditingController _searchController = TextEditingController();
-  List<String> _filteredComptes = [];
+class AppbarActionList extends StatelessWidget {
+  final IconData icon;
+  final Color? color;
 
-  @override
-  void initState() {
-    super.initState();
-    _filteredComptes = widget.comptes;
-    _searchController.addListener(_filterComptes);
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _filterComptes() {
-    setState(() {
-      _filteredComptes = widget.comptes
-          .where((compte) => compte
-              .toLowerCase()
-              .contains(_searchController.text.toLowerCase()))
-          .toList();
-    });
-  }
+  const AppbarActionList({
+    super.key,
+    required this.icon,
+    this.color = Colors.white,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+    return IconButton(
+      icon: Icon(icon),
+      color: color,
+      splashRadius: 24,
+      tooltip: 'Action',
+      onPressed: () {},
+      padding: const EdgeInsets.all(8),
+      constraints: const BoxConstraints(
+        minWidth: 40,
+        minHeight: 40,
       ),
-      elevation: 0,
-      backgroundColor: Colors.transparent,
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 500, maxHeight: 400),
-        decoration: BoxDecoration(
-          color: Theme.of(context).dialogBackgroundColor,
-          borderRadius: BorderRadius.circular(2),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildHeader(),
-            _buildSearchBar(),
-            _buildComptesList(),
-            _buildFooter(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: Colors.grey.withOpacity(0.2),
-          ),
-        ),
-      ),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.account_balance_wallet,
-            color: Colors.blue,
-            size: 24,
-          ),
-          const SizedBox(width: 12),
-          const Expanded(
-            child: Text(
-              'Comptes',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          IconButton(
-            onPressed: widget.onModifier,
-            icon: const Icon(Icons.edit),
-            tooltip: 'Modifier',
-            color: Colors.blue,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSearchBar() {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: TextField(
-        controller: _searchController,
-        decoration: InputDecoration(
-          hintText: 'Rechercher un compte...',
-          prefixIcon: const Icon(Icons.search, color: Colors.blue),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(
-              color: Colors.grey.withOpacity(0.3),
-            ),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(
-              color: Colors.grey.withOpacity(0.3),
-            ),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(
-              color: Colors.blue,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildComptesList() {
-    return Expanded(
-      child: _filteredComptes.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.search_off,
-                    size: 48,
-                    color: Colors.grey.withOpacity(0.5),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Aucun compte trouvé',
-                    style: TextStyle(
-                      color: Colors.grey.withOpacity(0.8),
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
-              ),
-            )
-          : ListView.builder(
-              itemCount: _filteredComptes.length,
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              itemBuilder: (context, index) {
-                return ListTile(
-                  leading: const Icon(Icons.account_circle, color: Colors.blue),
-                  title: Text(
-                    _filteredComptes[index],
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  onTap: () => widget.onAjouterCompte(_filteredComptes[index]),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  hoverColor: Colors.blue.withOpacity(0.1),
-                );
-              },
-            ),
-    );
-  }
-
-  Widget _buildFooter() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(
-            color: Colors.grey.withOpacity(0.2),
-          ),
-        ),
-      ),
-      child: ElevatedButton.icon(
-        onPressed: () async {
-          Navigator.pop(context);
-          final CompteData? result = await CompteDialog.afficherDialog(context);
-          if (result != null) {
-            ListAccount.comptes.add(result.nom);
-          }
-        },
-        icon: const Icon(Icons.add),
-        label: const Text('Ajouter un compte'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blue,
-          foregroundColor: Colors.white,
-          minimumSize: const Size(double.infinity, 48),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-        ),
-      ),
+      splashColor: Colors.white.withOpacity(0.1),
+      highlightColor: Colors.white.withOpacity(0.1),
     );
   }
 }

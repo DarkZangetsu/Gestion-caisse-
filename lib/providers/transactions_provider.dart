@@ -1,11 +1,22 @@
 import 'package:caisse/providers/users_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../models/transaction.dart';
 import '../services/database_helper.dart';
+import 'accounts_provider.dart';
 
 final transactionsStateProvider = StateNotifierProvider<TransactionsNotifier, AsyncValue<List<Transaction>>>((ref) {
   return TransactionsNotifier(ref.read(databaseHelperProvider));
+});
+
+final filteredTransactionsProvider = Provider<List<Transaction>>((ref) {
+  final transactions = ref.watch(transactionsStateProvider);
+  final selectedAccount = ref.watch(selectedAccountProvider);
+
+  return transactions.when(
+    data: (data) => data.where((t) => t.accountId == selectedAccount?.id).toList(),
+    loading: () => [],
+    error: (_, __) => [],
+  );
 });
 
 class TransactionsNotifier extends StateNotifier<AsyncValue<List<Transaction>>> {
@@ -13,64 +24,34 @@ class TransactionsNotifier extends StateNotifier<AsyncValue<List<Transaction>>> 
 
   TransactionsNotifier(this._db) : super(const AsyncValue.data([]));
 
-  Future<void> getTransactions(String accountId) async {
+  Future<void> loadTransactions(String accountId) async {
+    print('Loading transactions for account: $accountId');
     state = const AsyncValue.loading();
     try {
       final transactions = await _db.getTransactions(accountId);
+      print('Loaded ${transactions.length} transactions');
       state = AsyncValue.data(transactions);
-    } catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
+    } catch (e, stackTrace) {
+      print('Error loading transactions: $e');
+      print('Stack trace: $stackTrace');
+      state = AsyncValue.error(e, stackTrace);
     }
   }
 
-  Future<void> createTransaction(Transaction transaction) async {
+  Future<void> addTransaction(Transaction transaction) async {
     try {
+      print('Adding transaction: ${transaction.toJson()}');
       final newTransaction = await _db.createTransaction(transaction);
-      state = AsyncValue.data([...state.value ?? [], newTransaction]);
-    } catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
-    }
-  }
+      print('Transaction added successfully: ${newTransaction.toJson()}');
 
-  Future<void> updateTransaction(Transaction transaction) async {
-    try {
-      final updatedTransaction = await _db.updateTransaction(transaction);
-      state = AsyncValue.data(
-        (state.value ?? []).map((t) => t.id == transaction.id ? updatedTransaction : t).toList(),
-      );
-    } catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
-    }
-  }
-
-  Future<void> deleteTransaction(String transactionId) async {
-    try {
-      await _db.deleteTransaction(transactionId);
-      state = AsyncValue.data(
-        (state.value ?? []).where((t) => t.id != transactionId).toList(),
-      );
-    } catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
-    }
-  }
-
-  Future<void> getTransactionsByChantier(String chantierId) async {
-    state = const AsyncValue.loading();
-    try {
-      final transactions = await _db.getTransactionsByChantier(chantierId);
-      state = AsyncValue.data(transactions);
-    } catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
-    }
-  }
-
-  Future<void> getTransactionsByPersonnel(String personnelId) async {
-    state = const AsyncValue.loading();
-    try {
-      final transactions = await _db.getTransactionsByPersonnel(personnelId);
-      state = AsyncValue.data(transactions);
-    } catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
+      // Mettre à jour l'état avec la nouvelle transaction
+      final currentTransactions = state.value ?? [];
+      state = AsyncValue.data([...currentTransactions, newTransaction]);
+    } catch (e, stackTrace) {
+      print('Error in addTransaction: $e');
+      print('Stack trace: $stackTrace');
+      state = AsyncValue.error(e, stackTrace);
+      throw e; // Relancer l'erreur pour la gestion dans _saveTransaction
     }
   }
 }

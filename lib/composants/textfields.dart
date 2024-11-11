@@ -6,7 +6,7 @@ class MyTextfields extends StatelessWidget {
     this.controller,
     this.hintText,
     this.keyboardType,
-    this.prefixIcon, this.border, this.onChanged, this.prefix, this.contentPadding,
+    this.prefixIcon, this.border, this.onChanged, this.prefix, this.contentPadding, required String? Function(dynamic value) validator,
   });
 
   final TextEditingController? controller;

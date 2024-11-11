@@ -1,203 +1,527 @@
-import 'package:caisse/composants/boutons.dart';
-import 'package:caisse/composants/texts.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart';
+import '../models/transaction.dart';
+import '../models/payment_type.dart';
+import '../models/personnel.dart';
+import '../models/chantier.dart';
+import '../providers/accounts_provider.dart';
+import '../providers/payment_methods_provider.dart';
+import '../providers/payment_types_provider.dart';
+import '../providers/transactions_provider.dart';
+import '../providers/personnel_provider.dart';
+import '../providers/chantiers_provider.dart';
+import '../providers/users_provider.dart';
 
-// Énumération pour le type de transaction
-enum TransactionType { received, paid }
+// Widget SearchableDropdown personnalisé
+class SearchableDropdown<T> extends StatefulWidget {
+  final List<T> items;
+  final T? value;
+  final String Function(T) getLabel;
+  final String Function(T) getSearchString;
+  final void Function(T?) onChanged;
+  final String label;
+  final String? Function(T?)? validator;
 
-class PaymentPage extends StatefulWidget {
-  const PaymentPage({super.key});
+  const SearchableDropdown({
+    Key? key,
+    required this.items,
+    required this.value,
+    required this.getLabel,
+    required this.getSearchString,
+    required this.onChanged,
+    required this.label,
+    this.validator,
+  }) : super(key: key);
 
   @override
-  State<PaymentPage> createState() => _PaymentPageState();
+  State<SearchableDropdown<T>> createState() => _SearchableDropdownState<T>();
 }
 
-class _PaymentPageState extends State<PaymentPage> {
-  // Variables d'état
-  TransactionType _selectedType = TransactionType.received;
-  DateTime _selectedDate = DateTime.now();
-  TimeOfDay _selectedTime = TimeOfDay.now();
-  final TextEditingController _amountController = TextEditingController();
-  final TextEditingController _remarksController = TextEditingController();
+class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
+  final TextEditingController _searchController = TextEditingController();
+  bool _isExpanded = false;
+  List<T> _filteredItems = [];
+  final LayerLink _layerLink = LayerLink();
+  OverlayEntry? _overlayEntry;
 
-  // Formateur de date
-  final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
+
+  @override
+  void initState() {
+    super.initState();
+    _filteredItems = widget.items;
+  }
 
   @override
   void dispose() {
-    _amountController.dispose();
-    _remarksController.dispose();
+    _searchController.dispose();
+    _removeOverlay();
     super.dispose();
   }
 
-  // Méthode pour sélectionner la date
-  Future<void> _selectDate() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-    );
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-      });
-    }
+  void _removeOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
   }
 
-  // Méthode pour sélectionner l'heure
-  Future<void> _selectTime() async {
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: _selectedTime,
-      initialEntryMode: TimePickerEntryMode.dial,
+  void _showOverlay() {
+    _removeOverlay();
+
+    final RenderBox renderBox = context.findRenderObject() as RenderBox;
+    final size = renderBox.size;
+
+    _overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        width: size.width,
+        child: CompositedTransformFollower(
+          link: _layerLink,
+          showWhenUnlinked: false,
+          offset: Offset(0, size.height + 5),
+          child: Material(
+            elevation: 4,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              constraints: BoxConstraints(
+                maxHeight: 200,
+                minWidth: size.width,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: Colors.grey[300]!),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: _filteredItems.length,
+                itemBuilder: (context, index) {
+                  final item = _filteredItems[index];
+                  return ListTile(
+                    dense: true,
+                    title: Text(widget.getLabel(item)),
+                    onTap: () {
+                      widget.onChanged(item);
+                      _removeOverlay();
+                      setState(() {
+                        _isExpanded = false;
+                        _searchController.text = widget.getLabel(item);
+                      });
+                    },
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      ),
     );
-    if (picked != null) {
-      setState(() {
-        _selectedTime = picked;
-      });
+
+    Overlay.of(context).insert(_overlayEntry!);
+  }
+
+  void _filterItems(String query) {
+    setState(() {
+      _filteredItems = widget.items
+          .where((item) => widget
+          .getSearchString(item)
+          .toLowerCase()
+          .contains(query.toLowerCase()))
+          .toList();
+    });
+
+    if (_isExpanded) {
+      _removeOverlay();
+      _showOverlay();
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    return FormField<T>(
+      validator: widget.validator,
+      builder: (FormFieldState<T> field) {
+        return CompositedTransformTarget(
+          link: _layerLink,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextFormField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  labelText: widget.label,
+                  suffixIcon: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (widget.value != null)
+                        IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            widget.onChanged(null);
+                            _searchController.clear();
+                            _filterItems('');
+                          },
+                        ),
+                      IconButton(
+                        icon: Icon(
+                          _isExpanded ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _isExpanded = !_isExpanded;
+                            if (_isExpanded) {
+                              _showOverlay();
+                            } else {
+                              _removeOverlay();
+                            }
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                onTap: () {
+                  if (!_isExpanded) {
+                    setState(() {
+                      _isExpanded = true;
+                      _showOverlay();
+                    });
+                  }
+                },
+                onChanged: _filterItems,
+              ),
+              if (field.hasError)
+                Padding(
+                  padding: const EdgeInsets.only(left: 12, top: 8),
+                  child: Text(
+                    field.errorText!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class PaymentPage extends ConsumerStatefulWidget {
+  final String initialType;
+
+  const PaymentPage({
+    super.key,
+    this.initialType = 'reçu', // valeur par défaut
+  });
+
+  @override
+  ConsumerState<PaymentPage> createState() => _PaymentPageState();
+}
+
+
+class _PaymentPageState extends ConsumerState<PaymentPage> {
+  final _formKey = GlobalKey<FormState>();
+  DateTime _transactionDate = DateTime.now();
+  final _amountController = TextEditingController();
+  final _descriptionController = TextEditingController();
+  String? _selectedPaymentMethodId;
+  String? _selectedPaymentTypeId;
+  String? _selectedChantierId;
+  String? _selectedPersonnelId;
+
+  late String _type;
+
+  @override
+  void initState() {
+    super.initState();
+    _type = widget.initialType; // Initialiser avec le type passé
+
+    Future.microtask(() {
+      final userId = ref.read(currentUserProvider)?.id ?? '';
+      ref.read(paymentMethodsProvider.notifier).getPaymentMethods();
+      ref.read(paymentTypesProvider.notifier).getPaymentTypes();
+      ref.read(personnelStateProvider.notifier).getPersonnel(userId);
+    });
+  }
+
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveTransaction() async {
+    if (!_formKey.currentState!.validate()) {
+      print('Form validation failed');
+      return;
+    }
+
+    final selectedAccount = ref.read(selectedAccountProvider);
+    if (selectedAccount == null) {
+      print('No account selected');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Veuillez sélectionner un compte')),
+      );
+      return;
+    }
+
+    // Vérification des champs requis
+    if (_selectedPaymentMethodId == null || _selectedPaymentTypeId == null) {
+      print('Required fields missing');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Veuillez remplir tous les champs requis')),
+      );
+      return;
+    }
+
+    print('Creating transaction with account ID: ${selectedAccount.id}');
+
+    // Générer un UUID v4 valide pour l'ID
+    final uuid = Uuid();
+    final transaction = Transaction(
+      id: uuid.v4(), // Utilisation d'un UUID v4 au lieu d'un timestamp
+      accountId: selectedAccount.id,
+      chantierId: _selectedChantierId,
+      personnelId: _selectedPersonnelId,
+      paymentMethodId: _selectedPaymentMethodId!,
+      paymentTypeId: _selectedPaymentTypeId!,
+      description: _descriptionController.text,
+      amount: double.parse(_amountController.text),
+      transactionDate: _transactionDate,
+      type: _type,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    print('Transaction object created: ${transaction.toJson()}');
+
+    try {
+      await ref.read(transactionsStateProvider.notifier).addTransaction(transaction);
+      print('Transaction added successfully');
+
+      // Recharger les transactions pour le compte sélectionné
+      await ref.read(transactionsStateProvider.notifier).loadTransactions(selectedAccount.id);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Transaction enregistrée avec succès')),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e, stackTrace) {
+      print('Error adding transaction: $e');
+      print('Stack trace: $stackTrace');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur lors de l\'enregistrement: ${e.toString()}')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final userId = ref.watch(currentUserProvider)?.id ?? '';
+    final paymentMethodsAsync = ref.watch(paymentMethodsProvider);
+    final paymentTypesAsync = ref.watch(paymentTypesProvider);
+    final personnelAsync = ref.watch(personnelStateProvider);
+    // Utiliser chantiersProvider avec userId
+    final chantiersAsync = ref.watch(chantiersProvider(userId));
+
+    List<PaymentType> filteredPaymentTypes = paymentTypesAsync.when(
+      data: (types) => types
+          .where((type) =>
+      _type == 'reçu' ? type.category == 'revenu' : type.category == 'dépense')
+          .toList(),
+      loading: () => [],
+      error: (_, __) => [],
+    );
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          _selectedType == TransactionType.received ? "Reçu" : "Payé",
-          style: const TextStyle(color: Colors.white),
-        ),
-        backgroundColor: Colors.blue,
+        title: Text(_type == 'reçu' ? 'Reçu' : 'Payé'),
+        backgroundColor: _type == 'reçu' ? Colors.green : Colors.red,
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Card(
-            elevation: 4,
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Sélection du type de transaction
-                  SegmentedButton<TransactionType>(
-                    segments: const [
-                      ButtonSegment(
-                        value: TransactionType.received,
-                        label: Text('Reçu'),
-                      ),
-                      ButtonSegment(
-                        value: TransactionType.paid,
-                        label: Text('Payé'),
-                      ),
-                    ],
-                    selected: {_selectedType},
-                    onSelectionChanged: (Set<TransactionType> selection) {
-                      setState(() {
-                        _selectedType = selection.first;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 16),
+      body: Form(
+          key: _formKey,
+          child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+          // Type de transaction
+          SegmentedButton<String>(
+          segments: const [
+              ButtonSegment(value: 'reçu', label: Text('Reçu')),
+          ButtonSegment(value: 'payé', label: Text('Payé')),
+          ],
+      selected: {_type},
+          onSelectionChanged: (Set<String> selection) {
+    setState(() {
+    _type = selection.first;
+    _selectedPaymentTypeId = null;
+    });
+    },
+    ),
+    const SizedBox(height: 16),
 
-                  // Champ de montant
-                  TextField(
-                    controller: _amountController,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: 'Montant',
-                      prefixText: 'Ar ',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
+    // Montant
+    TextFormField(
+    controller: _amountController,
+    keyboardType: TextInputType.number,
+    decoration: const InputDecoration(
+    labelText: 'Montant',
+    prefixText: 'Ar ',
+    ),
+    validator: (value) {
+    if (value == null || value.isEmpty) {
+    return 'Veuillez entrer un montant';
+    }
+    if (double.tryParse(value) == null) {
+    return 'Veuillez entrer un montant valide';
+    }
+    return null;
+    },
+    ),
+    const SizedBox(height: 16),
+
+    // Date et heure
+    ListTile(
+    title: const Text('Date de transaction'),
+    subtitle: Text(DateFormat('dd/MM/yyyy HH:mm').format(_transactionDate)),
+    trailing: const Icon(Icons.calendar_today),
+    onTap: () async {
+    final date = await showDatePicker(
+    context: context,
+    initialDate: _transactionDate,
+    firstDate: DateTime(2000),
+    lastDate: DateTime(2100),
+    );
+    if (date != null) {
+    final time = await showTimePicker(
+    context: context,
+    initialTime: TimeOfDay.fromDateTime(_transactionDate),
+    );
+    if (time != null) {
+    setState(() {
+    _transactionDate = DateTime(
+    date.year,
+    date.month,
+    date.day,
+    time.hour,
+    time.minute,
+    );
+    });
+    }
+    }
+    },
+    ),
+    const SizedBox(height: 16),
+
+    // Chantier Dropdown
+                chantiersAsync.when(
+                  data: (chantiers) => SearchableDropdown<Chantier>(
+                    items: chantiers,
+                    value: chantiers.where((c) => c.id == _selectedChantierId).firstOrNull,
+                    getLabel: (chantier) => chantier.name,
+                    getSearchString: (chantier) => chantier.name,
+                    onChanged: (chantier) => setState(() => _selectedChantierId = chantier?.id),
+                    label: 'Chantier',
+                  ),
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (error, __) => Text('Erreur de chargement des chantiers: $error'),
+                ),
+    const SizedBox(height: 16),
+
+    // Personnel Dropdown
+    personnelAsync.when(
+    data: (personnelList) => SearchableDropdown<Personnel>(
+    items: personnelList,
+    value: personnelList.where((p) => p.id == _selectedPersonnelId).firstOrNull,
+    getLabel: (personnel) => personnel.name,
+    getSearchString: (personnel) => personnel.name,
+    onChanged: (personnel) => setState(() => _selectedPersonnelId = personnel?.id),
+    label: 'Personnel',
+    ),
+    loading: () => const Center(child: CircularProgressIndicator()),
+    error: (_, __) => const Text('Erreur de chargement du personnel'),
+    ),
+    const SizedBox(height: 16),
+
+    // Mode de paiement
+    paymentMethodsAsync.when(
+    data: (methods) => DropdownButtonFormField<String>(
+    value: _selectedPaymentMethodId,
+    decoration: const InputDecoration(
+    labelText: 'Mode de paiement',
+    ),
+    items: methods
+        .map((method) => DropdownMenuItem(
+    value: method.id,
+    child: Text(method.name),
+    ))
+        .toList(),
+    onChanged: (value) => setState(() => _selectedPaymentMethodId = value),
+    validator: (value) => value == null ? 'Champ requis' : null,
+    ),
+    loading: () => const Center(child: CircularProgressIndicator()),
+    error: (_, __) => const Text('Erreur de chargement des modes de paiement'),
+    ),
+    const SizedBox(height: 16),
+
+    // Type de paiement
+    paymentTypesAsync.when(
+    data: (_) => DropdownButtonFormField<String>(
+    value: _selectedPaymentTypeId,
+    decoration: const InputDecoration(
+    labelText: 'Type de paiement',
+    ),
+    items: filteredPaymentTypes
+        .map((type) => DropdownMenuItem(
+    value: type.id,
+    child: Text(type.name),
+    ))
+        .toList(),
+    onChanged: (value) => setState(() => _selectedPaymentTypeId = value),
+      validator: (value) => value == null ? 'Champ requis' : null,
+    ),
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => const Text('Erreur de chargement des types de paiement'),
+    ),
+                const SizedBox(height: 24),
+
+                // Description
+                TextFormField(
+                  controller: _descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Description',
+                  ),
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 24),
+
+                // Bouton de sauvegarde
+                SizedBox(
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: _saveTransaction,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _type == 'reçu' ? Colors.green : Colors.red,
+                    ),
+                    child: const Text(
+                      'Sauvegarder',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
-
-                  // Champ de remarques
-                  TextField(
-                    controller: _remarksController,
-                    maxLines: 3,
-                    decoration: InputDecoration(
-                      labelText: 'Remarques',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Sélection de date et heure
-                  Row(
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: OutlinedButton.icon(
-                          onPressed: _selectDate,
-                          icon: const Icon(Icons.calendar_today),
-                          label: Text(_dateFormat.format(_selectedDate)),
-                          style: OutlinedButton.styleFrom(
-                            alignment: Alignment.centerLeft,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: _selectTime,
-                          icon: const Icon(Icons.access_time),
-                          label: Text(
-                            _selectedTime.format(context),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            alignment: Alignment.centerLeft,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Bouton de validation
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      MyButtons(
-                        onPressed: () {},
-                        backgroundColor: Colors.blue[200],
-                        child: const MyText(
-                          texte: "Sauvegarder et quitter",
-                          color: Colors.blue,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(
-                        width: 10,
-                      ),
-                      MyButtons(
-                        onPressed: () {},
-                        backgroundColor: Colors.blue,
-                        child: const MyText(
-                          texte: "Sauvegarder et continuer",
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+                ),
+              ],
           ),
-        ),
       ),
     );
   }

@@ -2,13 +2,13 @@ class PaymentType {
   final String id;
   final String name;
   final String category;
-  final DateTime createdAt;
+  final DateTime? createdAt;
 
   PaymentType({
     required this.id,
     required this.name,
     required this.category,
-    required this.createdAt,
+    this.createdAt,
   });
 
   factory PaymentType.fromJson(Map<String, dynamic> json) {
@@ -25,7 +25,7 @@ class PaymentType {
       'id': id,
       'name': name,
       'category': category,
-      'created_at': createdAt.toIso8601String(),
+      'created_at': createdAt?.toIso8601String(),
     };
   }
 }

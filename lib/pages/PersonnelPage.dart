@@ -12,6 +12,7 @@ class PersonnelPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final userId = ref.watch(currentUserProvider)?.id;
+    final personnelAsyncValue = ref.watch(personnelStateProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -24,7 +25,7 @@ class PersonnelPage extends ConsumerWidget {
         ],
       ),
       body: userId != null
-          ? ref.watch(personnelProvider(userId)).when(
+          ? personnelAsyncValue.when(
         data: (personnelList) {
           if (personnelList.isEmpty) {
             return const Center(child: Text('Aucun personnel trouvé'));
@@ -34,7 +35,7 @@ class PersonnelPage extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stackTrace) => Center(child: Text('Erreur : $error')),
       )
-          : const Center(child: CircularProgressIndicator()),
+          : const Center(child: Text('Veuillez vous connecter')),
     );
   }
 
