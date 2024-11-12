@@ -34,9 +34,14 @@ class TodosNotifier extends StateNotifier<AsyncValue<List<Todo>>> {
 
   Future<void> updateTodo(Todo todo) async {
     try {
+      // Mettre à jour la tâche dans la base de données
       final updatedTodo = await _db.updateTodo(todo);
+
+      // Mettre à jour l'état dans l'AsyncValue
       state = AsyncValue.data(
-        (state.value ?? []).map((t) => t.id == todo.id ? updatedTodo : t).toList(),
+        (state.value ?? [])
+            .map((t) => t.id == updatedTodo.id ? updatedTodo : t)
+            .toList(),
       );
     } catch (e) {
       state = AsyncValue.error(e, StackTrace.current);

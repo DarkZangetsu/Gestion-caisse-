@@ -5,14 +5,7 @@ import '../services/database_helper.dart';
 
 final chantiersStateProvider = StateNotifierProvider<ChantiersNotifier, AsyncValue<List<Chantier>>>((ref) {
   final userId = ref.watch(currentUserProvider)?.id;
-  final notifier = ChantiersNotifier(ref.read(databaseHelperProvider), userId ?? '');
-
-  // Trigger initial load
-  if (userId != null) {
-    notifier.getChantiers(userId);
-  }
-
-  return notifier;
+  return ChantiersNotifier(ref.read(databaseHelperProvider), userId ?? '');
 });
 
 
@@ -28,13 +21,12 @@ class ChantiersNotifier extends StateNotifier<AsyncValue<List<Chantier>>> {
 
   Future<List<Chantier>> getChantiers(String userId) async {
     try {
-      final chantiers = await _db.getChantiers(userId);
-      return chantiers;
+      return await _db.getChantiers(userId);
     } catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
-      rethrow;
+      throw Exception("Erreur lors du chargement du chantier: $e");
     }
   }
+
 
   Future<void> loadChantiers(String userId) async {
     state = const AsyncValue.loading();

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../classHelper/class_account.dart';
+import '../../classHelper/class_modif_account.dart';
 import '../../models/accounts.dart';
 import '../../providers/accounts_provider.dart';
 
@@ -159,6 +160,28 @@ class _DialogCompteState extends ConsumerState<DialogCompte> {
             ),
           )
               : null,
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.edit),
+                onPressed: () {
+                  // Ouvrir le formulaire de modification du compte
+                  showDialog(
+                    context: context,
+                    builder: (context) => ModifierCompteDialog(compte: compte),
+                  );
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete),
+                onPressed: () {
+                  // Supprimer le compte
+                  ref.read(accountsStateProvider.notifier).deleteAccount(compte.id);
+                },
+              ),
+            ],
+          ),
           onTap: () {
             if (widget.onCompteSelectionne != null) {
               widget.onCompteSelectionne!(compte);

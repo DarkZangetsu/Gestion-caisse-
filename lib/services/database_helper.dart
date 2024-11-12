@@ -189,8 +189,7 @@ class DatabaseHelper {
           .from('chantiers')
           .select()
           .eq('user_id', userId);
-
-      print("Réponse brute des chantiers : $response"); // Debug
+      print("Réponse brute des chantiers : $response");
       return (response as List).map((json) => Chantier.fromJson(json)).toList();
     } catch (e) {
       throw Exception('Erreur lors de la récupération des chantiers: $e');
