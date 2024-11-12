@@ -15,6 +15,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  var _isDisplay = true;
 
   @override
   void dispose() {
@@ -45,6 +46,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
 
   @override
   Widget build(BuildContext context) {
+
     final userState = ref.watch(userStateProvider);
 
     return Form(
@@ -70,7 +72,15 @@ class _LoginFormState extends ConsumerState<LoginForm> {
           CustomTextField(
             label: 'Mot de passe',
             controller: _passwordController,
-            obscureText: true,
+            obscureText: _isDisplay,
+            suffixIcon: IconButton(
+              onPressed: () {
+                setState(() {
+                  _isDisplay = !_isDisplay;
+                });
+              }, 
+              icon: Icon(_isDisplay ? Icons.visibility_off : Icons.visibility),
+              ),
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return 'Veuillez entrer votre mot de passe';

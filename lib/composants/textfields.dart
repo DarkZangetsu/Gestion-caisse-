@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 
 class MyTextfields extends StatelessWidget {
-  const MyTextfields({
+  MyTextfields({
     super.key,
     this.controller,
     this.hintText,
     this.keyboardType,
-    this.prefixIcon, this.border, this.onChanged, this.prefix, this.contentPadding, required String? Function(dynamic value) validator,
+    this.prefixIcon,
+    this.border,
+    this.onChanged,
+    this.prefix,
+    this.contentPadding,
+    required String? Function(dynamic value) validator,
   });
 
   final TextEditingController? controller;
@@ -18,10 +23,12 @@ class MyTextfields extends StatelessWidget {
   final Widget? prefix;
   final EdgeInsetsGeometry? contentPadding;
 
+  final _formKey = GlobalKey<FormState>();
+
   @override
   Widget build(BuildContext context) {
     return TextField(
-      //textAlign: textAlign,
+      key: _formKey,
       onChanged: onChanged,
       controller: controller,
       keyboardType: keyboardType,

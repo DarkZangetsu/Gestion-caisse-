@@ -1,6 +1,10 @@
 import 'package:caisse/composants/boutons.dart';
+import 'package:caisse/composants/custom_search_delegate.dart';
+import 'package:caisse/composants/drawer_list_menu.dart';
+import 'package:caisse/composants/tab_bottom_resume.dart';
+import 'package:caisse/composants/tab_header.dart';
+import 'package:caisse/composants/text_transaction.dart';
 import 'package:caisse/composants/texts.dart';
-import 'package:caisse/pages/payment_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/accounts.dart';
@@ -28,7 +32,16 @@ class HomePage extends ConsumerStatefulWidget {
 
 class _HomePageState extends ConsumerState<HomePage> {
   int? _value = 1;
-  final filterChoice = ["Tous", "Quotidien", "Hebdomadaire", "Mensuel", "Annuel"];
+  final filterChoice = [
+    "Tous",
+    "Quotidien",
+    "Hebdomadaire",
+    "Mensuel",
+    "Annuel"
+  ];
+  String _searchQuery = '';
+  bool isSearching = false;
+  FocusNode focusNode = FocusNode();
 
   @override
   void initState() {
@@ -46,19 +59,22 @@ class _HomePageState extends ConsumerState<HomePage> {
           await ref.read(chantiersStateProvider.notifier).loadChantiers(userId);
           final chantiers = ref.read(chantiersStateProvider).value ?? [];
           print('Chantiers chargés: ${chantiers.length}');
-          print('Chantiers: ${chantiers.map((c) => '${c.id}: ${c.name}').join(', ')}');
+          print(
+              'Chantiers: ${chantiers.map((c) => '${c.id}: ${c.name}').join(', ')}');
 
           // Chargement du personnel
           await ref.read(personnelStateProvider.notifier).getPersonnel(userId);
           final personnel = ref.read(personnelStateProvider).value ?? [];
           print('Personnel chargé: ${personnel.length}');
-          print('Personnel: ${personnel.map((p) => '${p.id}: ${p.name}').join(', ')}');
+          print(
+              'Personnel: ${personnel.map((p) => '${p.id}: ${p.name}').join(', ')}');
 
           // Chargement des méthodes de paiement
           await ref.read(paymentMethodsProvider.notifier).getPaymentMethods();
           final methods = ref.read(paymentMethodsProvider).value ?? [];
           print('Méthodes de paiement chargées: ${methods.length}');
-          print('Méthodes: ${methods.map((m) => '${m.id}: ${m.name}').join(', ')}');
+          print(
+              'Méthodes: ${methods.map((m) => '${m.id}: ${m.name}').join(', ')}');
 
           // Chargement des types de paiement
           await ref.read(paymentTypesProvider.notifier).getPaymentTypes();
@@ -67,7 +83,9 @@ class _HomePageState extends ConsumerState<HomePage> {
           print('Types: ${types.map((t) => '${t.id}: ${t.name}').join(', ')}');
 
           // Chargement des transactions
-          await ref.read(transactionsStateProvider.notifier).loadTransactions(selectedAccount.id);
+          await ref
+              .read(transactionsStateProvider.notifier)
+              .loadTransactions(selectedAccount.id);
           final transactions = ref.read(transactionsStateProvider).value ?? [];
           print('Transactions chargées: ${transactions.length}');
         } catch (e) {
@@ -82,10 +100,13 @@ class _HomePageState extends ConsumerState<HomePage> {
       context,
       onCompteSelectionne: (Account selectedAccount) {
         ref.read(selectedAccountProvider.notifier).state = selectedAccount;
-        ref.read(transactionsStateProvider.notifier).loadTransactions(selectedAccount.id);
+        ref
+            .read(transactionsStateProvider.notifier)
+            .loadTransactions(selectedAccount.id);
       },
     );
   }
+
   void _showTransactionDetails(Transaction transaction) async {
     // Recharger les données avant d'afficher le dialogue
     final userId = ref.read(currentUserProvider)?.id;
@@ -130,7 +151,8 @@ class _HomePageState extends ConsumerState<HomePage> {
               typesState.hasError) {
             return AlertDialog(
               title: const Text('Erreur'),
-              content: const Text('Une erreur est survenue lors du chargement des données.'),
+              content: const Text(
+                  'Une erreur est survenue lors du chargement des données.'),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
@@ -147,10 +169,14 @@ class _HomePageState extends ConsumerState<HomePage> {
           final types = typesState.value ?? [];
 
           // Vérifier que toutes les données sont chargées
-          if (chantiers.isEmpty || personnel.isEmpty || methods.isEmpty || types.isEmpty) {
+          if (chantiers.isEmpty ||
+              personnel.isEmpty ||
+              methods.isEmpty ||
+              types.isEmpty) {
             return AlertDialog(
               title: const Text('Données manquantes'),
-              content: const Text('Certaines données n\'ont pas pu être chargées.'),
+              content:
+                  const Text('Certaines données n\'ont pas pu être chargées.'),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
@@ -183,12 +209,12 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
-
   Widget _buildTransactionDetails(WidgetRef ref, Transaction transaction) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _detailRow('Date:', DateFormat('dd/MM/yyyy HH:mm').format(transaction.transactionDate)),
+        _detailRow('Date:',
+            DateFormat('dd/MM/yyyy HH:mm').format(transaction.transactionDate)),
         _detailRow('Type:', transaction.type == 'reçu' ? 'Reçu' : 'Payé'),
         _detailRow('Montant:', '${transaction.amount.toStringAsFixed(2)} \Ar'),
         if (transaction.description?.isNotEmpty ?? false)
@@ -201,10 +227,12 @@ class _HomePageState extends ConsumerState<HomePage> {
             return chantiersAsync.when(
               data: (chantiers) {
                 final chantier = chantiers.firstWhere(
-                      (c) => c.id == transaction.chantierId,
+                  (c) => c.id == transaction.chantierId,
                   orElse: () {
-                    print('Chantier non trouvé pour l\'ID: ${transaction.chantierId}');
-                    print('Chantiers disponibles: ${chantiers.map((c) => '${c.id}: ${c.name}').join(', ')}');
+                    print(
+                        'Chantier non trouvé pour l\'ID: ${transaction.chantierId}');
+                    print(
+                        'Chantiers disponibles: ${chantiers.map((c) => '${c.id}: ${c.name}').join(', ')}');
                     return Chantier(id: '', name: 'Non trouvé', userId: '');
                   },
                 );
@@ -227,10 +255,12 @@ class _HomePageState extends ConsumerState<HomePage> {
             return personnelAsync.when(
               data: (personnel) {
                 final person = personnel.firstWhere(
-                      (p) => p.id == transaction.personnelId,
+                  (p) => p.id == transaction.personnelId,
                   orElse: () {
-                    print('Personnel non trouvé pour l\'ID: ${transaction.personnelId}');
-                    print('Personnel disponible: ${personnel.map((p) => '${p.id}: ${p.name}').join(', ')}');
+                    print(
+                        'Personnel non trouvé pour l\'ID: ${transaction.personnelId}');
+                    print(
+                        'Personnel disponible: ${personnel.map((p) => '${p.id}: ${p.name}').join(', ')}');
                     return Personnel(id: '', name: 'Non trouvé', userId: '');
                   },
                 );
@@ -253,18 +283,22 @@ class _HomePageState extends ConsumerState<HomePage> {
             return methodsAsync.when(
               data: (methods) {
                 final method = methods.firstWhere(
-                      (m) => m.id == transaction.paymentMethodId,
+                  (m) => m.id == transaction.paymentMethodId,
                   orElse: () {
-                    print('Méthode de paiement non trouvée pour l\'ID: ${transaction.paymentMethodId}');
-                    print('Méthodes disponibles: ${methods.map((m) => '${m.id}: ${m.name}').join(', ')}');
-                    return PaymentMethod(id: '', name: 'Non trouvé', createdAt: null);
+                    print(
+                        'Méthode de paiement non trouvée pour l\'ID: ${transaction.paymentMethodId}');
+                    print(
+                        'Méthodes disponibles: ${methods.map((m) => '${m.id}: ${m.name}').join(', ')}');
+                    return PaymentMethod(
+                        id: '', name: 'Non trouvé', createdAt: null);
                   },
                 );
                 return _detailRow('Mode de paiement:', method.name);
               },
               loading: () => _detailRow('Mode de paiement:', 'Chargement...'),
               error: (error, stack) {
-                print('Erreur lors du chargement des méthodes de paiement: $error');
+                print(
+                    'Erreur lors du chargement des méthodes de paiement: $error');
                 print(stack);
                 return _detailRow('Mode de paiement:', 'Erreur de chargement');
               },
@@ -279,18 +313,23 @@ class _HomePageState extends ConsumerState<HomePage> {
             return typesAsync.when(
               data: (types) {
                 final type = types.firstWhere(
-                      (t) => t.id == transaction.paymentTypeId,
+                  (t) => t.id == transaction.paymentTypeId,
                   orElse: () {
-                    print('Type de paiement non trouvé pour l\'ID: ${transaction.paymentTypeId}');
-                    print('Types disponibles: ${types.map((t) => '${t.id}: ${t.name}').join(', ')}');
-                    return PaymentType(id: '', name: 'Non trouvé', category: '');
+                    print(
+                        'Type de paiement non trouvé pour l\'ID: ${transaction.paymentTypeId}');
+                    print(
+                        'Types disponibles: ${types.map((t) => '${t.id}: ${t.name}').join(', ')}');
+                    return PaymentType(
+                        id: '', name: 'Non trouvé', category: '');
                   },
                 );
-                return _detailRow('Type de paiement:', '${type.name} (${type.category})');
+                return _detailRow(
+                    'Type de paiement:', '${type.name} (${type.category})');
               },
               loading: () => _detailRow('Type de paiement:', 'Chargement...'),
               error: (error, stack) {
-                print('Erreur lors du chargement des types de paiement: $error');
+                print(
+                    'Erreur lors du chargement des types de paiement: $error');
                 print(stack);
                 return _detailRow('Type de paiement:', 'Erreur de chargement');
               },
@@ -300,7 +339,6 @@ class _HomePageState extends ConsumerState<HomePage> {
       ],
     );
   }
-
 
 // Widget helper pour l'affichage des détails
   Widget _detailRow(String label, String value) {
@@ -332,6 +370,33 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
+  // Filter transactions based on search query
+  List<Transaction> _filterTransactions(List<Transaction> transactions) {
+    if (_searchQuery.isEmpty) {
+      return transactions;
+    }
+
+    final query = _searchQuery.toLowerCase();
+    return transactions.where((transaction) {
+      final description = transaction.description?.toLowerCase() ?? '';
+      final date = DateFormat('dd/MM/yyyy HH:mm')
+          .format(transaction.transactionDate)
+          .toLowerCase();
+      final amount = transaction.amount.toString();
+
+      return description.contains(query) ||
+          date.contains(query) ||
+          amount.contains(query);
+    }).toList();
+  }
+
+  Icon actionIcon = Icon(Icons.search);
+  late Widget appBarTitle;
+
+  void _handleSearch(String query) {
+    // Implement search logic here
+    print('Searching for: $query');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -339,81 +404,16 @@ class _HomePageState extends ConsumerState<HomePage> {
     final transactionsAsync = ref.watch(transactionsStateProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color(0xffea6b24),
-        title: Expanded(
-          child: TextButton(
-            onPressed: _showAccountDialog,
-            child: Row(
-              children: [
-                Text(
-                  selectedAccount?.name ?? 'Livre de Caisse',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14.0),
-                ),
-                const Icon(Icons.arrow_drop_down_outlined, color: Colors.white),
-              ],
-            ),
-          ),
-        ),
-        actions: const [
-          AppbarActionList(icon: Icons.list_alt_outlined, color: Colors.white),
-          AppbarActionList(icon: Icons.search, color: Colors.white),
-          AppbarActionList(icon: Icons.more_vert),
-        ],
+      appBar: SearchableAppBar(
+        selectedAccount: selectedAccount,
+        onAccountTap: _showAccountDialog,
+        onSearch: (query) {
+          setState(() {
+            _searchQuery = query;
+          });
+        },
       ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            const DrawerHeader(
-              decoration: BoxDecoration(
-                color: Color(0xffea6b24),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Text(
-                    "Menu Principal",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                ],
-              ),
-            ),
-            DrawerListMenu(
-              icon: Icons.business,
-              texte: "Chantier",
-              onTap: () => Navigator.pushNamed(context, '/chantier'),
-            ),
-            DrawerListMenu(
-              icon: Icons.people,
-              texte: "Personnel",
-              onTap: () => Navigator.pushNamed(context, '/personnel'),
-            ),
-            DrawerListMenu(
-              icon: Icons.checklist,
-              texte: "ToDo List",
-              onTap: () => Navigator.pushNamed(context, '/todos'),
-            ),
-            //const DrawerListMenu(icon: Icons.list_alt_rounded, texte: "Résumé"),
-            //const DrawerListMenu(icon: Icons.list_alt_rounded, texte: "Comptes Résumé"),
-            //const DrawerListMenu(icon: Icons.list, texte: "Transactions-Tous les"),
-            //const DrawerListMenu(icon: Icons.group, texte: "Comptes"),
-            //const DrawerListMenu(icon: Icons.swap_horiz, texte: "Transférer"),
-            //const DrawerListMenu(icon: Icons.save_sharp, texte: "Rapports-Tous les comptes"),
-            //const DrawerListMenu(icon: Icons.swap_horiz, texte: "Changer en Revenu Dépenses"),
-            //const DrawerListMenu(icon: Icons.money_rounded, texte: "Calculatrice de trésorerie"),
-            //const DrawerListMenu(icon: Icons.swap_vert, texte: "Sauvegarde et Restauration"),
-            const DrawerListMenu(icon: Icons.settings, texte: "Paramètres"),
-            const DrawerListMenu(icon: Icons.help_outline, texte: "Aide"),
-          ],
-        ),
-      ),
+      drawer: const MyDrawer(),
       body: SafeArea(
         child: Column(
           children: [
@@ -429,12 +429,17 @@ class _HomePageState extends ConsumerState<HomePage> {
                     padding: const EdgeInsets.symmetric(horizontal: 4.0),
                     child: ChoiceChip(
                       selectedColor: const Color(0xffea6b24),
-                      labelPadding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
+                      labelPadding: const EdgeInsets.symmetric(
+                          horizontal: 8.0, vertical: 2.0),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(50)),
                       side: const BorderSide(color: Colors.white),
                       label: Text(
                         filterChoice[index],
-                        style: TextStyle(color: _value == index ? Colors.white : Colors.black, fontSize: 14.0),
+                        style: TextStyle(
+                            color:
+                                _value == index ? Colors.white : Colors.black,
+                            fontSize: 14.0),
                       ),
                       selected: _value == index,
                       onSelected: (bool selected) {
@@ -451,29 +456,36 @@ class _HomePageState extends ConsumerState<HomePage> {
               child: transactionsAsync.when(
                 data: (transactions) {
                   if (transactions.isEmpty) {
+                    return const EmptyTransactionView();
+                  }
+
+                  final filteredTransactions = _filterTransactions(
+                    transactions
+                        .where((t) => t.accountId == selectedAccount?.id)
+                        .toList(),
+                  );
+
+                  // Show "No results found" when search yields no results
+                  if (filteredTransactions.isEmpty && _searchQuery.isNotEmpty) {
                     return Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.note_alt_outlined, size: 64, color: Colors.grey),
+                          const Icon(Icons.search_off, size: 64, color: Colors.grey),
                           const SizedBox(height: 16),
-                          const Text(
-                            'Aucune transaction',
-                            style: TextStyle(fontSize: 18, color: Colors.grey, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 8),
-                          MyButtons(
-                            backgroundColor: const Color(0xffea6b24),
-                            onPressed: () => Navigator.pushNamed(context, '/payement'),
-                            child: const MyText(texte: "Ajouter une transaction", color: Colors.white,),
+                          Text(
+                            'Aucun résultat trouvé pour "$_searchQuery"',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey,
                             ),
-                          
+                          ),
                         ],
                       ),
                     );
                   }
 
-                  final filteredTransactions = transactions.where((t) => t.accountId == selectedAccount?.id).toList();
+                   // Calculate totals based on filtered transactions
                   double totalReceived = 0;
                   double totalPaid = 0;
 
@@ -486,7 +498,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                   }
 
                   final balance = totalReceived - totalPaid;
-                  final totalBalance = balance + (selectedAccount?.solde ?? 0.0);
+                  final totalBalance =
+                      balance + (selectedAccount?.solde ?? 0.0);
 
                   return Column(
                     children: [
@@ -518,38 +531,34 @@ class _HomePageState extends ConsumerState<HomePage> {
                                   ),
                                   child: const Row(
                                     children: [
-                                      Expanded(
+                                      TabHeader(
                                         flex: 2,
-                                        child: Text(
-                                          'Date',
-                                          style: TextStyle(fontWeight: FontWeight.bold),
-                                        ),
+                                        text: 'Date',
                                       ),
-                                      Expanded(
-                                        child: Text(
-                                          'Reçu',
-                                          style: TextStyle(fontWeight: FontWeight.bold),
-                                          textAlign: TextAlign.right,
-                                        ),
+                                      TabHeader(
+                                        flex: 1,
+                                        text: 'Reçu',
+                                        textAlign: TextAlign.right,
                                       ),
-                                      Expanded(
-                                        child: Text(
-                                          'Payé',
-                                          style: TextStyle(fontWeight: FontWeight.bold),
-                                          textAlign: TextAlign.right,
-                                        ),
+                                      TabHeader(
+                                        flex: 1,
+                                        text: 'Payé',
+                                        textAlign: TextAlign.right,
                                       ),
                                     ],
                                   ),
                                 ),
                                 ...filteredTransactions.map((transaction) {
-                                  final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
+                                  final dateFormat =
+                                      DateFormat('dd/MM/yyyy HH:mm');
                                   return InkWell(
-                                    onTap: () => _showTransactionDetails(transaction),
+                                    onTap: () =>
+                                        _showTransactionDetails(transaction),
                                     child: Container(
                                       decoration: BoxDecoration(
                                         border: Border(
-                                          bottom: BorderSide(color: Colors.grey[200]!),
+                                          bottom: BorderSide(
+                                              color: Colors.grey[200]!),
                                         ),
                                       ),
                                       child: Padding(
@@ -559,13 +568,20 @@ class _HomePageState extends ConsumerState<HomePage> {
                                             Expanded(
                                               flex: 2,
                                               child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
                                                 children: [
                                                   Text(
-                                                    dateFormat.format(transaction.transactionDate),
-                                                    style: const TextStyle(fontSize: 14),
+                                                    dateFormat.format(
+                                                        transaction
+                                                            .transactionDate),
+                                                    style: const TextStyle(
+                                                        fontSize: 14),
                                                   ),
-                                                  if (transaction.description != null && transaction.description!.isNotEmpty)
+                                                  if (transaction.description !=
+                                                          null &&
+                                                      transaction.description!
+                                                          .isNotEmpty)
                                                     Text(
                                                       transaction.description!,
                                                       style: TextStyle(
@@ -576,29 +592,15 @@ class _HomePageState extends ConsumerState<HomePage> {
                                                 ],
                                               ),
                                             ),
-                                            Expanded(
-                                              child: Text(
-                                                transaction.type == 'reçu'
-                                                    ? transaction.amount.toStringAsFixed(2)
-                                                    : '',
-                                                style: const TextStyle(
-                                                  color: Colors.green,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                                textAlign: TextAlign.right,
-                                              ),
+                                            Text_transaction(
+                                              text: 'reçu',
+                                              transaction: transaction,
+                                              color: Colors.green,
                                             ),
-                                            Expanded(
-                                              child: Text(
-                                                transaction.type == 'payé'
-                                                    ? transaction.amount.toStringAsFixed(2)
-                                                    : '',
-                                                style: const TextStyle(
-                                                  color: Colors.red,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                                textAlign: TextAlign.right,
-                                              ),
+                                            Text_transaction(
+                                              text: 'payé',
+                                              transaction: transaction,
+                                              color: Colors.red,
                                             ),
                                           ],
                                         ),
@@ -611,6 +613,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                           ),
                         ),
                       ),
+
+                      // Bottom summary
                       Container(
                         padding: const EdgeInsets.all(16.0),
                         decoration: BoxDecoration(
@@ -624,93 +628,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                             ),
                           ],
                         ),
-                        child: Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  "Total Reçu: ${totalReceived.toStringAsFixed(2)}",
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.green,
-                                  ),
-                                ),
-                                Text(
-                                  "Total Payé: ${totalPaid.toStringAsFixed(2)}",
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.red,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 8.0),
-                              child: Divider(),
-                            ),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text(
-                                  "Solde Total:",
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                Text(
-                                  totalBalance.toStringAsFixed(2),
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: totalBalance >= 0 ? Colors.green : Colors.red,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: ElevatedButton.icon(
-                                    icon: const Icon(Icons.add, color: Colors.white),
-                                    label: const Text("Réçu", style: TextStyle(color: Colors.white)),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.green,
-                                      padding: const EdgeInsets.symmetric(vertical: 12),
-                                    ),
-                                    onPressed: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => const PaymentPage(initialType: 'reçu'),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: ElevatedButton.icon(
-                                    icon: const Icon(Icons.remove, color: Colors.white),
-                                    label: const Text("Payé", style: TextStyle(color: Colors.white)),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.red,
-                                      padding: const EdgeInsets.symmetric(vertical: 12),
-                                    ),
-                                    onPressed: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => const PaymentPage(initialType: 'payé'),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
+                        child: TabBottomResume(
+                            totalReceived: totalReceived,
+                            totalPaid: totalPaid,
+                            totalBalance: totalBalance),
                       ),
                     ],
                   );
@@ -728,44 +649,125 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 }
 
-class DrawerListMenu extends StatelessWidget {
-  final IconData icon;
-  final String texte;
-  final GestureTapCallback? onTap;
-
-  const DrawerListMenu({
+class MyDrawer extends StatelessWidget {
+  const MyDrawer({
     super.key,
-    required this.icon,
-    required this.texte,
-    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(
-        icon,
-        color: const Color(0xffea6b24),
-        size: 24,
+    return Drawer(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          DrawerHeader(
+            decoration: const BoxDecoration(
+              color: Color(0xffea6b24),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Container(
+                  alignment: Alignment.center,
+                  width: double.infinity,
+                  height: 80,
+                  child: Image.asset(
+                    'img/Logo.png',
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                const MyText(
+                  texte: "Menu Principal",
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 10),
+              ],
+            ),
+          ),
+          DrawerListMenu(
+            icon: Icons.business,
+            texte: "Chantier",
+            onTap: () => Navigator.pushNamed(context, '/chantier'),
+          ),
+          DrawerListMenu(
+            icon: Icons.people,
+            texte: "Personnel",
+            onTap: () => Navigator.pushNamed(context, '/personnel'),
+          ),
+          DrawerListMenu(
+            icon: Icons.checklist,
+            texte: "ToDo List",
+            onTap: () => Navigator.pushNamed(context, '/todos'),
+          ),
+          const DrawerListMenu(icon: Icons.settings, texte: "Paramètres"),
+          const DrawerListMenu(icon: Icons.help_outline, texte: "Aide"),
+        ],
       ),
-      title: Text(
-        texte,
-        style: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
+    );
+  }
+}
+
+class MyPopupMenuButton extends StatelessWidget {
+  const MyPopupMenuButton({
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton(
+      color: Colors.white,
+      itemBuilder: (context) => [
+        const PopupMenuItem(
+          value: "Recherche par mot clé",
+          child: Text("Recherche par mot clé"),
         ),
-      ),
-      onTap: onTap,
-      dense: true,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-      ),
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 16.0,
-        vertical: 4.0,
-      ),
-      hoverColor: const Color(0xffea6b24).withOpacity(0.1),
-      selectedTileColor: const Color(0xffea6b24).withOpacity(0.1),
+        const PopupMenuItem(
+          value: "Tous",
+          child: Text("Tous"),
+        ),
+        const PopupMenuItem(
+          value: "Quotidien",
+          child: Text("Quotidien"),
+        ),
+        const PopupMenuItem(
+          value: "Hebdomadaire",
+          child: Text("Hebdomadaire"),
+        ),
+        const PopupMenuItem(
+          value: "Mensuel",
+          child: Text("Mensuel"),
+        ),
+        const PopupMenuItem(
+          value: "Annuel",
+          child: Text("Annuel"),
+        ),
+        const PopupMenuItem(
+          value: "Date",
+          child: Text("Date"),
+        ),
+        const PopupMenuItem(
+          value: "Sélectionnez une période",
+          child: Text("Sélectionnez une période"),
+        ),
+        const PopupMenuItem(
+          value: "Rapports",
+          child: Text("Rapports"),
+        ),
+        const PopupMenuItem(
+          value: "Date Ascendant",
+          child: Text("Date Ascendant"),
+        ),
+        const PopupMenuItem(
+          value: "Date Descendant",
+          child: Text("Date Descendant"),
+        ),
+      ],
+      onSelected: (String newValue) {},
     );
   }
 }
@@ -773,11 +775,13 @@ class DrawerListMenu extends StatelessWidget {
 class AppbarActionList extends StatelessWidget {
   final IconData icon;
   final Color? color;
+  final void Function()? onPressed;
 
   const AppbarActionList({
     super.key,
     required this.icon,
     this.color = Colors.white,
+    this.onPressed,
   });
 
   @override
@@ -787,7 +791,7 @@ class AppbarActionList extends StatelessWidget {
       color: color,
       splashRadius: 24,
       tooltip: 'Action',
-      onPressed: () {},
+      onPressed: onPressed,
       padding: const EdgeInsets.all(8),
       constraints: const BoxConstraints(
         minWidth: 40,
@@ -795,6 +799,41 @@ class AppbarActionList extends StatelessWidget {
       ),
       splashColor: Colors.white.withOpacity(0.1),
       highlightColor: Colors.white.withOpacity(0.1),
+    );
+  }
+}
+
+// Extracted widgets for better organization
+class EmptyTransactionView extends StatelessWidget {
+  const EmptyTransactionView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.note_alt_outlined, size: 64, color: Colors.grey),
+          const SizedBox(height: 16),
+          const Text(
+            'Aucune transaction',
+            style: TextStyle(
+              fontSize: 18,
+              color: Colors.grey,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          MyButtons(
+            backgroundColor: const Color(0xffea6b24),
+            onPressed: () => Navigator.pushNamed(context, '/payement'),
+            child: const MyText(
+              texte: "Ajouter une transaction",
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
