@@ -1,6 +1,6 @@
-import 'package:caisse/composants/boutons.dart';
 import 'package:caisse/composants/custom_search_delegate.dart';
 import 'package:caisse/composants/drawer_list_menu.dart';
+import 'package:caisse/composants/empty_transaction_view.dart';
 import 'package:caisse/composants/tab_bottom_resume.dart';
 import 'package:caisse/composants/tab_header.dart';
 import 'package:caisse/composants/text_transaction.dart';
@@ -42,6 +42,9 @@ class _HomePageState extends ConsumerState<HomePage> {
   String _searchQuery = '';
   bool isSearching = false;
   FocusNode focusNode = FocusNode();
+  Icon actionIcon = const Icon(Icons.search);
+  late Widget appBarTitle;
+  String _selectedTimeframeFilter = 'Tous';
 
   @override
   void initState() {
@@ -372,7 +375,7 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   // Filter transactions based on search query
   List<Transaction> _filterTransactions(List<Transaction> transactions) {
-    if (_searchQuery.isEmpty) {
+    if (_searchQuery.isEmpty && _selectedTimeframeFilter == 'Tous') {
       return transactions;
     }
 
@@ -384,18 +387,33 @@ class _HomePageState extends ConsumerState<HomePage> {
           .toLowerCase();
       final amount = transaction.amount.toString();
 
+      if (_selectedTimeframeFilter != 'Tous') {
+        final now = DateTime.now();
+        final transactionDate = transaction.transactionDate;
+        if (_selectedTimeframeFilter == 'Quotidien') {
+          if (!transactionDate.isAtSameMomentAs(now)) {
+            return false;
+          }
+        } else if (_selectedTimeframeFilter == 'Hebdomadaire') {
+          if (transactionDate.difference(now).inDays > 7) {
+            return false;
+          }
+        } else if (_selectedTimeframeFilter == 'Mensuel') {
+          if (transactionDate.month != now.month ||
+              transactionDate.year != now.year) {
+            return false;
+          }
+        } else if (_selectedTimeframeFilter == 'Annuel') {
+          if (transactionDate.year != now.year) {
+            return false;
+          }
+        }
+      }
+
       return description.contains(query) ||
           date.contains(query) ||
           amount.contains(query);
     }).toList();
-  }
-
-  Icon actionIcon = Icon(Icons.search);
-  late Widget appBarTitle;
-
-  void _handleSearch(String query) {
-    // Implement search logic here
-    print('Searching for: $query');
   }
 
   @override
@@ -445,11 +463,29 @@ class _HomePageState extends ConsumerState<HomePage> {
                       onSelected: (bool selected) {
                         setState(() {
                           _value = selected ? index : null;
+                          _selectedTimeframeFilter =
+                              selected ? filterChoice[index] : 'Tous';
                         });
                       },
                     ),
                   );
                 },
+              ),
+            ),
+            //Container de resultat de filtre par chip
+            Container(
+              width: double.infinity,
+              height: 40.0,
+              decoration: const BoxDecoration(
+                  color: Color(0xffea6b24),
+                  border:
+                      Border(top: BorderSide(width: 0.5, color: Colors.white))),
+              child: Center(
+                child: MyText(
+                  texte: _selectedTimeframeFilter,
+                  color: Colors.white,
+                  fontSize: 16.0,
+                ),
               ),
             ),
             Expanded(
@@ -471,7 +507,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.search_off, size: 64, color: Colors.grey),
+                          const Icon(Icons.search_off,
+                              size: 64, color: Colors.grey),
                           const SizedBox(height: 16),
                           Text(
                             'Aucun résultat trouvé pour "$_searchQuery"',
@@ -485,11 +522,34 @@ class _HomePageState extends ConsumerState<HomePage> {
                     );
                   }
 
-                   // Calculate totals based on filtered transactions
+                  // Filter transactions based on selected filter
+                  List<Transaction> visibleTransactions;
+                  if (_selectedTimeframeFilter == 'Tous') {
+                    visibleTransactions = filteredTransactions;
+                  } else {
+                    final now = DateTime.now();
+                    visibleTransactions =
+                        filteredTransactions.where((transaction) {
+                      final transactionDate = transaction.transactionDate;
+                      if (_selectedTimeframeFilter == 'Quotidien') {
+                        return transactionDate.isAtSameMomentAs(now);
+                      } else if (_selectedTimeframeFilter == 'Hebdomadaire') {
+                        return transactionDate.difference(now).inDays <= 7;
+                      } else if (_selectedTimeframeFilter == 'Mensuel') {
+                        return transactionDate.month == now.month &&
+                            transactionDate.year == now.year;
+                      } else if (_selectedTimeframeFilter == 'Annuel') {
+                        return transactionDate.year == now.year;
+                      }
+                      return false;
+                    }).toList();
+                  }
+
+                  // Calculate totals based on filtered transactions
                   double totalReceived = 0;
                   double totalPaid = 0;
 
-                  for (var transaction in filteredTransactions) {
+                  for (var transaction in visibleTransactions) {
                     if (transaction.type == 'reçu') {
                       totalReceived += transaction.amount;
                     } else {
@@ -548,64 +608,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                                     ],
                                   ),
                                 ),
-                                ...filteredTransactions.map((transaction) {
-                                  final dateFormat =
-                                      DateFormat('dd/MM/yyyy HH:mm');
-                                  return InkWell(
+                                ...visibleTransactions.map((transaction) {
+                                  return TransactionRow(
+                                    transaction: transaction,
                                     onTap: () =>
                                         _showTransactionDetails(transaction),
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        border: Border(
-                                          bottom: BorderSide(
-                                              color: Colors.grey[200]!),
-                                        ),
-                                      ),
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(16.0),
-                                        child: Row(
-                                          children: [
-                                            Expanded(
-                                              flex: 2,
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    dateFormat.format(
-                                                        transaction
-                                                            .transactionDate),
-                                                    style: const TextStyle(
-                                                        fontSize: 14),
-                                                  ),
-                                                  if (transaction.description !=
-                                                          null &&
-                                                      transaction.description!
-                                                          .isNotEmpty)
-                                                    Text(
-                                                      transaction.description!,
-                                                      style: TextStyle(
-                                                        fontSize: 12,
-                                                        color: Colors.grey[600],
-                                                      ),
-                                                    ),
-                                                ],
-                                              ),
-                                            ),
-                                            Text_transaction(
-                                              text: 'reçu',
-                                              transaction: transaction,
-                                              color: Colors.green,
-                                            ),
-                                            Text_transaction(
-                                              text: 'payé',
-                                              transaction: transaction,
-                                              color: Colors.red,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
                                   );
                                 }).toList(),
                               ],
@@ -803,36 +810,65 @@ class AppbarActionList extends StatelessWidget {
   }
 }
 
-// Extracted widgets for better organization
-class EmptyTransactionView extends StatelessWidget {
-  const EmptyTransactionView({super.key});
+class TransactionRow extends StatelessWidget {
+  final Transaction transaction;
+  final VoidCallback onTap;
+
+  const TransactionRow({
+    super.key,
+    required this.transaction,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.note_alt_outlined, size: 64, color: Colors.grey),
-          const SizedBox(height: 16),
-          const Text(
-            'Aucune transaction',
-            style: TextStyle(
-              fontSize: 18,
-              color: Colors.grey,
-              fontWeight: FontWeight.bold,
-            ),
+    final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: Colors.grey[200]!),
           ),
-          const SizedBox(height: 8),
-          MyButtons(
-            backgroundColor: const Color(0xffea6b24),
-            onPressed: () => Navigator.pushNamed(context, '/payement'),
-            child: const MyText(
-              texte: "Ajouter une transaction",
-              color: Colors.white,
-            ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      dateFormat.format(transaction.transactionDate),
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                    if (transaction.description != null &&
+                        transaction.description!.isNotEmpty)
+                      Text(
+                        transaction.description!,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Text_transaction(
+                text: 'reçu',
+                transaction: transaction,
+                color: Colors.green,
+              ),
+              Text_transaction(
+                text: 'payé',
+                transaction: transaction,
+                color: Colors.red,
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
