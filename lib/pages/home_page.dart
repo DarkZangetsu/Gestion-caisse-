@@ -32,19 +32,61 @@ class HomePage extends ConsumerStatefulWidget {
 
 class _HomePageState extends ConsumerState<HomePage> {
   int? _value = 1;
-  final filterChoice = [
-    "Tous",
-    "Quotidien",
-    "Hebdomadaire",
-    "Mensuel",
-    "Annuel"
-  ];
+  var filterChoice = ["Tous", "Quotidien", "Hebdomadaire", "Mensuel", "Annuel"];
   String _searchQuery = '';
   bool isSearching = false;
   FocusNode focusNode = FocusNode();
   Icon actionIcon = const Icon(Icons.search);
   late Widget appBarTitle;
   String _selectedTimeframeFilter = 'Tous';
+
+  // Extension method to check dates
+  bool _isToday(DateTime date) {
+    final now = DateTime.now();
+    return date.year == now.year &&
+        date.month == now.month &&
+        date.day == now.day;
+  }
+
+  bool _isThisWeek(DateTime date) {
+    final now = DateTime.now();
+    // Find the most recent Monday (beginning of week)
+    final monday = now.subtract(Duration(days: now.weekday - 1));
+    // Set time to start of day (00:00:00)
+    final startOfWeek = DateTime(monday.year, monday.month, monday.day);
+    // Find the next Sunday (end of week)
+    final sunday = startOfWeek.add(const Duration(days: 6));
+    // Set time to end of day (23:59:59)
+    final endOfWeek =
+        DateTime(sunday.year, sunday.month, sunday.day, 23, 59, 59);
+
+    // Check if date falls within the current week
+    return date.isAfter(startOfWeek.subtract(const Duration(seconds: 1))) &&
+        date.isBefore(endOfWeek.add(const Duration(seconds: 1)));
+  }
+
+  bool _isThisMonth(DateTime date) {
+    final now = DateTime.now();
+    // First day of current month
+    final startOfMonth = DateTime(now.year, now.month, 1);
+    // Calculate last day of current month
+    final lastDay = DateTime(now.year, now.month + 1, 0);
+    final endOfMonth = DateTime(now.year, now.month, lastDay.day, 23, 59, 59);
+
+    return date.isAfter(startOfMonth.subtract(const Duration(seconds: 1))) &&
+        date.isBefore(endOfMonth.add(const Duration(seconds: 1)));
+  }
+
+  bool _isThisYear(DateTime date) {
+    final now = DateTime.now();
+    // First day of current year
+    final startOfYear = DateTime(now.year, 1, 1);
+    // Last day of current year
+    final endOfYear = DateTime(now.year, 12, 31, 23, 59, 59);
+
+    return date.isAfter(startOfYear.subtract(const Duration(seconds: 1))) &&
+        date.isBefore(endOfYear.add(const Duration(seconds: 1)));
+  }
 
   @override
   void initState() {
@@ -142,8 +184,10 @@ class _HomePageState extends ConsumerState<HomePage> {
               personnelState.isLoading ||
               methodsState.isLoading ||
               typesState.isLoading) {
-            return const AlertDialog(
-              content: Center(child: CircularProgressIndicator()),
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4)),
+              content: const Center(child: CircularProgressIndicator()),
             );
           }
 
@@ -153,6 +197,8 @@ class _HomePageState extends ConsumerState<HomePage> {
               methodsState.hasError ||
               typesState.hasError) {
             return AlertDialog(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4)),
               title: const Text('Erreur'),
               content: const Text(
                   'Une erreur est survenue lors du chargement des données.'),
@@ -177,6 +223,8 @@ class _HomePageState extends ConsumerState<HomePage> {
               methods.isEmpty ||
               types.isEmpty) {
             return AlertDialog(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4)),
               title: const Text('Données manquantes'),
               content:
                   const Text('Certaines données n\'ont pas pu être chargées.'),
@@ -190,6 +238,8 @@ class _HomePageState extends ConsumerState<HomePage> {
           }
 
           return AlertDialog(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
             title: const Text('Détails de la Transaction'),
             content: SingleChildScrollView(
               child: Column(
@@ -202,8 +252,13 @@ class _HomePageState extends ConsumerState<HomePage> {
             ),
             actions: [
               TextButton(
+                style: TextButton.styleFrom(
+                    backgroundColor: const Color(0xffea6b24)),
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Fermer'),
+                child: const MyText(
+                  texte: 'Fermer',
+                  color: Colors.white,
+                ),
               ),
             ],
           );
@@ -374,41 +429,70 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   // Filter transactions based on search query
+  // Debug helper method
+  void _printDateRange(String filterType) {
+    final now = DateTime.now();
+    switch (filterType) {
+      case 'Hebdomadaire':
+        final monday = now.subtract(Duration(days: now.weekday - 1));
+        final startOfWeek = DateTime(monday.year, monday.month, monday.day);
+        final sunday = startOfWeek.add(const Duration(days: 6));
+        print(
+            'Week range: ${DateFormat('yyyy-MM-dd').format(startOfWeek)} to ${DateFormat('yyyy-MM-dd').format(sunday)}');
+        break;
+      case 'Mensuel':
+        final startOfMonth = DateTime(now.year, now.month, 1);
+        final lastDay = DateTime(now.year, now.month + 1, 0);
+        print(
+            'Month range: ${DateFormat('yyyy-MM-dd').format(startOfMonth)} to ${DateFormat('yyyy-MM-dd').format(lastDay)}');
+        break;
+    }
+  }
+
   List<Transaction> _filterTransactions(List<Transaction> transactions) {
     if (_searchQuery.isEmpty && _selectedTimeframeFilter == 'Tous') {
       return transactions;
     }
 
-    final query = _searchQuery.toLowerCase();
-    return transactions.where((transaction) {
-      final description = transaction.description?.toLowerCase() ?? '';
-      final date = DateFormat('dd/MM/yyyy HH:mm')
-          .format(transaction.transactionDate)
-          .toLowerCase();
-      final amount = transaction.amount.toString();
+    // Debug print for date ranges
+    _printDateRange(_selectedTimeframeFilter);
 
+    final String query = _searchQuery.toLowerCase();
+    return transactions.where((transaction) {
+      // First apply date filter
+      bool passesDateFilter = true;
       if (_selectedTimeframeFilter != 'Tous') {
-        final now = DateTime.now();
-        final transactionDate = transaction.transactionDate;
-        if (_selectedTimeframeFilter == 'Quotidien') {
-          if (!transactionDate.isAtSameMomentAs(now)) {
-            return false;
-          }
-        } else if (_selectedTimeframeFilter == 'Hebdomadaire') {
-          if (transactionDate.difference(now).inDays > 7) {
-            return false;
-          }
-        } else if (_selectedTimeframeFilter == 'Mensuel') {
-          if (transactionDate.month != now.month ||
-              transactionDate.year != now.year) {
-            return false;
-          }
-        } else if (_selectedTimeframeFilter == 'Annuel') {
-          if (transactionDate.year != now.year) {
-            return false;
-          }
+        final DateTime transactionDate = transaction.transactionDate;
+        switch (_selectedTimeframeFilter) {
+          case 'Quotidien':
+            passesDateFilter = _isToday(transactionDate);
+            break;
+          case 'Hebdomadaire':
+            passesDateFilter = _isThisWeek(transactionDate);
+            break;
+          case 'Mensuel':
+            passesDateFilter = _isThisMonth(transactionDate);
+            break;
+          case 'Annuel':
+            passesDateFilter = _isThisYear(transactionDate);
+            break;
+          default:
+            passesDateFilter = true;
         }
       }
+
+      // If doesn't pass date filter, no need to check search query
+      if (!passesDateFilter) return false;
+
+      // If there's no search query, return date filter result
+      if (_searchQuery.isEmpty) return true;
+
+      // Apply search filter
+      final String description = transaction.description?.toLowerCase() ?? '';
+      final String date = DateFormat('dd/MM/yyyy HH:mm')
+          .format(transaction.transactionDate)
+          .toLowerCase();
+      final String amount = transaction.amount.toString();
 
       return description.contains(query) ||
           date.contains(query) ||
@@ -446,6 +530,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4.0),
                     child: ChoiceChip(
+                      avatar: null,
                       selectedColor: const Color(0xffea6b24),
                       labelPadding: const EdgeInsets.symmetric(
                           horizontal: 8.0, vertical: 2.0),
@@ -459,10 +544,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 _value == index ? Colors.white : Colors.black,
                             fontSize: 14.0),
                       ),
-                      selected: _value == index,
+                      //selected: _value == index,
+                      selected: _selectedTimeframeFilter == filterChoice[index],
                       onSelected: (bool selected) {
                         setState(() {
-                          _value = selected ? index : null;
+                          _value = selected ? index : 0;
                           _selectedTimeframeFilter =
                               selected ? filterChoice[index] : 'Tous';
                         });
@@ -495,7 +581,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                     return const EmptyTransactionView();
                   }
 
-                  final filteredTransactions = _filterTransactions(
+                  final List<Transaction> filteredTransactions =
+                      _filterTransactions(
                     transactions
                         .where((t) => t.accountId == selectedAccount?.id)
                         .toList(),
@@ -523,27 +610,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                   }
 
                   // Filter transactions based on selected filter
-                  List<Transaction> visibleTransactions;
-                  if (_selectedTimeframeFilter == 'Tous') {
-                    visibleTransactions = filteredTransactions;
-                  } else {
-                    final now = DateTime.now();
-                    visibleTransactions =
-                        filteredTransactions.where((transaction) {
-                      final transactionDate = transaction.transactionDate;
-                      if (_selectedTimeframeFilter == 'Quotidien') {
-                        return transactionDate.isAtSameMomentAs(now);
-                      } else if (_selectedTimeframeFilter == 'Hebdomadaire') {
-                        return transactionDate.difference(now).inDays <= 7;
-                      } else if (_selectedTimeframeFilter == 'Mensuel') {
-                        return transactionDate.month == now.month &&
-                            transactionDate.year == now.year;
-                      } else if (_selectedTimeframeFilter == 'Annuel') {
-                        return transactionDate.year == now.year;
-                      }
-                      return false;
-                    }).toList();
-                  }
+                  final List<Transaction> visibleTransactions =
+                      filteredTransactions;
 
                   // Calculate totals based on filtered transactions
                   double totalReceived = 0;

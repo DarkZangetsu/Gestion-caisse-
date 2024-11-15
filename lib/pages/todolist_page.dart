@@ -1,8 +1,11 @@
+import 'package:caisse/composants/texts.dart';
+import 'package:caisse/models/chantier.dart';
+import 'package:caisse/models/payment_method.dart';
+import 'package:caisse/models/payment_type.dart';
+import 'package:caisse/models/personnel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
-import '../models/payment_method.dart';
-import '../models/personnel.dart';
 import '../models/todo.dart';
 import '../providers/accounts_provider.dart';
 import '../providers/chantiers_provider.dart';
@@ -24,6 +27,7 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final _formKey = GlobalKey<FormState>();
+  final descriptionController = TextEditingController();
 
   String? selectedChantierId;
   String? selectedPersonnelId;
@@ -49,11 +53,15 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
     if (selectedAccount != null && userId != null) {
       try {
         // Charger les chantiers en premier
-        await ref.read(chantiersStateProvider.notifier).getChantiers(selectedAccount.id);
+        await ref
+            .read(chantiersStateProvider.notifier)
+            .getChantiers(selectedAccount.id);
 
         // Ensuite, charger les autres données
         await Future.wait([
-          ref.read(personnelStateProvider.notifier).getPersonnel(selectedAccount.id),
+          ref
+              .read(personnelStateProvider.notifier)
+              .getPersonnel(selectedAccount.id),
           ref.read(paymentMethodsProvider.notifier).getPaymentMethods(),
           ref.read(paymentTypesProvider.notifier).getPaymentTypes(),
           ref.read(todosStateProvider.notifier).getTodos(selectedAccount.id),
@@ -71,7 +79,6 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
     }
   }
 
-
   void _showAddTodoDialog() {
     setState(() {
       selectedChantierId = null;
@@ -86,6 +93,7 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
         title: const Text('Nouvelle tâche'),
         content: SingleChildScrollView(
           child: Form(
@@ -97,25 +105,15 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
                   builder: (context, ref, _) {
                     final chantiersAsync = ref.watch(chantiersStateProvider);
                     return chantiersAsync.when(
-                      data: (chantiers) => DropdownButtonFormField<String>(
-                        decoration: const InputDecoration(labelText: 'Chantier'),
-                        value: selectedChantierId,
-                        items: [
-                          const DropdownMenuItem(
-                            value: null,
-                            child: Text('Sélectionner un chantier'),
-                          ),
-                          ...chantiers.map((chantier) {
-                            return DropdownMenuItem(
-                              value: chantier.id,
-                              child: Text(chantier.name),
-                            );
-                          }).toList(),
-                        ],
-                        onChanged: (value) {
-                          setState(() => selectedChantierId = value);
-                        },
-                      ),
+                      data: (chantiers) => myDropdownButtonFormField<Chantier>(
+                          items: chantiers,
+                          labelText: 'Chantier',
+                          placeholderText: 'Sélectionner un chantier',
+                          selectedValue: selectedChantierId,
+                          onChanged: (value) =>
+                              setState(() => selectedChantierId = value),
+                          getItemId: (chantier) => chantier.id,
+                          getItemName: (chantier) => chantier.name),
                       loading: () => const CircularProgressIndicator(),
                       error: (error, _) => Text('Erreur: $error'),
                     );
@@ -126,24 +124,16 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
                   builder: (context, ref, _) {
                     final personnelAsync = ref.watch(personnelStateProvider);
                     return personnelAsync.when(
-                      data: (personnel) => DropdownButtonFormField<String>(
-                        decoration: const InputDecoration(labelText: 'Personnel'),
-                        value: selectedPersonnelId,
-                        items: [
-                          const DropdownMenuItem(
-                            value: null,
-                            child: Text('Sélectionner un personnel'),
-                          ),
-                          ...personnel.map((person) {
-                            return DropdownMenuItem(
-                              value: person.id,
-                              child: Text(person.name),
-                            );
-                          }).toList(),
-                        ],
+                      data: (personnel) => myDropdownButtonFormField<Personnel>(
+                        items: personnel,
+                        labelText: "Personnel",
+                        placeholderText: "Sélectionner un personnel",
+                        selectedValue: selectedPersonnelId,
                         onChanged: (value) {
                           setState(() => selectedPersonnelId = value);
                         },
+                        getItemId: (person) => person.id,
+                        getItemName: (person) => person.name,
                       ),
                       loading: () => const CircularProgressIndicator(),
                       error: (error, _) => Text('Erreur: $error'),
@@ -152,18 +142,35 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
-                  decoration: const InputDecoration(labelText: 'Description'),
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(
+                      Icons.description,
+                      color: Colors.grey,
+                    ),
+                    labelText: 'Description',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
                   validator: (value) =>
-                  value?.isEmpty ?? true ? 'Description requise' : null,
+                      value?.isEmpty ?? true ? 'Description requise' : null,
                   onChanged: (value) => setState(() => description = value),
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(
+                      Icons.wallet,
+                      color: Colors.grey,
+                    ),
                     labelText: 'Montant estimé',
                     prefixText: 'Ar ',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
                   validator: (value) {
                     if (value != null && value.isNotEmpty) {
                       final number = double.tryParse(value);
@@ -182,26 +189,16 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
                   builder: (context, ref, _) {
                     final methodsAsync = ref.watch(paymentMethodsProvider);
                     return methodsAsync.when(
-                      data: (methods) => DropdownButtonFormField<String>(
-                        decoration: const InputDecoration(
-                          labelText: 'Méthode de paiement',
-                        ),
-                        value: selectedPaymentMethodId,
-                        items: [
-                          const DropdownMenuItem(
-                            value: null,
-                            child: Text('Sélectionner une méthode'),
-                          ),
-                          ...methods.map((method) {
-                            return DropdownMenuItem(
-                              value: method.id,
-                              child: Text(method.name),
-                            );
-                          }).toList(),
-                        ],
-                        onChanged: (value) {
-                          setState(() => selectedPaymentMethodId = value);
-                        },
+                      data: (methods) =>
+                          myDropdownButtonFormField<PaymentMethod>(
+                        items: methods,
+                        labelText: 'Méthode de paiement',
+                        placeholderText: 'Sélectionner une méthode',
+                        selectedValue: selectedPaymentMethodId,
+                        onChanged: (value) =>
+                            setState(() => selectedPaymentMethodId = value),
+                        getItemId: (method) => method.id,
+                        getItemName: (method) => method.name,
                       ),
                       loading: () => const CircularProgressIndicator(),
                       error: (error, _) => Text('Erreur: $error'),
@@ -213,27 +210,15 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
                   builder: (context, ref, _) {
                     final typesAsync = ref.watch(paymentTypesProvider);
                     return typesAsync.when(
-                      data: (types) => DropdownButtonFormField<String>(
-                        decoration: const InputDecoration(
+                      data: (types) => myDropdownButtonFormField<PaymentType>(
+                          items: types,
                           labelText: 'Type de paiement',
-                        ),
-                        value: selectedPaymentTypeId,
-                        items: [
-                          const DropdownMenuItem(
-                            value: null,
-                            child: Text('Sélectionner un type'),
-                          ),
-                          ...types.map((type) {
-                            return DropdownMenuItem(
-                              value: type.id,
-                              child: Text(type.name),
-                            );
-                          }).toList(),
-                        ],
-                        onChanged: (value) {
-                          setState(() => selectedPaymentTypeId = value);
-                        },
-                      ),
+                          placeholderText: 'Sélectionner un type',
+                          selectedValue: selectedPaymentTypeId,
+                          onChanged: (value) =>
+                              setState(() => selectedPaymentTypeId = value),
+                          getItemId: (type) => type.id,
+                          getItemName: (type) => type.name),
                       loading: () => const CircularProgressIndicator(),
                       error: (error, _) => Text('Erreur: $error'),
                     );
@@ -241,13 +226,21 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
                 ),
                 const SizedBox(height: 16),
                 ListTile(
-                  contentPadding: EdgeInsets.zero,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   title: Text(
                     dueDate == null
                         ? 'Sélectionner une échéance'
                         : 'Échéance: ${DateFormat('dd/MM/yyyy').format(dueDate!)}',
+                    style: TextStyle(
+                      color:
+                          dueDate == null ? Colors.grey[600] : Colors.grey[600],
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                  trailing: const Icon(Icons.calendar_today),
+                  trailing:
+                      const Icon(Icons.calendar_today, color: Colors.grey),
                   onTap: () async {
                     final date = await showDatePicker(
                       context: context,
@@ -267,14 +260,76 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
+            child: const MyText(
+              texte: 'Annuler',
+              color: Colors.black54,
+            ),
           ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xffea6b24)),
             onPressed: _saveTodo,
-            child: const Text('Enregistrer'),
+            child: const MyText(
+              texte: 'Enregistrer',
+              color: Colors.white,
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  DropdownButtonFormField<String> myDropdownButtonFormField<T>({
+    required List<T> items,
+    required String labelText,
+    required String placeholderText,
+    required String? selectedValue,
+    required void Function(String?) onChanged,
+    required String Function(T) getItemId,
+    required String Function(T) getItemName,
+  }) {
+    return DropdownButtonFormField<String>(
+      decoration: InputDecoration(
+        labelText: labelText,
+        labelStyle: const TextStyle(
+          color: Colors.grey,
+          fontWeight: FontWeight.bold,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8.0),
+          borderSide: const BorderSide(color: Color(0xffea6b24)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8.0),
+          borderSide: const BorderSide(color: Colors.black54),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8.0),
+          borderSide: const BorderSide(color: Colors.grey, width: 2),
+        ),
+        contentPadding:
+            const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+      ),
+      icon: const Icon(Icons.payment, color: Colors.grey),
+      value: selectedValue,
+      items: [
+        DropdownMenuItem(
+          value: null,
+          child: Text(
+            placeholderText,
+            style: TextStyle(color: Colors.grey[800]),
+          ),
+        ),
+        ...items.map((item) {
+          return DropdownMenuItem(
+            value: getItemId(item),
+            child: Text(getItemName(item)),
+          );
+        }).toList(),
+      ],
+      onChanged: onChanged,
+      style: const TextStyle(color: Colors.black, fontSize: 16),
+      dropdownColor: Colors.white,
     );
   }
 
@@ -294,7 +349,7 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
           final uniqueId = uuid.v4();
 
           final todo = Todo(
-            id: uniqueId,  // Maintenant c'est un UUID v4 valide
+            id: uniqueId, // Maintenant c'est un UUID v4 valide
             accountId: selectedAccount.id,
             chantierId: selectedChantierId,
             personnelId: selectedPersonnelId,
@@ -333,13 +388,17 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Liste des tâches'),
+        title: const MyText(
+          texte: 'Liste des tâches',
+          color: Colors.white,
+        ),
+        backgroundColor: const Color(0xffea6b24),
         bottom: TabBar(
+          labelColor: Colors.white,
           controller: _tabController,
           tabs: const [
             Tab(text: 'À faire'),
@@ -352,8 +411,10 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
           final todosAsync = ref.watch(todosStateProvider);
           return todosAsync.when(
             data: (todos) {
-              final pendingTodos = todos.where((todo) => !todo.completed).toList();
-              final completedTodos = todos.where((todo) => todo.completed).toList();
+              final pendingTodos =
+                  todos.where((todo) => !todo.completed).toList();
+              final completedTodos =
+                  todos.where((todo) => todo.completed).toList();
 
               return TabBarView(
                 controller: _tabController,
@@ -386,8 +447,12 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
         },
       ),
       floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xffea6b24),
         onPressed: _showAddTodoDialog,
-        child: const Icon(Icons.add),
+        child: const Icon(
+          Icons.add,
+          color: Colors.white,
+        ),
       ),
     );
   }
@@ -399,15 +464,15 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              isCompleted ? Icons.check_circle_outline : Icons.assignment_outlined,
+              isCompleted
+                  ? Icons.check_circle_outline
+                  : Icons.assignment_outlined,
               size: 48,
               color: Colors.grey,
             ),
             const SizedBox(height: 16),
             Text(
-              isCompleted
-                  ? 'Aucune tâche terminée'
-                  : 'Aucune tâche en cours',
+              isCompleted ? 'Aucune tâche terminée' : 'Aucune tâche en cours',
               style: const TextStyle(fontSize: 16, color: Colors.grey),
             ),
           ],
@@ -433,17 +498,21 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
             return await showDialog(
               context: context,
               builder: (context) => AlertDialog(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(4)),
                 title: const Text('Confirmation'),
-                content: const Text('Voulez-vous vraiment supprimer cette tâche ?'),
+                content:
+                    const Text('Voulez-vous vraiment supprimer cette tâche ?'),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(context, false),
-                    child: const Text('Non'),
+                    child: const MyText(texte: 'Non', color: Colors.black54),
                   ),
                   ElevatedButton(
                     onPressed: () => Navigator.pop(context, true),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                    child: const Text('Oui'),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xffea6b24)),
+                    child: const MyText(texte: 'Oui', color: Colors.white),
                   ),
                 ],
               ),
@@ -454,8 +523,9 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
               await ref.read(todosStateProvider.notifier).deleteTodo(todo.id);
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Tâche supprimée avec succès'),
+                  SnackBar(
+                    content: Text(
+                        'Tâche "${todo.description}" supprimée avec succès'),
                     backgroundColor: Colors.green,
                   ),
                 );
@@ -472,6 +542,8 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
             }
           },
           child: Card(
+            shape: BeveledRectangleBorder(borderRadius: BorderRadius.circular(4.0),),
+            elevation: 0,
             margin: const EdgeInsets.symmetric(vertical: 4),
             child: ExpansionTile(
               title: Text(
@@ -487,14 +559,16 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
                   if (todo.dueDate != null) ...[
                     const Icon(Icons.calendar_today, size: 14),
                     const SizedBox(width: 4),
-                    Text(
-                      DateFormat('dd/MM/yyyy').format(todo.dueDate!),
-                      style: const TextStyle(fontSize: 12),
+                    Expanded(
+                      child: Text(
+                        DateFormat('dd/MM/yyyy').format(todo.dueDate!),
+                        style: const TextStyle(fontSize: 12),
+                      ),
                     ),
                     const SizedBox(width: 8),
                   ],
                   if (todo.estimatedAmount != null) ...[
-                    const Icon(Icons.attach_money, size: 14),
+                    //const Icon(Icons.attach_money, size: 14),
                     const SizedBox(width: 4),
                     Text(
                       '${NumberFormat('#,###').format(todo.estimatedAmount)} Ar',
@@ -506,50 +580,54 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
               trailing: todo.completed
                   ? null
                   : Checkbox(
-                value: todo.completed,
-                onChanged: (bool? value) async {
-                  if (value != null) {
-                    try {
-                      // Créer la version mise à jour de la tâche
-                      final updatedTodo = Todo(
-                        id: todo.id,
-                        accountId: todo.accountId,
-                        chantierId: todo.chantierId,
-                        personnelId: todo.personnelId,
-                        description: todo.description,
-                        estimatedAmount: todo.estimatedAmount,
-                        dueDate: todo.dueDate,
-                        paymentMethodId: todo.paymentMethodId,
-                        paymentTypeId: todo.paymentTypeId,
-                        completed: value,
-                        createdAt: todo.createdAt,
-                        updatedAt: DateTime.now(),
-                      );
+                      value: todo.completed,
+                      onChanged: (bool? value) async {
+                        if (value != null) {
+                          try {
+                            final updatedTodo = Todo(
+                              id: todo.id,
+                              accountId: todo.accountId,
+                              chantierId: todo.chantierId,
+                              personnelId: todo.personnelId,
+                              description: todo.description,
+                              estimatedAmount: todo.estimatedAmount,
+                              dueDate: todo.dueDate,
+                              paymentMethodId: todo.paymentMethodId,
+                              paymentTypeId: todo.paymentTypeId,
+                              completed: value,
+                              createdAt: todo.createdAt,
+                              updatedAt: DateTime.now(),
+                            );
 
-                      // Mettre à jour la tâche dans l'état
-                      await ref.read(todosStateProvider.notifier).updateTodo(updatedTodo);
+                            await ref
+                                .read(todosStateProvider.notifier)
+                                .updateTodo(updatedTodo);
 
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(value ? 'Tâche terminée' : 'Tâche réouverte'),
-                            backgroundColor: value ? Colors.green : Colors.orange,
-                          ),
-                        );
-                      }
-                    } catch (e) {
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Erreur lors de la mise à jour de la tâche'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      }
-                    }
-                  }
-                },
-              ),
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(value
+                                      ? 'Tâche terminée'
+                                      : 'Tâche réouverte'),
+                                  backgroundColor:
+                                      value ? Colors.green : Colors.orange,
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                      'Erreur lors de la mise à jour de la tâche'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        }
+                      },
+                    ),
               children: [
                 Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -558,51 +636,61 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
                     children: [
                       Consumer(
                         builder: (context, ref, _) {
-                          final chantiersAsync = ref.watch(chantiersStateProvider);
+                          final chantiersAsync =
+                              ref.watch(chantiersStateProvider);
                           return chantiersAsync.when(
                             data: (chantiers) {
                               final chantier = chantiers.firstWhere(
-                                    (c) => c.id == todo.chantierId,
-                                orElse: () => throw Exception('Chantier non trouvé'),
+                                (c) => c.id == todo.chantierId,
+                                orElse: () =>
+                                    throw Exception('Chantier non trouvé'),
                               );
                               return _buildInfoRow('Chantier', chantier.name);
                             },
                             loading: () => const CircularProgressIndicator(),
-                            error: (_, __) => const Text('Chantier non disponible'),
+                            error: (_, __) =>
+                                const Text('Chantier non disponible'),
                           );
                         },
                       ),
                       if (todo.personnelId != null)
                         Consumer(
                           builder: (context, ref, _) {
-                            final personnelAsync = ref.watch(personnelStateProvider);
+                            final personnelAsync =
+                                ref.watch(personnelStateProvider);
                             return personnelAsync.when(
                               data: (personnel) {
                                 final person = personnel.firstWhere(
-                                      (p) => p.id == todo.personnelId,
-                                  orElse: () => throw Exception('Personnel non trouvé'),
+                                  (p) => p.id == todo.personnelId,
+                                  orElse: () =>
+                                      throw Exception('Personnel non trouvé'),
                                 );
                                 return _buildInfoRow('Personnel', person.name);
                               },
                               loading: () => const CircularProgressIndicator(),
-                              error: (_, __) => const Text('Personnel non disponible'),
+                              error: (_, __) =>
+                                  const Text('Personnel non disponible'),
                             );
                           },
                         ),
                       if (todo.paymentMethodId != null)
                         Consumer(
                           builder: (context, ref, _) {
-                            final methodsAsync = ref.watch(paymentMethodsProvider);
+                            final methodsAsync =
+                                ref.watch(paymentMethodsProvider);
                             return methodsAsync.when(
                               data: (methods) {
                                 final method = methods.firstWhere(
-                                      (m) => m.id == todo.paymentMethodId,
-                                  orElse: () => throw Exception('Méthode non trouvée'),
+                                  (m) => m.id == todo.paymentMethodId,
+                                  orElse: () =>
+                                      throw Exception('Méthode non trouvée'),
                                 );
-                                return _buildInfoRow('Méthode de paiement', method.name);
+                                return _buildInfoRow(
+                                    'Méthode de paiement', method.name);
                               },
                               loading: () => const CircularProgressIndicator(),
-                              error: (_, __) => const Text('Méthode non disponible'),
+                              error: (_, __) =>
+                                  const Text('Méthode non disponible'),
                             );
                           },
                         ),
@@ -613,13 +701,16 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
                             return typesAsync.when(
                               data: (types) {
                                 final type = types.firstWhere(
-                                      (t) => t.id == todo.paymentTypeId,
-                                  orElse: () => throw Exception('Type non trouvé'),
+                                  (t) => t.id == todo.paymentTypeId,
+                                  orElse: () =>
+                                      throw Exception('Type non trouvé'),
                                 );
-                                return _buildInfoRow('Type de paiement', type.name);
+                                return _buildInfoRow(
+                                    'Type de paiement', type.name);
                               },
                               loading: () => const CircularProgressIndicator(),
-                              error: (_, __) => const Text('Type non disponible'),
+                              error: (_, __) =>
+                                  const Text('Type non disponible'),
                             );
                           },
                         ),
