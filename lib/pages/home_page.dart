@@ -1,10 +1,11 @@
 import 'package:caisse/composants/custom_search_delegate.dart';
-import 'package:caisse/composants/drawer_list_menu.dart';
 import 'package:caisse/composants/empty_transaction_view.dart';
 import 'package:caisse/composants/tab_bottom_resume.dart';
 import 'package:caisse/composants/tab_header.dart';
-import 'package:caisse/composants/text_transaction.dart';
 import 'package:caisse/composants/texts.dart';
+import 'package:caisse/home_composantes/drawer.dart';
+import 'package:caisse/home_composantes/transaction_row.dart';
+import 'package:caisse/imprimer/pdf.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/accounts.dart';
@@ -39,6 +40,11 @@ class _HomePageState extends ConsumerState<HomePage> {
   Icon actionIcon = const Icon(Icons.search);
   late Widget appBarTitle;
   String _selectedTimeframeFilter = 'Tous';
+  List<Transaction> allTransactions = [];
+  List<Transaction> filteredTransactions = [];
+  DateTime? _selectedDate;
+  DateTime? _startDate;
+  DateTime? _endDate;
 
   // Extension method to check dates
   bool _isToday(DateTime date) {
@@ -428,6 +434,92 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
+  // Ajoutez cette méthode pour réinitialiser la date
+  void _resetDate() {
+    setState(() {
+      _startDate = null;
+      _endDate = null;
+      _selectedTimeframeFilter = 'Tous';
+      _value = 0;
+    });
+
+    // Afficher un SnackBar pour informer l'utilisateur
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Plage de dates réinitialisée')),
+    );
+  }
+
+  void _showDateRangePicker() async {
+    final DateTimeRange? picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2222),
+      initialDateRange: _startDate != null && _endDate != null
+          ? DateTimeRange(start: _startDate!, end: _endDate!)
+          : null,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+                  primary: const Color(0xffea6b24),
+                  onPrimary: Colors.white,
+                ),
+          ),
+          child: Column(
+            children: [
+              Expanded(child: child!),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _resetDate();
+                        });
+                        Navigator.pop(context);
+                      },
+                      child: const Text(
+                        'Réinitialiser',
+                        style: TextStyle(color: Color(0xffea6b24)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        _startDate = picked.start;
+        _endDate = picked.end;
+        // Réinitialiser le filtre temporel quand une plage de dates est sélectionnée
+        _selectedTimeframeFilter = 'Tous';
+        _value = 0;
+      });
+    }
+  }
+
+  // Modifiez la SearchableAppBar pour afficher la date sélectionnée ou un texte par défaut
+  Widget buildDateButton() {
+    return TextButton.icon(
+      onPressed: _showDateRangePicker,
+      icon: const Icon(Icons.calendar_today, color: Colors.white),
+      label: Text(
+        _selectedDate != null
+            ? DateFormat('dd/MM/yyyy').format(_selectedDate!)
+            : 'Toutes les dates',
+        style: const TextStyle(color: Colors.white),
+      ),
+    );
+  }
+
   // Filter transactions based on search query
   // Debug helper method
   void _printDateRange(String filterType) {
@@ -450,53 +542,51 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   List<Transaction> _filterTransactions(List<Transaction> transactions) {
-    if (_searchQuery.isEmpty && _selectedTimeframeFilter == 'Tous') {
-      return transactions;
-    }
-
-    // Debug print for date ranges
-    _printDateRange(_selectedTimeframeFilter);
-
-    final String query = _searchQuery.toLowerCase();
     return transactions.where((transaction) {
-      // First apply date filter
-      bool passesDateFilter = true;
-      if (_selectedTimeframeFilter != 'Tous') {
-        final DateTime transactionDate = transaction.transactionDate;
-        switch (_selectedTimeframeFilter) {
-          case 'Quotidien':
-            passesDateFilter = _isToday(transactionDate);
-            break;
-          case 'Hebdomadaire':
-            passesDateFilter = _isThisWeek(transactionDate);
-            break;
-          case 'Mensuel':
-            passesDateFilter = _isThisMonth(transactionDate);
-            break;
-          case 'Annuel':
-            passesDateFilter = _isThisYear(transactionDate);
-            break;
-          default:
-            passesDateFilter = true;
-        }
+      // Vérification de la plage de dates
+      bool matchesDateRange = true;
+      if (_startDate != null && _endDate != null) {
+        // Créer des DateTime pour le début et la fin de la journée
+        final startDateTime =
+            DateTime(_startDate!.year, _startDate!.month, _startDate!.day);
+        final endDateTime = DateTime(
+            _endDate!.year, _endDate!.month, _endDate!.day, 23, 59, 59);
+
+        matchesDateRange =
+            transaction.transactionDate.isAtSameMomentAs(startDateTime) ||
+                transaction.transactionDate.isAtSameMomentAs(endDateTime) ||
+                (transaction.transactionDate.isAfter(startDateTime) &&
+                    transaction.transactionDate.isBefore(endDateTime));
       }
 
-      // If doesn't pass date filter, no need to check search query
-      if (!passesDateFilter) return false;
+      // Vérification de la recherche
+      bool matchesSearchQuery = _searchQuery.isEmpty ||
+          transaction.description
+                  ?.toLowerCase()
+                  .contains(_searchQuery.toLowerCase()) ==
+              true;
 
-      // If there's no search query, return date filter result
-      if (_searchQuery.isEmpty) return true;
+      // Vérification du filtre temporel
+      bool matchesTimeframe = true;
+      switch (_selectedTimeframeFilter) {
+        case 'Quotidien':
+          matchesTimeframe = _isToday(transaction.transactionDate);
+          break;
+        case 'Hebdomadaire':
+          matchesTimeframe = _isThisWeek(transaction.transactionDate);
+          break;
+        case 'Mensuel':
+          matchesTimeframe = _isThisMonth(transaction.transactionDate);
+          break;
+        case 'Annuel':
+          matchesTimeframe = _isThisYear(transaction.transactionDate);
+          break;
+        case 'Tous':
+        default:
+          matchesTimeframe = true;
+      }
 
-      // Apply search filter
-      final String description = transaction.description?.toLowerCase() ?? '';
-      final String date = DateFormat('dd/MM/yyyy HH:mm')
-          .format(transaction.transactionDate)
-          .toLowerCase();
-      final String amount = transaction.amount.toString();
-
-      return description.contains(query) ||
-          date.contains(query) ||
-          amount.contains(query);
+      return matchesDateRange && matchesSearchQuery && matchesTimeframe;
     }).toList();
   }
 
@@ -507,12 +597,19 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     return Scaffold(
       appBar: SearchableAppBar(
+        onTap: _showDateRangePicker,
         selectedAccount: selectedAccount,
         onAccountTap: _showAccountDialog,
         onSearch: (query) {
           setState(() {
             _searchQuery = query;
           });
+        },
+        onDateReset: _resetDate,
+        startDate: _startDate,
+        endDate: _endDate,
+        onTapPdf: () {
+          ImpressionParPdf.onTapPdf(ref, _selectedTimeframeFilter, _startDate, _endDate);
         },
       ),
       drawer: const MyDrawer(),
@@ -581,8 +678,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                     return const EmptyTransactionView();
                   }
 
-                  final List<Transaction> filteredTransactions =
-                      _filterTransactions(
+                  final filteredTransactions = _filterTransactions(
                     transactions
                         .where((t) => t.accountId == selectedAccount?.id)
                         .toList(),
@@ -610,8 +706,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   }
 
                   // Filter transactions based on selected filter
-                  final List<Transaction> visibleTransactions =
-                      filteredTransactions;
+                  final visibleTransactions = filteredTransactions;
 
                   // Calculate totals based on filtered transactions
                   double totalReceived = 0;
@@ -690,24 +785,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                       ),
 
                       // Bottom summary
-                      Container(
-                        padding: const EdgeInsets.all(16.0),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.2),
-                              spreadRadius: 1,
-                              blurRadius: 5,
-                              offset: const Offset(0, -3),
-                            ),
-                          ],
-                        ),
-                        child: TabBottomResume(
-                            totalReceived: totalReceived,
-                            totalPaid: totalPaid,
-                            totalBalance: totalBalance),
-                      ),
+                      bottomSummary(totalReceived, totalPaid, totalBalance),
                     ],
                   );
                 },
@@ -722,222 +800,26 @@ class _HomePageState extends ConsumerState<HomePage> {
       ),
     );
   }
-}
 
-class MyDrawer extends StatelessWidget {
-  const MyDrawer({
-    super.key,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          DrawerHeader(
-            decoration: const BoxDecoration(
-              color: Color(0xffea6b24),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Container(
-                  alignment: Alignment.center,
-                  width: double.infinity,
-                  height: 80,
-                  child: Image.asset(
-                    'img/Logo.png',
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                const MyText(
-                  texte: "Menu Principal",
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 10),
-              ],
-            ),
+  Container bottomSummary(
+      double totalReceived, double totalPaid, double totalBalance) {
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.2),
+            spreadRadius: 1,
+            blurRadius: 5,
+            offset: const Offset(0, -3),
           ),
-          DrawerListMenu(
-            icon: Icons.business,
-            texte: "Chantier",
-            onTap: () => Navigator.pushNamed(context, '/chantier'),
-          ),
-          DrawerListMenu(
-            icon: Icons.people,
-            texte: "Personnel",
-            onTap: () => Navigator.pushNamed(context, '/personnel'),
-          ),
-          DrawerListMenu(
-            icon: Icons.checklist,
-            texte: "ToDo List",
-            onTap: () => Navigator.pushNamed(context, '/todos'),
-          ),
-          const DrawerListMenu(icon: Icons.settings, texte: "Paramètres"),
-          const DrawerListMenu(icon: Icons.help_outline, texte: "Aide"),
         ],
       ),
-    );
-  }
-}
-
-class MyPopupMenuButton extends StatelessWidget {
-  const MyPopupMenuButton({
-    super.key,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return PopupMenuButton(
-      color: Colors.white,
-      itemBuilder: (context) => [
-        const PopupMenuItem(
-          value: "Recherche par mot clé",
-          child: Text("Recherche par mot clé"),
-        ),
-        const PopupMenuItem(
-          value: "Tous",
-          child: Text("Tous"),
-        ),
-        const PopupMenuItem(
-          value: "Quotidien",
-          child: Text("Quotidien"),
-        ),
-        const PopupMenuItem(
-          value: "Hebdomadaire",
-          child: Text("Hebdomadaire"),
-        ),
-        const PopupMenuItem(
-          value: "Mensuel",
-          child: Text("Mensuel"),
-        ),
-        const PopupMenuItem(
-          value: "Annuel",
-          child: Text("Annuel"),
-        ),
-        const PopupMenuItem(
-          value: "Date",
-          child: Text("Date"),
-        ),
-        const PopupMenuItem(
-          value: "Sélectionnez une période",
-          child: Text("Sélectionnez une période"),
-        ),
-        const PopupMenuItem(
-          value: "Rapports",
-          child: Text("Rapports"),
-        ),
-        const PopupMenuItem(
-          value: "Date Ascendant",
-          child: Text("Date Ascendant"),
-        ),
-        const PopupMenuItem(
-          value: "Date Descendant",
-          child: Text("Date Descendant"),
-        ),
-      ],
-      onSelected: (String newValue) {},
-    );
-  }
-}
-
-class AppbarActionList extends StatelessWidget {
-  final IconData icon;
-  final Color? color;
-  final void Function()? onPressed;
-
-  const AppbarActionList({
-    super.key,
-    required this.icon,
-    this.color = Colors.white,
-    this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      icon: Icon(icon),
-      color: color,
-      splashRadius: 24,
-      tooltip: 'Action',
-      onPressed: onPressed,
-      padding: const EdgeInsets.all(8),
-      constraints: const BoxConstraints(
-        minWidth: 40,
-        minHeight: 40,
-      ),
-      splashColor: Colors.white.withOpacity(0.1),
-      highlightColor: Colors.white.withOpacity(0.1),
-    );
-  }
-}
-
-class TransactionRow extends StatelessWidget {
-  final Transaction transaction;
-  final VoidCallback onTap;
-
-  const TransactionRow({
-    super.key,
-    required this.transaction,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: Colors.grey[200]!),
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            children: [
-              Expanded(
-                flex: 2,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      dateFormat.format(transaction.transactionDate),
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                    if (transaction.description != null &&
-                        transaction.description!.isNotEmpty)
-                      Text(
-                        transaction.description!,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              Text_transaction(
-                text: 'reçu',
-                transaction: transaction,
-                color: Colors.green,
-              ),
-              Text_transaction(
-                text: 'payé',
-                transaction: transaction,
-                color: Colors.red,
-              ),
-            ],
-          ),
-        ),
-      ),
+      child: TabBottomResume(
+          totalReceived: totalReceived,
+          totalPaid: totalPaid,
+          totalBalance: totalBalance),
     );
   }
 }
