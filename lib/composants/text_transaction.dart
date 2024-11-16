@@ -1,6 +1,7 @@
 import 'package:caisse/composants/texts.dart';
 import 'package:caisse/models/transaction.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class Text_transaction extends StatelessWidget {
   const Text_transaction({
@@ -19,7 +20,9 @@ class Text_transaction extends StatelessWidget {
     return Expanded(
       child: MyText(
         texte: transaction.type == text
-            ? transaction.amount.toStringAsFixed(2)
+            ? NumberFormat.currency(
+                    locale: 'fr_FR', symbol: 'Ar', decimalDigits: 2)
+                .format(transaction.amount)
             : '',
         color: color,
         fontWeight: FontWeight.bold,

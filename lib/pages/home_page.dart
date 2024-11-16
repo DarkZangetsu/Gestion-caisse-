@@ -266,7 +266,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         _detailRow('Date:',
             DateFormat('dd/MM/yyyy HH:mm').format(transaction.transactionDate)),
         _detailRow('Type:', transaction.type == 'reçu' ? 'Reçu' : 'Payé'),
-        _detailRow('Montant:', '${transaction.amount.toStringAsFixed(2)} \Ar'),
+        _detailRow('Montant:', '${NumberFormat.currency(locale: 'fr_FR', symbol: 'Ar').format(transaction.amount)} Ar'),
         if (transaction.description?.isNotEmpty ?? false)
           _detailRow('Description:', transaction.description!),
 
