@@ -305,7 +305,7 @@ class DatabaseHelper {
     }
   }
 
-  // Payment Types
+  // Payment Type Methods
   Future<List<PaymentType>> getPaymentTypes() async {
     try {
       final response = await _supabase
@@ -315,6 +315,46 @@ class DatabaseHelper {
       return (response as List).map((json) => PaymentType.fromJson(json)).toList();
     } catch (e) {
       throw Exception('Erreur lors de la récupération des types de paiement: $e');
+    }
+  }
+
+  Future<PaymentType> createPaymentType(PaymentType paymentType) async {
+    try {
+      final response = await _supabase
+          .from('payment_types')
+          .insert(paymentType.toJson())
+          .select()
+          .single();
+
+      return PaymentType.fromJson(response);
+    } catch (e) {
+      throw Exception('Erreur lors de la création du type de paiement: $e');
+    }
+  }
+
+  Future<PaymentType> updatePaymentType(PaymentType paymentType) async {
+    try {
+      final response = await _supabase
+          .from('payment_types')
+          .update(paymentType.toJson())
+          .eq('id', paymentType.id)
+          .select()
+          .single();
+
+      return PaymentType.fromJson(response);
+    } catch (e) {
+      throw Exception('Erreur lors de la mise à jour du type de paiement: $e');
+    }
+  }
+
+  Future<void> deletePaymentType(String paymentTypeId) async {
+    try {
+      await _supabase
+          .from('payment_types')
+          .delete()
+          .eq('id', paymentTypeId);
+    } catch (e) {
+      throw Exception('Erreur lors de la suppression du type de paiement: $e');
     }
   }
 

@@ -22,4 +22,43 @@ class PaymentTypesNotifier extends StateNotifier<AsyncValue<List<PaymentType>>> 
       state = AsyncValue.error(e, StackTrace.current);
     }
   }
+
+  Future<void> createPaymentType(PaymentType paymentType) async {
+    try {
+      final newType = await _db.createPaymentType(paymentType);
+      final currentTypes = state.value ?? [];
+      state = AsyncValue.data([...currentTypes, newType]);
+    } catch (e) {
+      state = AsyncValue.error(e, StackTrace.current);
+    }
+  }
+
+  Future<void> updatePaymentType(PaymentType paymentType) async {
+    try {
+      final updatedType = await _db.updatePaymentType(paymentType);
+      final currentTypes = state.value ?? [];
+      final updatedTypes = currentTypes.map((type) {
+        return type.id == updatedType.id ? updatedType : type;
+      }).toList();
+      state = AsyncValue.data(updatedTypes);
+    } catch (e) {
+      state = AsyncValue.error(e, StackTrace.current);
+    }
+  }
+
+  Future<void> deletePaymentType(String paymentTypeId) async {
+    try {
+      await _db.deletePaymentType(paymentTypeId);
+      final currentTypes = state.value ?? [];
+      final updatedTypes = currentTypes.where((type) => type.id != paymentTypeId).toList();
+      state = AsyncValue.data(updatedTypes);
+    } catch (e) {
+      state = AsyncValue.error(e, StackTrace.current);
+    }
+  }
+
+  // Méthode utilitaire pour rafraîchir la liste
+  Future<void> refreshPaymentTypes() async {
+    await getPaymentTypes();
+  }
 }

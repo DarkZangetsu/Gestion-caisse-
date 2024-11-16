@@ -1,5 +1,6 @@
 import 'package:caisse/pages/PersonnelPage.dart';
 import 'package:caisse/pages/chantier_page.dart';
+import 'package:caisse/pages/payment_types_page.dart';
 import 'package:caisse/pages/todolist_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -34,6 +35,7 @@ class MyApp extends ConsumerWidget {
         '/chantier': (context) => const ChantierPage(),
         '/personnel': (context) => const PersonnelPage(),
         '/todos':(context) => const TodoListPage(),
+        '/payment-types':(context) => const PaymentTypesPage(),
       },
     );
   }
