@@ -358,13 +358,14 @@ class DatabaseHelper {
     }
   }
 
-  // Transaction Methods
+  // Transaction Methodse
   Future<List<Transaction>> getTransactions(String accountId) async {
     try {
       final response = await _supabase
           .from('transactions')
           .select()
-          .eq('account_id', accountId);
+          .eq('account_id', accountId)
+          .order('created_at',  ascending: false); // true pour LIFO
 
       return (response as List).map((json) => Transaction.fromJson(json)).toList();
     } catch (e) {
