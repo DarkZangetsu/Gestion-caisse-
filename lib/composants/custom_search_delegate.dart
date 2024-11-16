@@ -13,7 +13,6 @@ class SearchableAppBar extends StatefulWidget implements PreferredSizeWidget {
   final DateTime? endDate;
   final Function() onDateReset;
   final void Function()? onTapPdf;
-  final void Function()? onTapExcel;
 
   const SearchableAppBar({
     super.key,
@@ -23,7 +22,8 @@ class SearchableAppBar extends StatefulWidget implements PreferredSizeWidget {
     required this.onTap,
     required this.onDateReset,
     this.startDate,
-    this.endDate, this.onTapPdf, this.onTapExcel,
+    this.endDate,
+    this.onTapPdf,
   });
 
   @override
@@ -73,11 +73,6 @@ class _SearchableAppBarState extends State<SearchableAppBar> {
               onTap: widget.onTapPdf,
               child: const MyText(texte: 'Pdf'),
             ),
-            PopupMenuItem(
-              value: 'Excel',
-              onTap: widget.onTapExcel,
-              child: const MyText(texte: 'Excel'),
-            ),
           ],
         ),
         IconButton(
@@ -88,7 +83,7 @@ class _SearchableAppBarState extends State<SearchableAppBar> {
           onPressed: _toggleSearch,
         ),
         PopupMenuButton<String>(
-          // Spécifiez explicitement le type générique
+          icon: const Icon(Icons.date_range_outlined),
           iconColor: Colors.white,
           itemBuilder: (BuildContext context) {
             List<PopupMenuEntry<String>> menuItems = [

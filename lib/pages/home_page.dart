@@ -777,7 +777,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                                     onTap: () =>
                                         _showTransactionDetails(transaction),
                                   );
-                                }).toList(),
+                                }),
                               ],
                             ),
                           ),
