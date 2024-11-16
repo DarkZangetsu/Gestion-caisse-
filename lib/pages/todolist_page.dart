@@ -187,27 +187,6 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
                 const SizedBox(height: 16),
                 Consumer(
                   builder: (context, ref, _) {
-                    final methodsAsync = ref.watch(paymentMethodsProvider);
-                    return methodsAsync.when(
-                      data: (methods) =>
-                          myDropdownButtonFormField<PaymentMethod>(
-                        items: methods,
-                        labelText: 'Méthode de paiement',
-                        placeholderText: 'Sélectionner une méthode',
-                        selectedValue: selectedPaymentMethodId,
-                        onChanged: (value) =>
-                            setState(() => selectedPaymentMethodId = value),
-                        getItemId: (method) => method.id,
-                        getItemName: (method) => method.name,
-                      ),
-                      loading: () => const CircularProgressIndicator(),
-                      error: (error, _) => Text('Erreur: $error'),
-                    );
-                  },
-                ),
-                const SizedBox(height: 16),
-                Consumer(
-                  builder: (context, ref, _) {
                     final typesAsync = ref.watch(paymentTypesProvider);
                     return typesAsync.when(
                       data: (types) => myDropdownButtonFormField<PaymentType>(
@@ -592,7 +571,6 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
                               description: todo.description,
                               estimatedAmount: todo.estimatedAmount,
                               dueDate: todo.dueDate,
-                              paymentMethodId: todo.paymentMethodId,
                               paymentTypeId: todo.paymentTypeId,
                               completed: value,
                               createdAt: todo.createdAt,
@@ -670,27 +648,6 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
                               loading: () => const CircularProgressIndicator(),
                               error: (_, __) =>
                                   const Text('Personnel non disponible'),
-                            );
-                          },
-                        ),
-                      if (todo.paymentMethodId != null)
-                        Consumer(
-                          builder: (context, ref, _) {
-                            final methodsAsync =
-                                ref.watch(paymentMethodsProvider);
-                            return methodsAsync.when(
-                              data: (methods) {
-                                final method = methods.firstWhere(
-                                  (m) => m.id == todo.paymentMethodId,
-                                  orElse: () =>
-                                      throw Exception('Méthode non trouvée'),
-                                );
-                                return _buildInfoRow(
-                                    'Méthode de paiement', method.name);
-                              },
-                              loading: () => const CircularProgressIndicator(),
-                              error: (_, __) =>
-                                  const Text('Méthode non disponible'),
                             );
                           },
                         ),

@@ -10,13 +10,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/accounts.dart';
 import '../models/chantier.dart';
-import '../models/payment_method.dart';
 import '../models/payment_type.dart';
 import '../models/personnel.dart';
 import '../models/transaction.dart';
 import '../providers/accounts_provider.dart';
 import '../providers/chantiers_provider.dart';
-import '../providers/payment_methods_provider.dart';
 import '../providers/payment_types_provider.dart';
 import '../providers/personnel_provider.dart';
 import '../providers/transactions_provider.dart';
@@ -120,13 +118,6 @@ class _HomePageState extends ConsumerState<HomePage> {
           print(
               'Personnel: ${personnel.map((p) => '${p.id}: ${p.name}').join(', ')}');
 
-          // Chargement des méthodes de paiement
-          await ref.read(paymentMethodsProvider.notifier).getPaymentMethods();
-          final methods = ref.read(paymentMethodsProvider).value ?? [];
-          print('Méthodes de paiement chargées: ${methods.length}');
-          print(
-              'Méthodes: ${methods.map((m) => '${m.id}: ${m.name}').join(', ')}');
-
           // Chargement des types de paiement
           await ref.read(paymentTypesProvider.notifier).getPaymentTypes();
           final types = ref.read(paymentTypesProvider).value ?? [];
@@ -167,7 +158,6 @@ class _HomePageState extends ConsumerState<HomePage> {
       await Future.wait([
         ref.read(chantiersStateProvider.notifier).loadChantiers(userId),
         ref.read(personnelStateProvider.notifier).getPersonnel(userId),
-        ref.read(paymentMethodsProvider.notifier).getPaymentMethods(),
         ref.read(paymentTypesProvider.notifier).getPaymentTypes(),
       ]);
     }
@@ -182,13 +172,11 @@ class _HomePageState extends ConsumerState<HomePage> {
           // Vérifions l'état de chaque provider
           final chantiersState = ref.watch(chantiersStateProvider);
           final personnelState = ref.watch(personnelStateProvider);
-          final methodsState = ref.watch(paymentMethodsProvider);
           final typesState = ref.watch(paymentTypesProvider);
 
           // Afficher un indicateur de chargement si les données ne sont pas prêtes
           if (chantiersState.isLoading ||
               personnelState.isLoading ||
-              methodsState.isLoading ||
               typesState.isLoading) {
             return AlertDialog(
               shape: RoundedRectangleBorder(
@@ -200,7 +188,6 @@ class _HomePageState extends ConsumerState<HomePage> {
           // Afficher une erreur si le chargement a échoué
           if (chantiersState.hasError ||
               personnelState.hasError ||
-              methodsState.hasError ||
               typesState.hasError) {
             return AlertDialog(
               shape: RoundedRectangleBorder(
@@ -220,13 +207,11 @@ class _HomePageState extends ConsumerState<HomePage> {
           // Récupérer les données
           final chantiers = chantiersState.value ?? [];
           final personnel = personnelState.value ?? [];
-          final methods = methodsState.value ?? [];
           final types = typesState.value ?? [];
 
           // Vérifier que toutes les données sont chargées
           if (chantiers.isEmpty ||
               personnel.isEmpty ||
-              methods.isEmpty ||
               types.isEmpty) {
             return AlertDialog(
               shape: RoundedRectangleBorder(
@@ -340,35 +325,6 @@ class _HomePageState extends ConsumerState<HomePage> {
           },
         ),
 
-        // Méthode de paiement
-        Consumer(
-          builder: (context, ref, _) {
-            final methodsAsync = ref.watch(paymentMethodsProvider);
-            return methodsAsync.when(
-              data: (methods) {
-                final method = methods.firstWhere(
-                  (m) => m.id == transaction.paymentMethodId,
-                  orElse: () {
-                    print(
-                        'Méthode de paiement non trouvée pour l\'ID: ${transaction.paymentMethodId}');
-                    print(
-                        'Méthodes disponibles: ${methods.map((m) => '${m.id}: ${m.name}').join(', ')}');
-                    return PaymentMethod(
-                        id: '', name: 'Non trouvé', createdAt: null);
-                  },
-                );
-                return _detailRow('Mode de paiement:', method.name);
-              },
-              loading: () => _detailRow('Mode de paiement:', 'Chargement...'),
-              error: (error, stack) {
-                print(
-                    'Erreur lors du chargement des méthodes de paiement: $error');
-                print(stack);
-                return _detailRow('Mode de paiement:', 'Erreur de chargement');
-              },
-            );
-          },
-        ),
 
         // Type de paiement
         Consumer(
