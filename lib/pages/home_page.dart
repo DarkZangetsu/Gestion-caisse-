@@ -810,7 +810,6 @@ class _HomePageState extends ConsumerState<HomePage> {
               color: _value == index ? Colors.white : Colors.black,
               fontSize: 14.0),
         ),
-        //selected: _value == index,
         selected: _selectedTimeframeFilter == filterChoice[index],
         onSelected: (bool selected) {
           setState(() {
@@ -839,7 +838,6 @@ class _HomePageState extends ConsumerState<HomePage> {
       child: TabBottomResume(
         totalReceived: totalReceived,
         totalPaid: totalPaid,
-        //totalBalance: totalBalance
       ),
     );
   }
