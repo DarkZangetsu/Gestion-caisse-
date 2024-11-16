@@ -4,13 +4,14 @@ class MyTextFormField extends StatelessWidget {
   const MyTextFormField({
     super.key,
     required TextEditingController budgetController,
-    this.labelText, this.validator, this.onChanged,
+    this.labelText, this.validator, this.onChanged, this.keyboardType,
   }) : _budgetController = budgetController;
 
   final TextEditingController _budgetController;
   final String? labelText;
   final String? Function(String?)? validator;
   final void Function(String)? onChanged;
+  final TextInputType? keyboardType;
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +26,8 @@ class MyTextFormField extends StatelessWidget {
         ),
         prefixIcon: const Icon(Icons.wallet),
       ),
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      //keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      keyboardType: keyboardType,
     );
   }
 }

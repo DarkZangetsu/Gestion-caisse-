@@ -16,6 +16,8 @@ class ChantierPage extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Gestion des Chantiers'),
+        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.add),

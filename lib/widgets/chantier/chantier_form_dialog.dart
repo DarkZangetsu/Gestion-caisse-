@@ -151,6 +151,7 @@ class _ChantierFormDialogState extends State<ChantierFormDialog> {
                       MyTextFormField(
                         budgetController: _budgetController,
                         labelText: 'Budget Maximum',
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         ),
                       const SizedBox(height: 16),
                       LayoutBuilder(

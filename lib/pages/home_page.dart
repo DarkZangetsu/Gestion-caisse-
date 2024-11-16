@@ -629,22 +629,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                 },
               ),
             ),
-            //Container de resultat de filtre par chip
-            Container(
-              width: double.infinity,
-              height: 40.0,
-              decoration: const BoxDecoration(
-                  color: Color(0xffea6b24),
-                  border:
-                      Border(top: BorderSide(width: 0.5, color: Colors.white))),
-              child: Center(
-                child: MyText(
-                  texte: _selectedTimeframeFilter,
-                  color: Colors.white,
-                  fontSize: 16.0,
-                ),
-              ),
-            ),
             Expanded(
               child: transactionsAsync.when(
                 data: (transactions) {
@@ -694,12 +678,45 @@ class _HomePageState extends ConsumerState<HomePage> {
                     }
                   }
 
-                  final balance = totalReceived - totalPaid;
-                  final totalBalance =
-                      balance + (selectedAccount?.solde ?? 0.0);
+                  final totalBalance = totalReceived -
+                      totalPaid +
+                      (selectedAccount?.solde ?? 0.0);
 
                   return Column(
                     children: [
+                      //Container de resultat de filtre par chip
+                      Container(
+                        width: double.infinity,
+                        height: 40.0,
+                        decoration: const BoxDecoration(
+                            color: Color(0xffea6b24),
+                            border: Border(
+                                top: BorderSide(
+                                    width: 0.5, color: Colors.white))),
+                        child: Center(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const MyText(
+                                texte: "Sold: ",
+                                color: Colors.white,
+                                fontSize: 20.0,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              MyText(
+                                texte: NumberFormat.currency(
+                                        locale: 'fr_FR',
+                                        symbol: 'Ar',
+                                        decimalDigits: 2)
+                                    .format(totalBalance),
+                                color: Colors.white,
+                                fontSize: 20.0,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                       Expanded(
                         child: SingleChildScrollView(
                           child: Container(
@@ -759,7 +776,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                       ),
 
                       // Bottom summary
-                      bottomSummary(totalReceived, totalPaid, totalBalance),
+                      bottomSummary(totalReceived, totalPaid),
                     ],
                   );
                 },
@@ -804,8 +821,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
-  Container bottomSummary(
-      double totalReceived, double totalPaid, double totalBalance) {
+  Container bottomSummary(double totalReceived, double totalPaid) {
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
@@ -820,9 +836,10 @@ class _HomePageState extends ConsumerState<HomePage> {
         ],
       ),
       child: TabBottomResume(
-          totalReceived: totalReceived,
-          totalPaid: totalPaid,
-          totalBalance: totalBalance),
+        totalReceived: totalReceived,
+        totalPaid: totalPaid,
+        //totalBalance: totalBalance
+      ),
     );
   }
 }

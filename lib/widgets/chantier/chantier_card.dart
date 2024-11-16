@@ -286,41 +286,8 @@ class ChantierCard extends StatelessWidget {
                 onTap();
               },
             ),
-            /*ListTile(
-              leading: const Icon(Icons.delete, color: Colors.red),
-              title:
-                  const Text('Supprimer', style: TextStyle(color: Colors.red)),
-              onTap: () {
-                Navigator.pop(context);
-                _showDeleteConfirmation(context);
-              },
-            ),*/
           ],
         ),
-      ),
-    );
-  }
-
-  void _showDeleteConfirmation(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirmer la suppression'),
-        content: Text(
-            'Êtes-vous sûr de vouloir supprimer le chantier "${chantier.name}" ?'),
-        actions: [
-          TextButton(
-            child: const Text('Annuler'),
-            onPressed: () => Navigator.pop(context),
-          ),
-          /*TextButton(
-            child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
-            onPressed: () {
-              Navigator.pop(context);
-              onDelete();
-            },
-          ),*/
-        ],
       ),
     );
   }
