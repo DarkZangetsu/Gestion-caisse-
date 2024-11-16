@@ -609,7 +609,8 @@ class _HomePageState extends ConsumerState<HomePage> {
         startDate: _startDate,
         endDate: _endDate,
         onTapPdf: () {
-          ImpressionParPdf.onTapPdf(ref, _selectedTimeframeFilter, _startDate, _endDate);
+          ImpressionParPdf.onTapPdf(
+              ref, _selectedTimeframeFilter, _startDate, _endDate);
         },
       ),
       drawer: const MyDrawer(),
@@ -624,34 +625,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 scrollDirection: Axis.horizontal,
                 itemCount: filterChoice.length,
                 itemBuilder: (context, index) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                    child: ChoiceChip(
-                      avatar: null,
-                      selectedColor: const Color(0xffea6b24),
-                      labelPadding: const EdgeInsets.symmetric(
-                          horizontal: 8.0, vertical: 2.0),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(50)),
-                      side: const BorderSide(color: Colors.white),
-                      label: Text(
-                        filterChoice[index],
-                        style: TextStyle(
-                            color:
-                                _value == index ? Colors.white : Colors.black,
-                            fontSize: 14.0),
-                      ),
-                      //selected: _value == index,
-                      selected: _selectedTimeframeFilter == filterChoice[index],
-                      onSelected: (bool selected) {
-                        setState(() {
-                          _value = selected ? index : 0;
-                          _selectedTimeframeFilter =
-                              selected ? filterChoice[index] : 'Tous';
-                        });
-                      },
-                    ),
-                  );
+                  return myChoiceChip(index);
                 },
               ),
             ),
@@ -797,6 +771,35 @@ class _HomePageState extends ConsumerState<HomePage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  //Fonction choice chip
+  Padding myChoiceChip(int index) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+      child: ChoiceChip(
+        avatar: null,
+        selectedColor: const Color(0xffea6b24),
+        labelPadding:
+            const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
+        side: const BorderSide(color: Colors.white),
+        label: Text(
+          filterChoice[index],
+          style: TextStyle(
+              color: _value == index ? Colors.white : Colors.black,
+              fontSize: 14.0),
+        ),
+        //selected: _value == index,
+        selected: _selectedTimeframeFilter == filterChoice[index],
+        onSelected: (bool selected) {
+          setState(() {
+            _value = selected ? index : 0;
+            _selectedTimeframeFilter = selected ? filterChoice[index] : 'Tous';
+          });
+        },
       ),
     );
   }
