@@ -43,6 +43,7 @@ class PaymentTypeCard extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
         title: const Text('Confirmer la suppression'),
         content: Text('Voulez-vous vraiment supprimer "${paymentType.name}" ?'),
         actions: [
@@ -65,6 +66,7 @@ class PaymentTypeCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Card(
+      elevation: 0,
       margin: const EdgeInsets.symmetric(vertical: 4),
       child: ListTile(
         title: Text(paymentType.name),

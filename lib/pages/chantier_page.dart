@@ -1,3 +1,4 @@
+import 'package:caisse/composants/texts.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/chantier.dart';
@@ -15,9 +16,9 @@ class ChantierPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Gestion des Chantiers'),
+        title: const MyText(texte: 'Gestion des Chantiers', color: Colors.white,),
+        backgroundColor: const Color(0xffea6b24),
         iconTheme: const IconThemeData(color: Colors.white),
-        backgroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.add),

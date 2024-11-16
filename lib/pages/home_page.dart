@@ -6,6 +6,7 @@ import 'package:caisse/composants/texts.dart';
 import 'package:caisse/home_composantes/drawer.dart';
 import 'package:caisse/home_composantes/transaction_row.dart';
 import 'package:caisse/imprimer/pdf.dart';
+import 'package:caisse/pages/todolist_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/accounts.dart';
@@ -698,7 +699,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               const MyText(
-                                texte: "Sold: ",
+                                texte: "Solde : ",
                                 color: Colors.white,
                                 fontSize: 20.0,
                                 fontWeight: FontWeight.bold,

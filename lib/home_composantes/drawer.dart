@@ -10,7 +10,6 @@ class MyDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Drawer(
-      
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
@@ -44,6 +43,11 @@ class MyDrawer extends StatelessWidget {
             ),
           ),
           DrawerListMenu(
+            icon: Icons.checklist,
+            texte: "ToDo List",
+            onTap: () => Navigator.pushNamed(context, '/todos'),
+          ),
+          DrawerListMenu(
             icon: Icons.business,
             texte: "Chantier",
             onTap: () => Navigator.pushNamed(context, '/chantier'),
@@ -52,11 +56,6 @@ class MyDrawer extends StatelessWidget {
             icon: Icons.people,
             texte: "Personnel",
             onTap: () => Navigator.pushNamed(context, '/personnel'),
-          ),
-          DrawerListMenu(
-            icon: Icons.checklist,
-            texte: "ToDo List",
-            onTap: () => Navigator.pushNamed(context, '/todos'),
           ),
           DrawerListMenu(
             icon: Icons.payment,

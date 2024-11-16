@@ -57,7 +57,7 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
             .read(chantiersStateProvider.notifier)
             .getChantiers(selectedAccount.id);
 
-        // Ensuite, charger les autres données
+        // Charger les autres données en parallèle
         await Future.wait([
           ref
               .read(personnelStateProvider.notifier)
@@ -392,6 +392,7 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        iconTheme: const IconThemeData(color: Colors.white),
         title: const MyText(
           texte: 'Liste des tâches',
           color: Colors.white,
@@ -405,6 +406,13 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
             Tab(text: 'Terminées'),
           ],
         ),
+        actions: [
+          // Ajouter un bouton de rafraîchissement manuel
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadInitialData,
+          ),
+        ],
       ),
       body: Consumer(
         builder: (context, ref, child) {
@@ -542,7 +550,9 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
             }
           },
           child: Card(
-            shape: BeveledRectangleBorder(borderRadius: BorderRadius.circular(4.0),),
+            shape: BeveledRectangleBorder(
+              borderRadius: BorderRadius.circular(4.0),
+            ),
             elevation: 0,
             margin: const EdgeInsets.symmetric(vertical: 4),
             child: ExpansionTile(

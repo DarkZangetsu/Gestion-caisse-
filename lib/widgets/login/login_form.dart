@@ -13,7 +13,7 @@ class LoginForm extends ConsumerStatefulWidget {
 
 class _LoginFormState extends ConsumerState<LoginForm> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+  final _emailController = TextEditingController(text: "user@gmail.com"); 
   final _passwordController = TextEditingController();
   var _isDisplay = true;
 
@@ -28,7 +28,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
     if (_formKey.currentState?.validate() ?? false) {
       try {
         await ref.read(userStateProvider.notifier).signInUser(
-          _emailController.text.trim(), // Add trim()
+          _emailController.text.trim(),
           _passwordController.text,
         );
       } catch (e) {
@@ -54,9 +54,9 @@ class _LoginFormState extends ConsumerState<LoginForm> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          CustomTextField(
+          /*CustomTextField(
             label: 'Email',
-            controller: _emailController,
+            controller: _emailController, 
             keyboardType: TextInputType.emailAddress,
             validator: (value) {
               if (value == null || value.isEmpty) {
@@ -67,8 +67,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
               }
               return null;
             },
-          ),
-          const SizedBox(height: 16),
+          ),*/
           CustomTextField(
             label: 'Mot de passe',
             controller: _passwordController,

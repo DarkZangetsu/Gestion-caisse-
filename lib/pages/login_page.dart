@@ -9,6 +9,10 @@ class LoginPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final screenSize = MediaQuery.of(context).size;
+    final isSmallScreen = screenSize.width < 600;
+    final logoHeight = isSmallScreen ? 100.0 : 140.0;
+
     ref.listen<AsyncValue<AppUser?>>(userStateProvider, (previous, next) {
       next.when(
         data: (user) {
@@ -24,36 +28,83 @@ class LoginPage extends ConsumerWidget {
             ),
           );
         },
-        loading: () {}, // Ne rien faire pendant le chargement
+        loading: () {},
       );
     });
 
     return Scaffold(
       body: SafeArea(
         child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'Bienvenue',
-                  style: Theme.of(context).textTheme.headlineMedium,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Connectez-vous pour continuer',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey,
+          // Centrer tout le contenu
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                child: Container(
+                  constraints: const BoxConstraints(
+                      maxWidth: 400), // Réduire la largeur maximale
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 24.0,
+                    vertical: isSmallScreen ? 20.0 : 40.0,
                   ),
-                  textAlign: TextAlign.center,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment
+                        .center, // Centrer les éléments horizontalement
+                    children: [
+                      // Logo centré avec Container
+                      Container(
+                        height: logoHeight,
+                        width: double.infinity,
+                        alignment: Alignment.center,
+                        margin: EdgeInsets.symmetric(
+                          vertical: isSmallScreen ? 12.0 : 18.0,
+                        ),
+                        child: Image.asset(
+                          'img/Logo.png',
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                      SizedBox(height: isSmallScreen ? 24 : 32),
+                      Container(
+                        width: double.infinity,
+                        alignment: Alignment.center,
+                        child: Text(
+                          'Bienvenue',
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineMedium
+                              ?.copyWith(
+                                fontSize: isSmallScreen ? 24 : 32,
+                              ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      // Sous-titre centré
+                      Container(
+                        width: double.infinity,
+                        alignment: Alignment.center,
+                        child: Text(
+                          'Connectez-vous pour continuer',
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Colors.grey,
+                                    fontSize: isSmallScreen ? 14 : 16,
+                                  ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      SizedBox(height: isSmallScreen ? 24 : 32),
+                      // Formulaire de connexion
+                      const LoginForm(),
+                      SizedBox(height: isSmallScreen ? 24 : 32),
+                      SizedBox(height: isSmallScreen ? 24 : 32),
+                      SizedBox(height: isSmallScreen ? 24 : 32),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 32),
-                const LoginForm(),
-              ],
-            ),
+              );
+            },
           ),
         ),
       ),

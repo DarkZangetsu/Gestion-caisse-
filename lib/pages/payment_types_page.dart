@@ -1,3 +1,4 @@
+import 'package:caisse/composants/texts.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
@@ -73,7 +74,9 @@ class _PaymentTypesPageState extends ConsumerState<PaymentTypesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Types de paiement'),
+        title: const MyText(texte: 'Types de paiement', color: Colors.white,),
+        backgroundColor: const Color(0xffea6b24),
+        iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -83,8 +86,9 @@ class _PaymentTypesPageState extends ConsumerState<PaymentTypesPage> {
       ),
       body: const PaymentTypeList(),
       floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xffea6b24),
         onPressed: _showAddDialog,
-        child: const Icon(Icons.add),
+        child: const Icon(Icons.add, color: Colors.white,),
       ),
     );
   }

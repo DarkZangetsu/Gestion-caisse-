@@ -46,7 +46,6 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
   final LayerLink _layerLink = LayerLink();
   OverlayEntry? _overlayEntry;
 
-
   @override
   void initState() {
     super.initState();
@@ -123,9 +122,9 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
     setState(() {
       _filteredItems = widget.items
           .where((item) => widget
-          .getSearchString(item)
-          .toLowerCase()
-          .contains(query.toLowerCase()))
+              .getSearchString(item)
+              .toLowerCase()
+              .contains(query.toLowerCase()))
           .toList();
     });
 
@@ -163,7 +162,9 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
                         ),
                       IconButton(
                         icon: Icon(
-                          _isExpanded ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                          _isExpanded
+                              ? Icons.arrow_drop_up
+                              : Icons.arrow_drop_down,
                         ),
                         onPressed: () {
                           setState(() {
@@ -213,13 +214,12 @@ class PaymentPage extends ConsumerStatefulWidget {
 
   const PaymentPage({
     super.key,
-    this.initialType = 'reçu', // valeur par défaut
+    this.initialType = 'reçu',
   });
 
   @override
   ConsumerState<PaymentPage> createState() => _PaymentPageState();
 }
-
 
 class _PaymentPageState extends ConsumerState<PaymentPage> {
   final _formKey = GlobalKey<FormState>();
@@ -236,7 +236,7 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
   @override
   void initState() {
     super.initState();
-    _type = widget.initialType; // Initialiser avec le type passé
+    _type = widget.initialType;
 
     Future.microtask(() {
       final userId = ref.read(currentUserProvider)?.id ?? '';
@@ -245,7 +245,6 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
       ref.read(personnelStateProvider.notifier).getPersonnel(userId);
     });
   }
-
 
   @override
   void dispose() {
@@ -273,7 +272,8 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
     if (_selectedPaymentMethodId == null || _selectedPaymentTypeId == null) {
       print('Required fields missing');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez remplir tous les champs requis')),
+        const SnackBar(
+            content: Text('Veuillez remplir tous les champs requis')),
       );
       return;
     }
@@ -283,7 +283,7 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
     // Générer un UUID v4 valide pour l'ID
     final uuid = Uuid();
     final transaction = Transaction(
-      id: uuid.v4(), // Utilisation d'un UUID v4 au lieu d'un timestamp
+      id: uuid.v4(),
       accountId: selectedAccount.id,
       chantierId: _selectedChantierId,
       personnelId: _selectedPersonnelId,
@@ -300,11 +300,15 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
     print('Transaction object created: ${transaction.toJson()}');
 
     try {
-      await ref.read(transactionsStateProvider.notifier).addTransaction(transaction);
+      await ref
+          .read(transactionsStateProvider.notifier)
+          .addTransaction(transaction);
       print('Transaction added successfully');
 
       // Recharger les transactions pour le compte sélectionné
-      await ref.read(transactionsStateProvider.notifier).loadTransactions(selectedAccount.id);
+      await ref
+          .read(transactionsStateProvider.notifier)
+          .loadTransactions(selectedAccount.id);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -317,7 +321,9 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
       print('Stack trace: $stackTrace');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur lors de l\'enregistrement: ${e.toString()}')),
+          SnackBar(
+              content:
+                  Text('Erreur lors de l\'enregistrement: ${e.toString()}')),
         );
       }
     }
@@ -334,8 +340,9 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
 
     List<PaymentType> filteredPaymentTypes = paymentTypesAsync.when(
       data: (types) => types
-          .where((type) =>
-      _type == 'reçu' ? type.category == 'revenu' : type.category == 'dépense')
+          .where((type) => _type == 'reçu'
+              ? type.category == 'revenu'
+              : type.category == 'dépense')
           .toList(),
       loading: () => [],
       error: (_, __) => [],
@@ -347,181 +354,171 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
         backgroundColor: _type == 'reçu' ? Colors.green : Colors.red,
       ),
       body: Form(
-          key: _formKey,
-          child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-          // Type de transaction
-          SegmentedButton<String>(
-          segments: const [
-              ButtonSegment(value: 'reçu', label: Text('Reçu')),
-          ButtonSegment(value: 'payé', label: Text('Payé')),
-          ],
-      selected: {_type},
-          onSelectionChanged: (Set<String> selection) {
-    setState(() {
-    _type = selection.first;
-    _selectedPaymentTypeId = null;
-    });
-    },
-    ),
-    const SizedBox(height: 16),
-
-    // Montant
-    TextFormField(
-    controller: _amountController,
-    keyboardType: TextInputType.number,
-    decoration: const InputDecoration(
-    labelText: 'Montant',
-    prefixText: 'Ar ',
-    ),
-    validator: (value) {
-    if (value == null || value.isEmpty) {
-    return 'Veuillez entrer un montant';
-    }
-    if (double.tryParse(value) == null) {
-    return 'Veuillez entrer un montant valide';
-    }
-    return null;
-    },
-    ),
-    const SizedBox(height: 16),
-
-    // Date et heure
-    ListTile(
-    title: const Text('Date de transaction'),
-    subtitle: Text(DateFormat('dd/MM/yyyy HH:mm').format(_transactionDate)),
-    trailing: const Icon(Icons.calendar_today),
-    onTap: () async {
-    final date = await showDatePicker(
-    context: context,
-    initialDate: _transactionDate,
-    firstDate: DateTime(2000),
-    lastDate: DateTime(2100),
-    );
-    if (date != null) {
-    final time = await showTimePicker(
-    context: context,
-    initialTime: TimeOfDay.fromDateTime(_transactionDate),
-    );
-    if (time != null) {
-    setState(() {
-    _transactionDate = DateTime(
-    date.year,
-    date.month,
-    date.day,
-    time.hour,
-    time.minute,
-    );
-    });
-    }
-    }
-    },
-    ),
-    const SizedBox(height: 16),
-
-    // Chantier Dropdown
-                chantiersAsync.when(
-                  data: (chantiers) => SearchableDropdown<Chantier>(
-                    items: chantiers,
-                    value: chantiers.where((c) => c.id == _selectedChantierId).firstOrNull,
-                    getLabel: (chantier) => chantier.name,
-                    getSearchString: (chantier) => chantier.name,
-                    onChanged: (chantier) => setState(() => _selectedChantierId = chantier?.id),
-                    label: 'Chantier',
-                  ),
-                  loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (error, __) => Text('Erreur de chargement des chantiers: $error'),
-                ),
-    const SizedBox(height: 16),
-
-    // Personnel Dropdown
-    personnelAsync.when(
-    data: (personnelList) => SearchableDropdown<Personnel>(
-    items: personnelList,
-    value: personnelList.where((p) => p.id == _selectedPersonnelId).firstOrNull,
-    getLabel: (personnel) => personnel.name,
-    getSearchString: (personnel) => personnel.name,
-    onChanged: (personnel) => setState(() => _selectedPersonnelId = personnel?.id),
-    label: 'Personnel',
-    ),
-    loading: () => const Center(child: CircularProgressIndicator()),
-    error: (_, __) => const Text('Erreur de chargement du personnel'),
-    ),
-    const SizedBox(height: 16),
-
-    // Mode de paiement
-    paymentMethodsAsync.when(
-    data: (methods) => DropdownButtonFormField<String>(
-    value: _selectedPaymentMethodId,
-    decoration: const InputDecoration(
-    labelText: 'Mode de paiement',
-    ),
-    items: methods
-        .map((method) => DropdownMenuItem(
-    value: method.id,
-    child: Text(method.name),
-    ))
-        .toList(),
-    onChanged: (value) => setState(() => _selectedPaymentMethodId = value),
-    validator: (value) => value == null ? 'Champ requis' : null,
-    ),
-    loading: () => const Center(child: CircularProgressIndicator()),
-    error: (_, __) => const Text('Erreur de chargement des modes de paiement'),
-    ),
-    const SizedBox(height: 16),
-
-    // Type de paiement
-    paymentTypesAsync.when(
-    data: (_) => DropdownButtonFormField<String>(
-    value: _selectedPaymentTypeId,
-    decoration: const InputDecoration(
-    labelText: 'Type de paiement',
-    ),
-    items: filteredPaymentTypes
-        .map((type) => DropdownMenuItem(
-    value: type.id,
-    child: Text(type.name),
-    ))
-        .toList(),
-    onChanged: (value) => setState(() => _selectedPaymentTypeId = value),
-      validator: (value) => value == null ? 'Champ requis' : null,
-    ),
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (_, __) => const Text('Erreur de chargement des types de paiement'),
-    ),
-                const SizedBox(height: 24),
-
-                // Description
-                TextFormField(
-                  controller: _descriptionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Description',
-                  ),
-                  maxLines: 3,
-                ),
-                const SizedBox(height: 24),
-
-                // Bouton de sauvegarde
-                SizedBox(
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: _saveTransaction,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _type == 'reçu' ? Colors.green : Colors.red,
-                    ),
-                    child: const Text(
-                      'Sauvegarder',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            // Type de transaction
+            SegmentedButton<String>(
+              segments: const [
+                ButtonSegment(value: 'reçu', label: Text('Reçu')),
+                ButtonSegment(value: 'payé', label: Text('Payé')),
               ],
-          ),
+              selected: {_type},
+              onSelectionChanged: (Set<String> selection) {
+                setState(() {
+                  _type = selection.first;
+                  _selectedPaymentTypeId = null;
+                });
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Montant
+            TextFormField(
+              controller: _amountController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Montant',
+                prefixText: 'Ar ',
+              ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Veuillez entrer un montant';
+                }
+                if (double.tryParse(value) == null) {
+                  return 'Veuillez entrer un montant valide';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Date et heure
+            ListTile(
+              title: const Text('Date de transaction'),
+              subtitle:
+                  Text(DateFormat('dd/MM/yyyy HH:mm').format(_transactionDate)),
+              trailing: const Icon(Icons.calendar_today),
+              onTap: () async {
+                final date = await showDatePicker(
+                  context: context,
+                  initialDate: _transactionDate,
+                  firstDate: DateTime(2000),
+                  lastDate: DateTime(2100),
+                );
+                if (date != null) {
+                  final time = await showTimePicker(
+                    context: context,
+                    initialTime: TimeOfDay.fromDateTime(_transactionDate),
+                  );
+                  if (time != null) {
+                    setState(() {
+                      _transactionDate = DateTime(
+                        date.year,
+                        date.month,
+                        date.day,
+                        time.hour,
+                        time.minute,
+                      );
+                    });
+                  }
+                }
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Chantier Dropdown
+            chantiersAsync.when(
+              data: (chantiers) => SearchableDropdown<Chantier>(
+                items: chantiers,
+                value: chantiers
+                    .where((c) => c.id == _selectedChantierId)
+                    .firstOrNull,
+                getLabel: (chantier) => chantier.name,
+                getSearchString: (chantier) => chantier.name,
+                onChanged: (chantier) =>
+                    setState(() => _selectedChantierId = chantier?.id),
+                label: 'Chantier',
+              ),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, __) =>
+                  Text('Erreur de chargement des chantiers: $error'),
+            ),
+            const SizedBox(height: 16),
+
+            // Type de paiement
+            paymentTypesAsync.when(
+              data: (_) => DropdownButtonFormField<String>(
+                value: _selectedPaymentTypeId,
+                decoration: const InputDecoration(
+                  labelText: 'Type de paiement',
+                ),
+                items: filteredPaymentTypes
+                    .map((type) => DropdownMenuItem(
+                          value: type.id,
+                          child: Text(type.name),
+                        ))
+                    .toList(),
+                onChanged: (value) =>
+                    setState(() => _selectedPaymentTypeId = value),
+                validator: (value) => value == null ? 'Champ requis' : null,
+              ),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (_, __) =>
+                  const Text('Erreur de chargement des types de paiement'),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Personnel Dropdown
+            personnelAsync.when(
+              data: (personnelList) => SearchableDropdown<Personnel>(
+                items: personnelList,
+                value: personnelList
+                    .where((p) => p.id == _selectedPersonnelId)
+                    .firstOrNull,
+                getLabel: (personnel) => personnel.name,
+                getSearchString: (personnel) => personnel.name,
+                onChanged: (personnel) =>
+                    setState(() => _selectedPersonnelId = personnel?.id),
+                label: 'Personnel',
+              ),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (_, __) => const Text('Erreur de chargement du personnel'),
+            ),
+            const SizedBox(height: 16),
+
+            // Description
+            TextFormField(
+              controller: _descriptionController,
+              decoration: const InputDecoration(
+                labelText: 'Description',
+              ),
+              maxLines: 3,
+            ),
+            const SizedBox(height: 24),
+
+            // Bouton de sauvegarde
+            SizedBox(
+              height: 50,
+              child: ElevatedButton(
+                onPressed: _saveTransaction,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _type == 'reçu' ? Colors.green : Colors.red,
+                ),
+                child: const Text(
+                  'Sauvegarder',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

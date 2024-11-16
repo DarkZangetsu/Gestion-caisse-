@@ -54,6 +54,7 @@ class _PaymentTypeFormState extends State<PaymentTypeForm> {
         await showDialog(
           context: context,
           builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
             title: const Text('Succès'),
             content: Text(
                 widget.initialName == null
