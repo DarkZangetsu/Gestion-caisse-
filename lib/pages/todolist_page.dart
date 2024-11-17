@@ -1,6 +1,5 @@
 import 'package:caisse/composants/texts.dart';
 import 'package:caisse/models/chantier.dart';
-import 'package:caisse/models/payment_method.dart';
 import 'package:caisse/models/payment_type.dart';
 import 'package:caisse/models/personnel.dart';
 import 'package:flutter/material.dart';

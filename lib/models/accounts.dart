@@ -2,7 +2,7 @@ class Account {
   final String id;
   final String userId;
   final String name;
-  final double? solde;
+  late final double? solde;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 

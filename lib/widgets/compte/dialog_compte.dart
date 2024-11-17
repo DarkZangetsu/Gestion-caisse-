@@ -1,5 +1,7 @@
+import 'package:caisse/providers/transactions_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import '../../classHelper/class_account.dart';
 import '../../classHelper/class_modif_account.dart';
 import '../../models/accounts.dart';
@@ -8,12 +10,14 @@ import '../../providers/accounts_provider.dart';
 class DialogCompte extends ConsumerStatefulWidget {
   final void Function(Account compteSelectionne)? onCompteSelectionne;
 
-  const DialogCompte({Key? key, this.onCompteSelectionne}) : super(key: key);
+  const DialogCompte({super.key, this.onCompteSelectionne});
 
-  static void show(BuildContext context, {void Function(Account compteSelectionne)? onCompteSelectionne}) {
+  static void show(BuildContext context,
+      {void Function(Account compteSelectionne)? onCompteSelectionne}) {
     showDialog(
       context: context,
-      builder: (context) => DialogCompte(onCompteSelectionne: onCompteSelectionne),
+      builder: (context) =>
+          DialogCompte(onCompteSelectionne: onCompteSelectionne),
     );
   }
 
@@ -84,7 +88,8 @@ class _DialogCompteState extends ConsumerState<DialogCompte> {
       ),
       child: const Row(
         children: [
-          Icon(Icons.account_balance_wallet, color: Color(0xffea6b24), size: 24),
+          Icon(Icons.account_balance_wallet,
+              color: Color(0xffea6b24), size: 24),
           SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -125,7 +130,8 @@ class _DialogCompteState extends ConsumerState<DialogCompte> {
 
   Widget _buildComptesList(List<Account> comptes) {
     final comptesFiltres = comptes
-        .where((compte) => compte.name.toLowerCase().contains(_searchQuery.toLowerCase()))
+        .where((compte) =>
+            compte.name.toLowerCase().contains(_searchQuery.toLowerCase()))
         .toList();
 
     if (comptesFiltres.isEmpty) {
@@ -133,11 +139,13 @@ class _DialogCompteState extends ConsumerState<DialogCompte> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.search_off, size: 48, color: Colors.grey.withOpacity(0.5)),
+            Icon(Icons.search_off,
+                size: 48, color: Colors.grey.withOpacity(0.5)),
             const SizedBox(height: 16),
             Text(
               'Aucun compte trouvé',
-              style: TextStyle(color: Colors.grey.withOpacity(0.8), fontSize: 16),
+              style:
+                  TextStyle(color: Colors.grey.withOpacity(0.8), fontSize: 16),
             ),
           ],
         ),
@@ -149,16 +157,42 @@ class _DialogCompteState extends ConsumerState<DialogCompte> {
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemBuilder: (context, index) {
         final compte = comptesFiltres[index];
+
+        // Calculer le solde total
+        final transactionsState = ref.watch(transactionsStateProvider);
+        double totalBalance = compte.solde ?? 0.0;
+
+        if (transactionsState.hasValue) {
+          final transactions = transactionsState.value!
+              .where((t) => t.accountId == compte.id)
+              .toList();
+
+          double totalReceived = 0;
+          double totalPaid = 0;
+
+          for (var transaction in transactions) {
+            if (transaction.type == 'reçu') {
+              totalReceived += transaction.amount;
+            } else {
+              totalPaid += transaction.amount;
+            }
+          }
+
+          totalBalance = totalReceived - totalPaid + (compte.solde ?? 0.0);
+        }
+
         return ListTile(
           leading: const Icon(Icons.account_circle, color: Color(0xffea6b24)),
           title: Text(compte.name, style: const TextStyle(fontSize: 16)),
           subtitle: compte.solde != null
               ? Text(
-            'Solde: ${compte.solde!.toStringAsFixed(2)}',
-            style: TextStyle(
-              color: compte.solde! >= 0 ? Colors.green : Colors.red,
-            ),
-          )
+                  NumberFormat.currency(
+                          locale: 'fr_FR', symbol: 'Ar', decimalDigits: 2)
+                      .format(totalBalance),
+                  style: TextStyle(
+                    color: totalBalance >= 0 ? Colors.green : Colors.red,
+                  ),
+                )
               : null,
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
@@ -177,7 +211,9 @@ class _DialogCompteState extends ConsumerState<DialogCompte> {
                 icon: const Icon(Icons.delete),
                 onPressed: () {
                   // Supprimer le compte
-                  ref.read(accountsStateProvider.notifier).deleteAccount(compte.id);
+                  ref
+                      .read(accountsStateProvider.notifier)
+                      .deleteAccount(compte.id);
                 },
               ),
             ],

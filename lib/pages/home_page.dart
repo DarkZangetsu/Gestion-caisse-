@@ -150,7 +150,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           await ref
               .read(transactionsStateProvider.notifier)
               .loadTransactions(selectedAccount.id);
-          print('Transactions chargées pour le compte ${selectedAccount.id}');
+          print('Transactions chargées pour le compte ${selectedAccount.solde}');
 
           // Vérifiez le nombre de transactions chargées
           final transactions = ref.read(transactionsStateProvider).value ?? [];
@@ -489,24 +489,6 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   // Filter transactions based on search query
   // Debug helper method
-  void _printDateRange(String filterType) {
-    final now = DateTime.now();
-    switch (filterType) {
-      case 'Hebdomadaire':
-        final monday = now.subtract(Duration(days: now.weekday - 1));
-        final startOfWeek = DateTime(monday.year, monday.month, monday.day);
-        final sunday = startOfWeek.add(const Duration(days: 6));
-        print(
-            'Week range: ${DateFormat('yyyy-MM-dd').format(startOfWeek)} to ${DateFormat('yyyy-MM-dd').format(sunday)}');
-        break;
-      case 'Mensuel':
-        final startOfMonth = DateTime(now.year, now.month, 1);
-        final lastDay = DateTime(now.year, now.month + 1, 0);
-        print(
-            'Month range: ${DateFormat('yyyy-MM-dd').format(startOfMonth)} to ${DateFormat('yyyy-MM-dd').format(lastDay)}');
-        break;
-    }
-  }
 
   List<Transaction> _filterTransactions(List<Transaction> transactions) {
     print('Compte actuel: ${ref.read(selectedAccountProvider)?.id}');
@@ -665,45 +647,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                     }
                   }
 
-                  final totalBalance = totalReceived -
-                      totalPaid +
-                      (selectedAccount?.solde ?? 0.0);
-
                   return Column(
                     children: [
-                      //Container de resultat de filtre par chip
-                      Container(
-                        width: double.infinity,
-                        height: 40.0,
-                        decoration: const BoxDecoration(
-                            color: Color(0xffea6b24),
-                            border: Border(
-                                top: BorderSide(
-                                    width: 0.5, color: Colors.white))),
-                        child: Center(
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const MyText(
-                                texte: "Solde : ",
-                                color: Colors.white,
-                                fontSize: 20.0,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              MyText(
-                                texte: NumberFormat.currency(
-                                        locale: 'fr_FR',
-                                        symbol: 'Ar',
-                                        decimalDigits: 2)
-                                    .format(totalBalance),
-                                color: Colors.white,
-                                fontSize: 20.0,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
                       Expanded(
                         child: SingleChildScrollView(
                           child: Container(
