@@ -104,12 +104,16 @@ class ImpressionParPdf {
                       return pw.TableRow(
                         children: [
                           pw.Padding(
-                            padding: const pw.EdgeInsets.all(8),
-                            child: pw.Text(
-                              DateFormat('dd/MM/yyyy')
-                                  .format(transaction.transactionDate),
-                            ),
-                          ),
+                              padding: const pw.EdgeInsets.all(8),
+                              child: pw.Column(children: [
+                                pw.Text(
+                                  DateFormat('dd/MM/yyyy')
+                                      .format(transaction.transactionDate),
+                                ),
+                                pw.Text(
+                                  "${transaction.description}"
+                                ),
+                              ])),
                           pw.Padding(
                             padding: const pw.EdgeInsets.all(8),
                             child: pw.Text(

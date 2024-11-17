@@ -66,6 +66,7 @@ class MyDrawer extends ConsumerWidget {
           ),
           // Commutateur pour mode sombre et clair
           SwitchListTile(
+            activeColor: const Color(0xffea6b24),
             title: Text(isDarkMode ? "Mode clair" : "Mode sombre"),
             secondary: Icon(isDarkMode ? Icons.light_mode : Icons.dark_mode),
             value: isDarkMode,
