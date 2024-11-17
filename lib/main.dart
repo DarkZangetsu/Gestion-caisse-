@@ -1,3 +1,4 @@
+import 'package:caisse/pages/ChangePasswordPage.dart';
 import 'package:caisse/pages/PersonnelPage.dart';
 import 'package:caisse/providers/app_theme.dart';
 import 'package:flutter/material.dart';
@@ -28,13 +29,13 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final currentThemeMode = ref.watch(themeProvider);
+    final themeMode = ref.watch(themeProvider);
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: currentThemeMode,
+      themeMode: themeMode,
       initialRoute: '/login',
       routes: {
         '/login': (context) => const LoginPage(),
@@ -42,8 +43,9 @@ class MyApp extends ConsumerWidget {
         '/payement': (context) => const AuthGuard(child: PaymentPage()),
         '/chantier': (context) => const ChantierPage(),
         '/personnel': (context) => const PersonnelPage(),
-        '/todos': (context) => const TodoListPage(),
-        '/payment-types': (context) => const PaymentTypesPage(),
+        '/todos':(context) => const TodoListPage(),
+        '/payment-types':(context) => const PaymentTypesPage(),
+        '/change-password':(context) => const ChangePasswordPage(),
       },
     );
   }

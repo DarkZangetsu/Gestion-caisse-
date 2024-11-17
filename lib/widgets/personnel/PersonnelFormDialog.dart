@@ -47,6 +47,7 @@ class _PersonnelFormDialogState extends State<PersonnelFormDialog> {
     super.dispose();
   }
 
+  // Only validate the name field as required
   String? _validateRequired(String? value) {
     if (value == null || value.isEmpty) {
       return 'Ce champ est obligatoire';
@@ -54,9 +55,10 @@ class _PersonnelFormDialogState extends State<PersonnelFormDialog> {
     return null;
   }
 
+  // Optional validation for salary - only validate format if value is provided
   String? _validateSalaire(String? value) {
     if (value == null || value.isEmpty) {
-      return 'Ce champ est obligatoire';
+      return null; // Return null if empty since field is optional
     }
     if (double.tryParse(value) == null) {
       return 'Veuillez entrer un nombre valide';
@@ -73,8 +75,7 @@ class _PersonnelFormDialogState extends State<PersonnelFormDialog> {
         final isSmallScreen = screenSize.width < 600;
 
         return Dialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
           child: ConstrainedBox(
             constraints: BoxConstraints(
               maxWidth: isSmallScreen ? screenSize.width * 0.9 : 500,
@@ -89,7 +90,6 @@ class _PersonnelFormDialogState extends State<PersonnelFormDialog> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // En-tête
                       Text(
                         widget.personnel == null
                             ? 'Ajouter un Personnel'
@@ -99,50 +99,49 @@ class _PersonnelFormDialogState extends State<PersonnelFormDialog> {
                       ),
                       SizedBox(height: isSmallScreen ? 16.0 : 24.0),
 
-                      // Champs de formulaire
+                      // Required name field
                       _buildInputField(
                         controller: _nomController,
-                        label: 'Nom',
+                        label: 'Nom *',
                         icon: Icons.person,
                         validator: _validateRequired,
                       ),
                       const SizedBox(height: 16),
 
+                      // Optional role field
                       _buildInputField(
                         controller: _roleController,
-                        label: 'Rôle',
+                        label: 'Rôle (optionnel)',
                         icon: Icons.work,
-                        validator: _validateRequired,
                       ),
                       const SizedBox(height: 16),
 
+                      // Optional contact field
                       _buildInputField(
                         controller: _contactController,
-                        label: 'Contact',
+                        label: 'Contact (optionnel)',
                         icon: Icons.phone,
-                        validator: _validateRequired,
                         keyboardType: TextInputType.phone,
                       ),
                       const SizedBox(height: 16),
 
+                      // Optional salary field with format validation
                       _buildInputField(
                         controller: _salaireMaxController,
-                        label: 'Salaire Maximum',
+                        label: 'Salaire Maximum (optionnel)',
                         icon: Icons.credit_card,
                         validator: _validateSalaire,
-                        keyboardType:
-                            const TextInputType.numberWithOptions(decimal: true),
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         prefixText: 'Ar ',
                       ),
                       SizedBox(height: isSmallScreen ? 24.0 : 32.0),
 
-                      // Boutons d'action
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           TextButton(
                             onPressed: () => Navigator.of(context).pop(),
-                            child: const MyText(texte: 'Annuler', color: Colors.black54,),
+                            child: const MyText(texte: 'Annuler', color: Colors.black54),
                           ),
                           const SizedBox(width: 8),
                           ElevatedButton(
@@ -152,12 +151,12 @@ class _PersonnelFormDialogState extends State<PersonnelFormDialog> {
                                   id: widget.personnel?.id ?? uuid.v4(),
                                   userId: widget.personnel?.userId ?? userId,
                                   name: _nomController.text,
-                                  role: _roleController.text,
-                                  contact: _contactController.text,
-                                  salaireMax: double.tryParse(
-                                      _salaireMaxController.text),
-                                  createdAt: widget.personnel?.createdAt ??
-                                      DateTime.now(),
+                                  role: _roleController.text.isEmpty ? null : _roleController.text,
+                                  contact: _contactController.text.isEmpty ? null : _contactController.text,
+                                  salaireMax: _salaireMaxController.text.isEmpty
+                                      ? null
+                                      : double.tryParse(_salaireMaxController.text),
+                                  createdAt: widget.personnel?.createdAt ?? DateTime.now(),
                                   updatedAt: DateTime.now(),
                                 );
                                 widget.onSave(nouveauPersonnel);
@@ -165,18 +164,15 @@ class _PersonnelFormDialogState extends State<PersonnelFormDialog> {
                               }
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor:const Color(0xffea6b24),
-                              foregroundColor:
-                                  Theme.of(context).colorScheme.onPrimary,
+                              backgroundColor: const Color(0xffea6b24),
+                              foregroundColor: Theme.of(context).colorScheme.onPrimary,
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 24,
                                 vertical: 12,
                               ),
                             ),
                             child: Text(
-                              widget.personnel == null
-                                  ? 'Ajouter'
-                                  : 'Mettre à jour',
+                              widget.personnel == null ? 'Ajouter' : 'Mettre à jour',
                             ),
                           ),
                         ],
@@ -196,7 +192,7 @@ class _PersonnelFormDialogState extends State<PersonnelFormDialog> {
     required TextEditingController controller,
     required String label,
     required IconData icon,
-    required String? Function(String?)? validator,
+    String? Function(String?)? validator,
     TextInputType? keyboardType,
     String? prefixText,
   }) {

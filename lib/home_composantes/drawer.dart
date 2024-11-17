@@ -64,10 +64,14 @@ class MyDrawer extends ConsumerWidget {
             texte: "Types de paiement",
             onTap: () => Navigator.pushNamed(context, '/payment-types'),
           ),
-          DrawerListMenu(
-            icon: isDarkMode ? Icons.light_mode : Icons.dark_mode,
-            texte: isDarkMode ? "Mode clair" : "Mode sombre",
-            onTap: () => themeNotifier.toggleTheme(),
+          // Commutateur pour mode sombre et clair
+          SwitchListTile(
+            title: Text(isDarkMode ? "Mode clair" : "Mode sombre"),
+            secondary: Icon(isDarkMode ? Icons.light_mode : Icons.dark_mode),
+            value: isDarkMode,
+            onChanged: (value) {
+              themeNotifier.toggleTheme(value);
+            },
           ),
           const DrawerListMenu(
             icon: Icons.help_outline,

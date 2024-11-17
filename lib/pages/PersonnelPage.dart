@@ -85,11 +85,32 @@ class PersonnelList extends ConsumerWidget {
         return PersonnelCard(
           personnel: personnel,
           onTap: () => _showPersonnelFormDialog(context, ref, personnel),
-          onDelete: () => ref
-              .read(personnelStateProvider.notifier)
-              .deletePersonnel(personnel.id),
+          onDelete: () => _showDeleteConfirmation(context, ref, personnel),
         );
       },
+    );
+  }
+
+  void _showDeleteConfirmation(BuildContext context, WidgetRef ref, Personnel personnel) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmation de suppression'),
+        content: Text('Voulez-vous vraiment supprimer ${personnel.name} ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () {
+              ref.read(personnelStateProvider.notifier).deletePersonnel(personnel.id);
+              Navigator.of(context).pop();
+            },
+            child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
     );
   }
 

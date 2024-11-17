@@ -6,8 +6,7 @@ import 'package:caisse/composants/texts.dart';
 import 'package:caisse/home_composantes/drawer.dart';
 import 'package:caisse/home_composantes/transaction_row.dart';
 import 'package:caisse/imprimer/pdf.dart';
-import 'package:caisse/main.dart';
-import 'package:caisse/pages/todolist_page.dart';
+import 'package:caisse/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/accounts.dart';
@@ -15,7 +14,6 @@ import '../models/chantier.dart';
 import '../models/payment_type.dart';
 import '../models/personnel.dart';
 import '../models/transaction.dart';
-import '../providers/accounts_provider.dart';
 import '../providers/chantiers_provider.dart';
 import '../providers/payment_types_provider.dart';
 import '../providers/personnel_provider.dart';
@@ -511,9 +509,9 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   List<Transaction> _filterTransactions(List<Transaction> transactions) {
-    print('Compte actuel: ${ref.read(selectedAccountProvider)?.id}'); 
+    print('Compte actuel: ${ref.read(selectedAccountProvider)?.id}');
     print(
-        'Nombre total de transactions avant filtrage: ${transactions.length}'); 
+        'Nombre total de transactions avant filtrage: ${transactions.length}');
 
     final filtered = transactions.where((transaction) {
       // Vérification du compte
@@ -581,11 +579,13 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget build(BuildContext context) {
     final selectedAccount = ref.watch(selectedAccountProvider);
     final transactionsAsync = ref.watch(transactionsStateProvider);
+    final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
 
     return Scaffold(
       appBar: SearchableAppBar(
         onTap: _showDateRangePicker,
-        selectedAccount: selectedAccount,
+        selectedAccount: selectedAccount ??
+            Account(id: '', name: 'Comptah', solde: 0.0, userId: ''),
         onAccountTap: _showAccountDialog,
         onSearch: (query) {
           setState(() {
@@ -612,7 +612,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 scrollDirection: Axis.horizontal,
                 itemCount: filterChoice.length,
                 itemBuilder: (context, index) {
-                  return myChoiceChip(index);
+                  return myChoiceChip(index, ref);
                 },
               ),
             ),
@@ -709,7 +709,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                           child: Container(
                             margin: const EdgeInsets.all(8.0),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: isDarkMode ? Colors.black38: Colors.grey[100],
                               borderRadius: BorderRadius.circular(8),
                               boxShadow: [
                                 BoxShadow(
@@ -724,7 +724,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 Container(
                                   padding: const EdgeInsets.all(16.0),
                                   decoration: BoxDecoration(
-                                    color: Colors.grey[100],
+                                    color: isDarkMode ? Colors.black54: Colors.grey[100],
                                     borderRadius: const BorderRadius.only(
                                       topLeft: Radius.circular(8),
                                       topRight: Radius.circular(8),
@@ -780,12 +780,14 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   //Fonction choice chip
-  Padding myChoiceChip(int index) {
+  Padding myChoiceChip(int index, WidgetRef ref) {
+    final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4.0),
       child: ChoiceChip(
         avatar: null,
-        selectedColor: const Color(0xffea6b24),
+        selectedColor:const Color(0xffea6b24),
         labelPadding:
             const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
@@ -793,8 +795,13 @@ class _HomePageState extends ConsumerState<HomePage> {
         label: Text(
           filterChoice[index],
           style: TextStyle(
-              color: _value == index ? Colors.white : Colors.black,
-              fontSize: 14.0),
+            color: _value == index
+                ? Colors.white
+                : isDarkMode
+                    ? Colors.grey[300]
+                    : Colors.black,
+            fontSize: 14.0,
+          ),
         ),
         selected: _selectedTimeframeFilter == filterChoice[index],
         onSelected: (bool selected) {
@@ -808,10 +815,12 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   Container bottomSummary(double totalReceived, double totalPaid) {
+    final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
+
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDarkMode ? Colors.grey : Colors.white,
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withOpacity(0.2),
