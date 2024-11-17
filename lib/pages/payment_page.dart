@@ -253,42 +253,40 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
     super.dispose();
   }
 
+  bool shouldShowPersonnelField() {
+    final selectedType = ref.read(paymentTypesProvider).when(
+      data: (types) => types.where((t) => t.id == _selectedPaymentTypeId).firstOrNull,
+      loading: () => null,
+      error: (_, __) => null,
+    );
+
+    if (selectedType == null) return false;
+
+    final typeName = selectedType.name.toLowerCase();
+    return typeName.contains('salaire') || typeName.contains('karama');
+  }
+
   Future<void> _saveTransaction() async {
     if (!_formKey.currentState!.validate()) {
-      print('Form validation failed');
       return;
     }
 
     final selectedAccount = ref.read(selectedAccountProvider);
     if (selectedAccount == null) {
-      print('No account selected');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Veuillez sélectionner un compte')),
       );
       return;
     }
 
-    // Vérification des champs requis
-    if (_selectedPaymentMethodId == null || _selectedPaymentTypeId == null) {
-      print('Required fields missing');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Veuillez remplir tous les champs requis')),
-      );
-      return;
-    }
-
-    print('Creating transaction with account ID: ${selectedAccount.id}');
-
-    // Générer un UUID v4 valide pour l'ID
     final uuid = Uuid();
     final transaction = Transaction(
       id: uuid.v4(),
       accountId: selectedAccount.id,
       chantierId: _selectedChantierId,
       personnelId: _selectedPersonnelId,
-      paymentMethodId: _selectedPaymentMethodId!,
-      paymentTypeId: _selectedPaymentTypeId!,
+      paymentMethodId: _selectedPaymentMethodId,
+      paymentTypeId: _selectedPaymentTypeId,
       description: _descriptionController.text,
       amount: double.parse(_amountController.text),
       transactionDate: _transactionDate,
@@ -297,18 +295,9 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
       updatedAt: DateTime.now(),
     );
 
-    print('Transaction object created: ${transaction.toJson()}');
-
     try {
-      await ref
-          .read(transactionsStateProvider.notifier)
-          .addTransaction(transaction);
-      print('Transaction added successfully');
-
-      // Recharger les transactions pour le compte sélectionné
-      await ref
-          .read(transactionsStateProvider.notifier)
-          .loadTransactions(selectedAccount.id);
+      await ref.read(transactionsStateProvider.notifier).addTransaction(transaction);
+      await ref.read(transactionsStateProvider.notifier).loadTransactions(selectedAccount.id);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -316,14 +305,10 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
         );
         Navigator.pop(context);
       }
-    } catch (e, stackTrace) {
-      print('Error adding transaction: $e');
-      print('Stack trace: $stackTrace');
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content:
-                  Text('Erreur lors de l\'enregistrement: ${e.toString()}')),
+          SnackBar(content: Text('Erreur lors de l\'enregistrement: ${e.toString()}')),
         );
       }
     }
@@ -332,17 +317,15 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
   @override
   Widget build(BuildContext context) {
     final userId = ref.watch(currentUserProvider)?.id ?? '';
-    final paymentMethodsAsync = ref.watch(paymentMethodsProvider);
     final paymentTypesAsync = ref.watch(paymentTypesProvider);
     final personnelAsync = ref.watch(personnelStateProvider);
-    // Utiliser chantiersProvider avec userId
     final chantiersAsync = ref.watch(chantiersProvider(userId));
 
     List<PaymentType> filteredPaymentTypes = paymentTypesAsync.when(
       data: (types) => types
           .where((type) => _type == 'reçu'
-              ? type.category == 'revenu'
-              : type.category == 'dépense')
+          ? type.category == 'revenu'
+          : type.category == 'dépense')
           .toList(),
       loading: () => [],
       error: (_, __) => [],
@@ -397,8 +380,7 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
             // Date et heure
             ListTile(
               title: const Text('Date de transaction'),
-              subtitle:
-                  Text(DateFormat('dd/MM/yyyy HH:mm').format(_transactionDate)),
+              subtitle: Text(DateFormat('dd/MM/yyyy HH:mm').format(_transactionDate)),
               trailing: const Icon(Icons.calendar_today),
               onTap: () async {
                 final date = await showDatePicker(
@@ -428,72 +410,63 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
             ),
             const SizedBox(height: 16),
 
-            // Chantier Dropdown
+            // Chantier Dropdown (optionnel)
             chantiersAsync.when(
               data: (chantiers) => SearchableDropdown<Chantier>(
                 items: chantiers,
-                value: chantiers
-                    .where((c) => c.id == _selectedChantierId)
-                    .firstOrNull,
+                value: chantiers.where((c) => c.id == _selectedChantierId).firstOrNull,
                 getLabel: (chantier) => chantier.name,
                 getSearchString: (chantier) => chantier.name,
-                onChanged: (chantier) =>
-                    setState(() => _selectedChantierId = chantier?.id),
-                label: 'Chantier',
+                onChanged: (chantier) => setState(() => _selectedChantierId = chantier?.id),
+                label: 'Chantier (optionnel)',
               ),
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, __) =>
-                  Text('Erreur de chargement des chantiers: $error'),
+              error: (error, __) => Text('Erreur de chargement des chantiers: $error'),
             ),
             const SizedBox(height: 16),
 
-            // Type de paiement
+            // Type de paiement (optionnel)
             paymentTypesAsync.when(
               data: (_) => DropdownButtonFormField<String>(
                 value: _selectedPaymentTypeId,
                 decoration: const InputDecoration(
-                  labelText: 'Type de paiement',
+                  labelText: 'Type de paiement (optionnel)',
                 ),
                 items: filteredPaymentTypes
                     .map((type) => DropdownMenuItem(
-                          value: type.id,
-                          child: Text(type.name),
-                        ))
+                  value: type.id,
+                  child: Text(type.name),
+                ))
                     .toList(),
-                onChanged: (value) =>
-                    setState(() => _selectedPaymentTypeId = value),
-                validator: (value) => value == null ? 'Champ requis' : null,
+                onChanged: (value) => setState(() => _selectedPaymentTypeId = value),
               ),
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (_, __) =>
-                  const Text('Erreur de chargement des types de paiement'),
-            ),
-
-            const SizedBox(height: 16),
-
-            // Personnel Dropdown
-            personnelAsync.when(
-              data: (personnelList) => SearchableDropdown<Personnel>(
-                items: personnelList,
-                value: personnelList
-                    .where((p) => p.id == _selectedPersonnelId)
-                    .firstOrNull,
-                getLabel: (personnel) => personnel.name,
-                getSearchString: (personnel) => personnel.name,
-                onChanged: (personnel) =>
-                    setState(() => _selectedPersonnelId = personnel?.id),
-                label: 'Personnel',
-              ),
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (_, __) => const Text('Erreur de chargement du personnel'),
+              error: (_, __) => const Text('Erreur de chargement des types de paiement'),
             ),
             const SizedBox(height: 16),
 
-            // Description
+            // Personnel Dropdown (conditionnel et optionnel)
+            if (shouldShowPersonnelField()) ...[
+              personnelAsync.when(
+                data: (personnelList) => SearchableDropdown<Personnel>(
+                  items: personnelList,
+                  value: personnelList.where((p) => p.id == _selectedPersonnelId).firstOrNull,
+                  getLabel: (personnel) => personnel.name,
+                  getSearchString: (personnel) => personnel.name,
+                  onChanged: (personnel) => setState(() => _selectedPersonnelId = personnel?.id),
+                  label: 'Personnel (optionnel)',
+                ),
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (_, __) => const Text('Erreur de chargement du personnel'),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // Description (optionnelle)
             TextFormField(
               controller: _descriptionController,
               decoration: const InputDecoration(
-                labelText: 'Description',
+                labelText: 'Description (optionnelle)',
               ),
               maxLines: 3,
             ),

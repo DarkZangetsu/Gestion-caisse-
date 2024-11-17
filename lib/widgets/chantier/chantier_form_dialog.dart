@@ -89,12 +89,12 @@ class _ChantierFormDialogState extends State<ChantierFormDialog> {
       onTap: () => _selectDate(context, isStartDate),
       child: InputDecorator(
         decoration: InputDecoration(
-          labelText: label,
+          labelText: '$label (optionnel)',  // Ajout de (optionnel) pour indiquer que le champ n'est pas requis
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
           ),
           contentPadding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -122,9 +122,8 @@ class _ChantierFormDialogState extends State<ChantierFormDialog> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
           child: LayoutBuilder(
             builder: (context, constraints) {
-              // Définir la largeur maximale pour la dialog
               final dialogWidth =
-                  constraints.maxWidth > 600 ? 600.0 : constraints.maxWidth;
+              constraints.maxWidth > 600 ? 600.0 : constraints.maxWidth;
 
               return Container(
                 width: dialogWidth,
@@ -145,14 +144,14 @@ class _ChantierFormDialogState extends State<ChantierFormDialog> {
                       const SizedBox(height: 24),
                       MyTextFormField(
                         budgetController: _nomController,
-                        labelText: 'Nom du chantier',
-                        ),
+                        labelText: 'Nom du chantier *',  // Ajout de * pour indiquer que c'est requis
+                      ),
                       const SizedBox(height: 16),
                       MyTextFormField(
                         budgetController: _budgetController,
-                        labelText: 'Budget Maximum',
+                        labelText: 'Budget Maximum (optionnel)',  // Ajout de (optionnel)
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        ),
+                      ),
                       const SizedBox(height: 16),
                       LayoutBuilder(
                         builder: (context, constraints) {
@@ -215,6 +214,7 @@ class _ChantierFormDialogState extends State<ChantierFormDialog> {
                             style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xffea6b24)),
                             onPressed: () {
+                              // Validation uniquement pour le nom du chantier
                               if (_nomController.text.isEmpty) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
@@ -224,14 +224,19 @@ class _ChantierFormDialogState extends State<ChantierFormDialog> {
                                 return;
                               }
 
+                              // Parse le budget seulement s'il est renseigné
+                              double? budget;
+                              if (_budgetController.text.isNotEmpty) {
+                                budget = double.tryParse(_budgetController.text);
+                              }
+
                               final nouveauChantier = Chantier(
                                 id: widget.chantier?.id ?? uuid.v4(),
                                 userId: widget.chantier?.userId ?? userId,
                                 name: _nomController.text,
-                                budgetMax:
-                                    double.tryParse(_budgetController.text),
-                                startDate: _dateDebut,
-                                endDate: _dateFin,
+                                budgetMax: budget, // Utilise la valeur parsée ou null
+                                startDate: _dateDebut,  // Déjà optionnel
+                                endDate: _dateFin,      // Déjà optionnel
                                 createdAt: widget.chantier?.createdAt ??
                                     DateTime.now(),
                                 updatedAt: DateTime.now(),

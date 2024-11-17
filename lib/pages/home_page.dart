@@ -6,7 +6,6 @@ import 'package:caisse/composants/texts.dart';
 import 'package:caisse/home_composantes/drawer.dart';
 import 'package:caisse/home_composantes/transaction_row.dart';
 import 'package:caisse/imprimer/pdf.dart';
-import 'package:caisse/pages/todolist_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/accounts.dart';
@@ -555,7 +554,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     return Scaffold(
       appBar: SearchableAppBar(
         onTap: _showDateRangePicker,
-        selectedAccount: selectedAccount,
+        selectedAccount: selectedAccount ?? Account(id: '', name: 'Comptah', solde: 0.0, userId: ''),
         onAccountTap: _showAccountDialog,
         onSearch: (query) {
           setState(() {

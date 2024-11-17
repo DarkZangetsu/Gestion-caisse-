@@ -3,8 +3,8 @@ class Transaction {
   final String accountId;
   final String? chantierId;
   final String? personnelId;
-  final String paymentMethodId;
-  final String paymentTypeId;
+  final String? paymentMethodId;
+  final String? paymentTypeId;
   final String? description;
   final double amount;
   final DateTime transactionDate;
@@ -17,8 +17,8 @@ class Transaction {
     required this.accountId,
     this.chantierId,
     this.personnelId,
-    required this.paymentMethodId,
-    required this.paymentTypeId,
+    this.paymentMethodId,
+    this.paymentTypeId,
     this.description,
     required this.amount,
     required this.transactionDate,

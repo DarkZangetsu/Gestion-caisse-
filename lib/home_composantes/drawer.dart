@@ -62,7 +62,11 @@ class MyDrawer extends StatelessWidget {
             texte: "Types de paiement",
             onTap: () => Navigator.pushNamed(context, '/payment-types'),
           ),
-          const DrawerListMenu(icon: Icons.settings, texte: "Paramètres"),
+          DrawerListMenu(
+            icon: Icons.settings,
+            texte: "Paramètres",
+            onTap: () => Navigator.pushNamed(context, '/change-password'),
+          ),
           const DrawerListMenu(icon: Icons.help_outline, texte: "Aide"),
         ],
       ),

@@ -16,13 +16,24 @@ class ChantierPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const MyText(texte: 'Gestion des Chantiers', color: Colors.white,),
+        title: const MyText(
+          texte: 'Gestion des Chantiers',
+          color: Colors.white,
+        ),
         backgroundColor: const Color(0xffea6b24),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () => _showChantierFormDialog(context, ref, null),
+          ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              if (userId != null) {
+                ref.refresh(chantiersProvider(userId));
+              }
+            },
           ),
         ],
       ),
@@ -35,7 +46,8 @@ class ChantierPage extends ConsumerWidget {
           return ChantierList(chantiers: chantiers);
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stackTrace) => Center(child: Text('Erreur : $error')),
+        error: (error, stackTrace) =>
+            Center(child: Text('Erreur : $error')),
       )
           : const Center(child: CircularProgressIndicator()),
     );
@@ -46,16 +58,17 @@ class ChantierPage extends ConsumerWidget {
       context: context,
       builder: (context) => ChantierFormDialog(
         chantier: chantier,
-        onSave: (newChantier) {
-          Future.delayed(Duration.zero, () {
-            if (chantier == null) {
-              ref.read(chantiersStateProvider.notifier).createChantier(newChantier);
-            } else {
-              ref.read(chantiersStateProvider.notifier).updateChantier(newChantier);
-            }
-          });
-
-          Navigator.of(context).pop();
+        onSave: (newChantier) async {
+          if (chantier == null) {
+            await ref.read(chantiersStateProvider.notifier).createChantier(newChantier);
+          } else {
+            await ref.read(chantiersStateProvider.notifier).updateChantier(newChantier);
+          }
+          if (context.mounted) {
+            Navigator.of(context).pop();
+            // Rafraîchir la liste après la sauvegarde
+            ref.refresh(chantiersProvider(newChantier.userId));
+          }
         },
       ),
     );
@@ -78,7 +91,30 @@ class ChantierList extends ConsumerWidget {
         return ChantierCard(
           chantier: chantier,
           onTap: () => _showChantierFormDialog(context, ref, chantier),
-          onDelete: () => ref.read(chantiersStateProvider.notifier).deleteChantier(chantier.id),
+          onDelete: () async {
+            try {
+              await ref.read(chantiersStateProvider.notifier).deleteChantier(chantier.id);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Chantier supprimé avec succès'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+                // Rafraîchir la liste après la suppression
+                ref.refresh(chantiersProvider(chantier.userId));
+              }
+            } catch (e) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Erreur lors de la suppression: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            }
+          },
         );
       },
     );
@@ -89,16 +125,35 @@ class ChantierList extends ConsumerWidget {
       context: context,
       builder: (context) => ChantierFormDialog(
         chantier: chantier,
-        onSave: (newChantier) {
-          Future.delayed(Duration.zero, () {
+        onSave: (newChantier) async {
+          try {
             if (chantier == null) {
-              ref.read(chantiersStateProvider.notifier).createChantier(newChantier);
+              await ref.read(chantiersStateProvider.notifier).createChantier(newChantier);
             } else {
-              ref.read(chantiersStateProvider.notifier).updateChantier(newChantier);
+              await ref.read(chantiersStateProvider.notifier).updateChantier(newChantier);
             }
-          });
-
-          Navigator.of(context).pop();
+            if (context.mounted) {
+              Navigator.of(context).pop();
+              // Afficher un message de succès
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(chantier == null ? 'Chantier créé avec succès' : 'Chantier modifié avec succès'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+              // Rafraîchir la liste
+              ref.refresh(chantiersProvider(newChantier.userId));
+            }
+          } catch (e) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Erreur: $e'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          }
         },
       ),
     );
