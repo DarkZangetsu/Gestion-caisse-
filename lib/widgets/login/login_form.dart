@@ -33,9 +33,10 @@ class _LoginFormState extends ConsumerState<LoginForm> {
         );
       } catch (e) {
         if (mounted) {
+          print(e.toString());
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(e.toString()),
+            const SnackBar(
+              content: Text("Une erreur s'est produit! verifier votre connexion ou bien votre mot de passe"),
               backgroundColor: Colors.red,
             ),
           );
@@ -54,20 +55,6 @@ class _LoginFormState extends ConsumerState<LoginForm> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          /*CustomTextField(
-            label: 'Email',
-            controller: _emailController, 
-            keyboardType: TextInputType.emailAddress,
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Veuillez entrer votre email';
-              }
-              if (!value.contains('@')) {
-                return 'Veuillez entrer un email valide';
-              }
-              return null;
-            },
-          ),*/
           CustomTextField(
             label: 'Mot de passe',
             controller: _passwordController,

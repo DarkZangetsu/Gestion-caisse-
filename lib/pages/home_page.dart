@@ -6,6 +6,7 @@ import 'package:caisse/composants/texts.dart';
 import 'package:caisse/home_composantes/drawer.dart';
 import 'package:caisse/home_composantes/transaction_row.dart';
 import 'package:caisse/imprimer/pdf.dart';
+import 'package:caisse/main.dart';
 import 'package:caisse/pages/todolist_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -99,6 +100,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final selectedAccount = ref.read(selectedAccountProvider);
       final userId = ref.read(currentUserProvider)?.id;
+      _showAccountDialog();
 
       print('InitState - Selected Account: ${selectedAccount?.id}');
       print('InitState - UserId: $userId');
@@ -138,14 +140,26 @@ class _HomePageState extends ConsumerState<HomePage> {
     });
   }
 
+  final selectedAccountProvider = StateProvider<Account?>((ref) => null);
+
   void _showAccountDialog() {
     DialogCompte.show(
       context,
-      onCompteSelectionne: (Account selectedAccount) {
+      onCompteSelectionne: (Account selectedAccount) async {
+        print('Compte sélectionné: ${selectedAccount.id}');
         ref.read(selectedAccountProvider.notifier).state = selectedAccount;
-        ref
-            .read(transactionsStateProvider.notifier)
-            .loadTransactions(selectedAccount.id);
+        try {
+          await ref
+              .read(transactionsStateProvider.notifier)
+              .loadTransactions(selectedAccount.id);
+          print('Transactions chargées pour le compte ${selectedAccount.id}');
+
+          // Vérifiez le nombre de transactions chargées
+          final transactions = ref.read(transactionsStateProvider).value ?? [];
+          print('Nombre de transactions chargées: ${transactions.length}');
+        } catch (e) {
+          print('Erreur lors du chargement des transactions: $e');
+        }
       },
     );
   }
@@ -211,9 +225,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           final types = typesState.value ?? [];
 
           // Vérifier que toutes les données sont chargées
-          if (chantiers.isEmpty ||
-              personnel.isEmpty ||
-              types.isEmpty) {
+          if (chantiers.isEmpty || personnel.isEmpty || types.isEmpty) {
             return AlertDialog(
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(4)),
@@ -266,7 +278,8 @@ class _HomePageState extends ConsumerState<HomePage> {
         _detailRow('Date:',
             DateFormat('dd/MM/yyyy HH:mm').format(transaction.transactionDate)),
         _detailRow('Type:', transaction.type == 'reçu' ? 'Reçu' : 'Payé'),
-        _detailRow('Montant:', '${NumberFormat.currency(locale: 'fr_FR', symbol: 'Ar').format(transaction.amount)} Ar'),
+        _detailRow('Montant:',
+            '${NumberFormat.currency(locale: 'fr_FR', symbol: 'Ar').format(transaction.amount)} Ar'),
         if (transaction.description?.isNotEmpty ?? false)
           _detailRow('Description:', transaction.description!),
 
@@ -325,7 +338,6 @@ class _HomePageState extends ConsumerState<HomePage> {
             );
           },
         ),
-
 
         // Type de paiement
         Consumer(
@@ -499,7 +511,19 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   List<Transaction> _filterTransactions(List<Transaction> transactions) {
-    return transactions.where((transaction) {
+    print('Compte actuel: ${ref.read(selectedAccountProvider)?.id}'); 
+    print(
+        'Nombre total de transactions avant filtrage: ${transactions.length}'); 
+
+    final filtered = transactions.where((transaction) {
+      // Vérification du compte
+      bool matchesAccount =
+          transaction.accountId == ref.read(selectedAccountProvider)?.id;
+      if (!matchesAccount) {
+        print(
+            'Transaction ${transaction.id} ne correspond pas au compte ${ref.read(selectedAccountProvider)?.id}'); // Debug
+      }
+
       // Vérification de la plage de dates
       bool matchesDateRange = true;
       if (_startDate != null && _endDate != null) {
@@ -543,8 +567,14 @@ class _HomePageState extends ConsumerState<HomePage> {
           matchesTimeframe = true;
       }
 
-      return matchesDateRange && matchesSearchQuery && matchesTimeframe;
+      return matchesAccount &&
+          matchesDateRange &&
+          matchesSearchQuery &&
+          matchesTimeframe;
     }).toList();
+
+    print('Nombre de transactions après filtrage: ${filtered.length}'); // Debug
+    return filtered;
   }
 
   @override

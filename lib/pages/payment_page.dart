@@ -269,14 +269,14 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
     }
 
     // Vérification des champs requis
-    if (_selectedPaymentMethodId == null || _selectedPaymentTypeId == null) {
+    /*if (_selectedPaymentMethodId == null || _selectedPaymentTypeId == null) {
       print('Required fields missing');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text('Veuillez remplir tous les champs requis')),
       );
       return;
-    }
+    }*/
 
     print('Creating transaction with account ID: ${selectedAccount.id}');
 
@@ -287,7 +287,7 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
       accountId: selectedAccount.id,
       chantierId: _selectedChantierId,
       personnelId: _selectedPersonnelId,
-      paymentMethodId: _selectedPaymentMethodId!,
+      //paymentMethodId: _selectedPaymentMethodId!,
       paymentTypeId: _selectedPaymentTypeId!,
       description: _descriptionController.text,
       amount: double.parse(_amountController.text),

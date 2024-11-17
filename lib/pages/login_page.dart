@@ -41,7 +41,7 @@ class LoginPage extends ConsumerWidget {
               return SingleChildScrollView(
                 child: Container(
                   constraints: const BoxConstraints(
-                      maxWidth: 400), // Réduire la largeur maximale
+                      maxWidth: 400),
                   padding: EdgeInsets.symmetric(
                     horizontal: 24.0,
                     vertical: isSmallScreen ? 20.0 : 40.0,
@@ -49,7 +49,7 @@ class LoginPage extends ConsumerWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment
-                        .center, // Centrer les éléments horizontalement
+                        .center, 
                     children: [
                       // Logo centré avec Container
                       Container(

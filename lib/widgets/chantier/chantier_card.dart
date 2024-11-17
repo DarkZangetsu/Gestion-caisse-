@@ -134,7 +134,7 @@ class ChantierCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Card(
-      elevation: 0,
+      elevation: 0.5,
       margin: EdgeInsets.symmetric(
         horizontal: isSmallScreen ? 8.0 : 16.0,
         vertical: 8.0,

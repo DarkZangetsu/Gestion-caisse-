@@ -1,14 +1,17 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:caisse/providers/theme_provider.dart';
 import 'package:caisse/composants/drawer_list_menu.dart';
 import 'package:caisse/composants/texts.dart';
-import 'package:flutter/material.dart';
 
-class MyDrawer extends StatelessWidget {
-  const MyDrawer({
-    super.key,
-  });
+class MyDrawer extends ConsumerWidget {
+  const MyDrawer({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeNotifier = ref.watch(themeProvider.notifier);
+    final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
+
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
@@ -38,7 +41,6 @@ class MyDrawer extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 10),
               ],
             ),
           ),
@@ -62,8 +64,15 @@ class MyDrawer extends StatelessWidget {
             texte: "Types de paiement",
             onTap: () => Navigator.pushNamed(context, '/payment-types'),
           ),
-          const DrawerListMenu(icon: Icons.settings, texte: "Paramètres"),
-          const DrawerListMenu(icon: Icons.help_outline, texte: "Aide"),
+          DrawerListMenu(
+            icon: isDarkMode ? Icons.light_mode : Icons.dark_mode,
+            texte: isDarkMode ? "Mode clair" : "Mode sombre",
+            onTap: () => themeNotifier.toggleTheme(),
+          ),
+          const DrawerListMenu(
+            icon: Icons.help_outline,
+            texte: "Aide",
+          ),
         ],
       ),
     );
