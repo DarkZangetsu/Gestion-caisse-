@@ -89,7 +89,7 @@ class _ChantierFormDialogState extends State<ChantierFormDialog> {
       onTap: () => _selectDate(context, isStartDate),
       child: InputDecorator(
         decoration: InputDecoration(
-          labelText: '$label (optionnel)',  // Ajout de (optionnel) pour indiquer que le champ n'est pas requis
+          labelText: '$label (optionnel)',
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
           ),
@@ -144,12 +144,12 @@ class _ChantierFormDialogState extends State<ChantierFormDialog> {
                       const SizedBox(height: 24),
                       MyTextFormField(
                         budgetController: _nomController,
-                        labelText: 'Nom du chantier *',  // Ajout de * pour indiquer que c'est requis
+                        labelText: 'Nom du chantier *', 
                       ),
                       const SizedBox(height: 16),
                       MyTextFormField(
                         budgetController: _budgetController,
-                        labelText: 'Budget Maximum (optionnel)',  // Ajout de (optionnel)
+                        labelText: 'Budget Maximum (optionnel)', 
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       ),
                       const SizedBox(height: 16),

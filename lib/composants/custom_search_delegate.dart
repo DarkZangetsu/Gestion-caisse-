@@ -5,21 +5,21 @@ import 'package:intl/intl.dart';
 
 class SearchableAppBar extends StatefulWidget implements PreferredSizeWidget {
   final Account? selectedAccount;
-  final Function() onAccountTap;
+  final Function()? onAccountTap;
   final Function(String) onSearch;
   final void Function()? onTap;
   final DateTime? startDate;
   final DateTime? endDate;
-  final Function() onDateReset;
+  final Function()? onDateReset;
   final void Function()? onTapPdf;
 
   const SearchableAppBar({
     super.key,
     this.selectedAccount,
-    required this.onAccountTap,
+    this.onAccountTap,
     required this.onSearch,
     required this.onTap,
-    required this.onDateReset,
+    this.onDateReset,
     this.startDate,
     this.endDate,
     this.onTapPdf,
@@ -115,7 +115,7 @@ class _SearchableAppBarState extends State<SearchableAppBar> {
                         ),
                         onPressed: () {
                           Navigator.pop(context);
-                          widget.onDateReset();
+                          widget.onDateReset!();
                         },
                       ),
                   ],

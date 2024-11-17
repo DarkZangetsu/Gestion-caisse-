@@ -279,6 +279,16 @@ class ChantierCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
+              leading: const Icon(Icons.menu_book_sharp, color: Colors.blue),
+              title: const Text(
+                'Consulter transaction',
+                style: TextStyle(color: Colors.blue),
+              ),
+              onTap: () {
+                Navigator.pushNamed(context, '/transaction');
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.edit, color: Color(0xffea6b24)),
               title: const Text('Modifier'),
               onTap: () {
@@ -288,7 +298,8 @@ class ChantierCard extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.delete, color: Colors.red),
-              title: const Text('Supprimer',
+              title: const Text(
+                'Supprimer',
                 style: TextStyle(color: Colors.red),
               ),
               onTap: () {
@@ -312,7 +323,8 @@ class ChantierCard extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Annuler',
+              child: const Text(
+                'Annuler',
                 style: TextStyle(color: Colors.grey),
               ),
             ),
@@ -321,7 +333,8 @@ class ChantierCard extends StatelessWidget {
                 Navigator.of(context).pop();
                 onDelete();
               },
-              child: const Text('Supprimer',
+              child: const Text(
+                'Supprimer',
                 style: TextStyle(color: Colors.red),
               ),
             ),
@@ -330,7 +343,6 @@ class ChantierCard extends StatelessWidget {
       },
     );
   }
-
 
   Widget _buildInfoItem(
     BuildContext context,

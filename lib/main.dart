@@ -1,5 +1,6 @@
 import 'package:caisse/pages/ChangePasswordPage.dart';
 import 'package:caisse/pages/PersonnelPage.dart';
+import 'package:caisse/pages/transaction.dart';
 import 'package:caisse/providers/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -46,6 +47,7 @@ class MyApp extends ConsumerWidget {
         '/todos':(context) => const TodoListPage(),
         '/payment-types':(context) => const PaymentTypesPage(),
         '/change-password':(context) => const ChangePasswordPage(),
+        '/transaction':(context) => const TransactionPage(),
       },
     );
   }
