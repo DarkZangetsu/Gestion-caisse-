@@ -6,12 +6,13 @@ class TabHeader extends StatelessWidget {
     super.key,
     required this.flex,
     required this.text,
-    this.textAlign,
+    this.textAlign, this.color,
   });
 
   final int flex;
   final String text;
   final TextAlign? textAlign;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
@@ -21,6 +22,7 @@ class TabHeader extends StatelessWidget {
         texte: text,
         fontWeight: FontWeight.bold,
         textAlign: textAlign,
+        color: color,
       ),
     );
   }

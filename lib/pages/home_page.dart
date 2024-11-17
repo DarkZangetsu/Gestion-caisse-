@@ -150,7 +150,8 @@ class _HomePageState extends ConsumerState<HomePage> {
           await ref
               .read(transactionsStateProvider.notifier)
               .loadTransactions(selectedAccount.id);
-          print('Transactions chargées pour le compte ${selectedAccount.solde}');
+          print(
+              'Transactions chargées pour le compte ${selectedAccount.solde}');
 
           // Vérifiez le nombre de transactions chargées
           final transactions = ref.read(transactionsStateProvider).value ?? [];
@@ -563,6 +564,15 @@ class _HomePageState extends ConsumerState<HomePage> {
     final transactionsAsync = ref.watch(transactionsStateProvider);
     final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
 
+    // Définir les couleurs en fonction du thème
+    final backgroundColor = isDarkMode ? Colors.grey[900] : Colors.white;
+    final cardColor = isDarkMode ? Colors.grey[800] : Colors.grey[100];
+    final headerColor = isDarkMode ? Colors.grey[850] : Colors.grey[200];
+    final textColor = isDarkMode ? Colors.white : Colors.black;
+    final shadowColor = isDarkMode
+        ? Colors.black.withOpacity(0.3)
+        : Colors.grey.withOpacity(0.2);
+
     return Scaffold(
       appBar: SearchableAppBar(
         onTap: _showDateRangePicker,
@@ -654,11 +664,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                           child: Container(
                             margin: const EdgeInsets.all(8.0),
                             decoration: BoxDecoration(
-                              color: isDarkMode ? Colors.black38: Colors.grey[100],
+                              color: cardColor,
                               borderRadius: BorderRadius.circular(8),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.grey.withOpacity(0.2),
+                                  color: shadowColor,
                                   spreadRadius: 1,
                                   blurRadius: 5,
                                 ),
@@ -669,27 +679,30 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 Container(
                                   padding: const EdgeInsets.all(16.0),
                                   decoration: BoxDecoration(
-                                    color: isDarkMode ? Colors.black54: Colors.grey[100],
+                                    color: headerColor,
                                     borderRadius: const BorderRadius.only(
                                       topLeft: Radius.circular(8),
                                       topRight: Radius.circular(8),
                                     ),
                                   ),
-                                  child: const Row(
+                                  child: Row(
                                     children: [
                                       TabHeader(
                                         flex: 2,
                                         text: 'Date',
+                                        color: textColor,
                                       ),
                                       TabHeader(
                                         flex: 1,
                                         text: 'Reçu',
                                         textAlign: TextAlign.right,
+                                        color: textColor,
                                       ),
                                       TabHeader(
                                         flex: 1,
                                         text: 'Payé',
                                         textAlign: TextAlign.right,
+                                        color: textColor,
                                       ),
                                     ],
                                   ),
@@ -732,7 +745,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       padding: const EdgeInsets.symmetric(horizontal: 4.0),
       child: ChoiceChip(
         avatar: null,
-        selectedColor:const Color(0xffea6b24),
+        selectedColor: const Color(0xffea6b24),
         labelPadding:
             const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
@@ -761,14 +774,18 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   Container bottomSummary(double totalReceived, double totalPaid) {
     final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
+    final backgroundColor = isDarkMode ? Colors.grey[800] : Colors.white;
+    final shadowColor = isDarkMode
+        ? Colors.black.withOpacity(0.3)
+        : Colors.grey.withOpacity(0.2);
 
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
-        color: isDarkMode ? Colors.grey : Colors.white,
+        color: backgroundColor,
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
+            color: shadowColor,
             spreadRadius: 1,
             blurRadius: 5,
             offset: const Offset(0, -3),
