@@ -74,6 +74,11 @@ class MyDrawer extends ConsumerWidget {
               themeNotifier.toggleTheme(value);
             },
           ),
+          DrawerListMenu(
+            icon: Icons.lock_reset, // ou Icons.password
+            texte: "Changer mot de passe",
+            onTap: () => Navigator.pushNamed(context, '/change-password'),
+          ),
           const DrawerListMenu(
             icon: Icons.help_outline,
             texte: "Aide",

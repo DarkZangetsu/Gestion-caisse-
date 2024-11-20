@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:caisse/models/chantier.dart';
 import 'package:intl/intl.dart';
 
+import '../../pages/transaction.dart';
+
 class ChantierCard extends StatelessWidget {
   final Chantier chantier;
   final VoidCallback onTap;
@@ -285,7 +287,12 @@ class ChantierCard extends StatelessWidget {
                 style: TextStyle(color: Colors.blue),
               ),
               onTap: () {
-                Navigator.pushNamed(context, '/transaction');
+                // Use chantier.id instead of undefined chantierId
+                Navigator.pushNamed(
+                    context,
+                    '/transaction',
+                    arguments: {'chantierId': chantier.id}
+                );
               },
             ),
             ListTile(

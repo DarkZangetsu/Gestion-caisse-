@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../composants/texts.dart';
 import '../widgets/login/ChangePasswordForm.dart';
 
 class ChangePasswordPage extends StatelessWidget {
@@ -9,7 +10,11 @@ class ChangePasswordPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Modifier le mot de passe'),
+        title: const MyText(
+          texte: 'Modifier le mot de passe',
+          color: Colors.white,
+        ),
+          backgroundColor: const Color(0xffea6b24),
       ),
       body: const SingleChildScrollView(
         child: Padding(

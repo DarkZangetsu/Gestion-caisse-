@@ -413,7 +413,21 @@ class DatabaseHelper {
     }
   }
 
-  // Todo Methods
+  /*Future<List<Transaction>> getTransactionsByChantier(String chantierId) async {
+    try {
+      final response = await _supabase
+          .from('transactions')
+          .select()
+          .eq('chantier_id', chantierId)
+          .order('created_at', ascending: false); // Pour avoir les plus récentes en premier
+
+      return (response as List).map((json) => Transaction.fromJson(json)).toList();
+    } catch (e) {
+      throw Exception('Erreur lors de la récupération des transactions du chantier: $e');
+    }
+  }*/
+
+  // Todos Methods
   Future<List<Todo>> getTodos(String accountId) async {
     try {
       final response = await _supabase
@@ -477,17 +491,34 @@ class DatabaseHelper {
     }
   }
 
+
+
+
   // Méthodes additionnelles utiles
   Future<List<Transaction>> getTransactionsByChantier(String chantierId) async {
     try {
+      print('Database query for chantierId: $chantierId');
+
       final response = await _supabase
           .from('transactions')
-          .select()
-          .eq('chantier_id', chantierId);
+          .select('*')
+          .eq('chantier_id', chantierId)  // Ensure this matches exactly
+          .order('transaction_date', ascending: false);
 
-      return (response as List).map((json) => Transaction.fromJson(json)).toList();
+      print('Raw database response length: ${response.length}');
+
+      return response.map((data) {
+        try {
+          return Transaction.fromJson(data);
+        } catch (e) {
+          print('Transaction parsing error: $e for data: $data');
+          return null;
+        }
+      }).whereType<Transaction>().toList();
+
     } catch (e) {
-      throw Exception('Erreur lors de la récupération des transactions du chantier: $e');
+      print('Comprehensive database error: $e');
+      return [];
     }
   }
 

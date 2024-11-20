@@ -1,6 +1,4 @@
-import 'package:caisse/composants/custom_search_delegate.dart';
 import 'package:caisse/composants/empty_transaction_view.dart';
-import 'package:caisse/composants/tab_bottom_resume.dart';
 import 'package:caisse/composants/tab_header.dart';
 import 'package:caisse/composants/texts.dart';
 import 'package:caisse/home_composantes/transaction_row.dart';
@@ -12,8 +10,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../providers/selected_chantier_provider.dart';
+
 class TransactionPage extends ConsumerStatefulWidget {
-  const TransactionPage({super.key});
+  final String chantierId;
+  const TransactionPage({super.key, required this.chantierId});
 
   @override
   ConsumerState<TransactionPage> createState() => _TransactionPageState();
@@ -37,7 +38,26 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
 
-  final selectedAccountProvider = StateProvider<Account?>((ref) => null);
+
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      print('Loading transactions for chantierId: ${widget.chantierId}');
+      ref.read(transactionStateProvider.notifier)
+          .loadTransactionsByChantier(widget.chantierId);
+    });
+  }
+
+
+  @override
+  void dispose() {
+    ref.read(transactionStateProvider.notifier).resetTransactions();
+    super.dispose();
+  }
+
+
 
   void _resetDate() {
     setState(() {
@@ -156,10 +176,8 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
   }
 
   List<Transaction> _filterTransactions(List<Transaction> transactions) {
-    final selectedAccount = ref.read(selectedAccountProvider);
-
     return transactions.where((transaction) {
-      final matchesAccount = transaction.accountId == selectedAccount?.id;
+      final matchesChantier = transaction.chantierId == widget.chantierId;
       final matchesDateRange = _isWithinDateRange(transaction.transactionDate);
       final matchesSearchQuery = _matchesSearchQuery(transaction);
       final matchesTimeframe = _isWithinTimeframe(
@@ -167,7 +185,7 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
         _selectedTimeframeFilter,
       );
 
-      return matchesAccount &&
+      return matchesChantier &&
           matchesDateRange &&
           matchesSearchQuery &&
           matchesTimeframe;
