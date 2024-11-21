@@ -48,8 +48,17 @@ class MyApp extends ConsumerWidget {
         '/todos':(context) => const TodoListPage(),
         '/payment-types':(context) => const PaymentTypesPage(),
         '/change-password':(context) => const ChangePasswordPage(),
-        '/transaction':(context) => const TransactionPage(),
       },
+      onGenerateRoute: (settings) {
+        if(settings.name == '/transaction') {
+          final args = settings.arguments as Map<String, dynamic>;
+            return MaterialPageRoute(
+                builder: (context) => TransactionPage(
+                    chantierId: args['chantierId'] as String,
+                ) ,
+            );
+        }
+      }
     );
   }
 }
