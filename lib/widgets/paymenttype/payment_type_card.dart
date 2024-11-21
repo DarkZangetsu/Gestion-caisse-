@@ -66,7 +66,7 @@ class PaymentTypeCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Card(
-      elevation: 0,
+      elevation: 0.5,
       margin: const EdgeInsets.symmetric(vertical: 4),
       child: ListTile(
         title: Text(paymentType.name),

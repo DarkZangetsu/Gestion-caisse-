@@ -1,11 +1,12 @@
 import 'package:caisse/composants/texts.dart';
+import 'package:caisse/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:caisse/models/personnel.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:caisse/providers/users_provider.dart';
 
-class PersonnelFormDialog extends StatefulWidget {
+class PersonnelFormDialog extends ConsumerStatefulWidget {
   final Personnel? personnel;
   final void Function(Personnel) onSave;
 
@@ -16,10 +17,10 @@ class PersonnelFormDialog extends StatefulWidget {
   });
 
   @override
-  _PersonnelFormDialogState createState() => _PersonnelFormDialogState();
+  ConsumerState<PersonnelFormDialog> createState() => _PersonnelFormDialogState();
 }
 
-class _PersonnelFormDialogState extends State<PersonnelFormDialog> {
+class _PersonnelFormDialogState extends ConsumerState<PersonnelFormDialog> {
   late final TextEditingController _nomController;
   late final TextEditingController _roleController;
   late final TextEditingController _contactController;
@@ -68,6 +69,7 @@ class _PersonnelFormDialogState extends State<PersonnelFormDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
     return Consumer(
       builder: (context, ref, child) {
         final userId = ref.watch(currentUserProvider)?.id ?? '';
@@ -131,7 +133,8 @@ class _PersonnelFormDialogState extends State<PersonnelFormDialog> {
                         label: 'Salaire Maximum (optionnel)',
                         icon: Icons.credit_card,
                         validator: _validateSalaire,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
                         prefixText: 'Ar ',
                       ),
                       SizedBox(height: isSmallScreen ? 24.0 : 32.0),
@@ -141,7 +144,8 @@ class _PersonnelFormDialogState extends State<PersonnelFormDialog> {
                         children: [
                           TextButton(
                             onPressed: () => Navigator.of(context).pop(),
-                            child: const MyText(texte: 'Annuler', color: Colors.black54),
+                            child: MyText(
+                                texte: 'Annuler', color: isDarkMode ? Colors.white : Colors.black54,),
                           ),
                           const SizedBox(width: 8),
                           ElevatedButton(
@@ -151,12 +155,18 @@ class _PersonnelFormDialogState extends State<PersonnelFormDialog> {
                                   id: widget.personnel?.id ?? uuid.v4(),
                                   userId: widget.personnel?.userId ?? userId,
                                   name: _nomController.text,
-                                  role: _roleController.text.isEmpty ? null : _roleController.text,
-                                  contact: _contactController.text.isEmpty ? null : _contactController.text,
+                                  role: _roleController.text.isEmpty
+                                      ? null
+                                      : _roleController.text,
+                                  contact: _contactController.text.isEmpty
+                                      ? null
+                                      : _contactController.text,
                                   salaireMax: _salaireMaxController.text.isEmpty
                                       ? null
-                                      : double.tryParse(_salaireMaxController.text),
-                                  createdAt: widget.personnel?.createdAt ?? DateTime.now(),
+                                      : double.tryParse(
+                                          _salaireMaxController.text),
+                                  createdAt: widget.personnel?.createdAt ??
+                                      DateTime.now(),
                                   updatedAt: DateTime.now(),
                                 );
                                 widget.onSave(nouveauPersonnel);
@@ -165,14 +175,17 @@ class _PersonnelFormDialogState extends State<PersonnelFormDialog> {
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xffea6b24),
-                              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                              foregroundColor:
+                                  Theme.of(context).colorScheme.onPrimary,
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 24,
                                 vertical: 12,
                               ),
                             ),
                             child: Text(
-                              widget.personnel == null ? 'Ajouter' : 'Mettre à jour',
+                              widget.personnel == null
+                                  ? 'Ajouter'
+                                  : 'Mettre à jour',
                             ),
                           ),
                         ],

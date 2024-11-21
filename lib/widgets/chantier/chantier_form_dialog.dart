@@ -1,5 +1,6 @@
 import 'package:caisse/composants/MyTextFormField.dart';
 import 'package:caisse/composants/texts.dart';
+import 'package:caisse/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:caisse/models/chantier.dart';
 import 'package:intl/intl.dart';
@@ -7,7 +8,7 @@ import 'package:uuid/uuid.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:caisse/providers/users_provider.dart';
 
-class ChantierFormDialog extends StatefulWidget {
+class ChantierFormDialog extends ConsumerStatefulWidget {
   final Chantier? chantier;
   final void Function(Chantier) onSave;
 
@@ -18,10 +19,10 @@ class ChantierFormDialog extends StatefulWidget {
   });
 
   @override
-  _ChantierFormDialogState createState() => _ChantierFormDialogState();
+  ConsumerState<ChantierFormDialog> createState() => _ChantierFormDialogState();
 }
 
-class _ChantierFormDialogState extends State<ChantierFormDialog> {
+class _ChantierFormDialogState extends ConsumerState<ChantierFormDialog> {
   late final TextEditingController _nomController;
   late final TextEditingController _budgetController;
   late DateTime? _dateDebut;
@@ -114,6 +115,7 @@ class _ChantierFormDialogState extends State<ChantierFormDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
     return Consumer(
       builder: (context, ref, child) {
         final userId = ref.watch(currentUserProvider)?.id ?? '';
@@ -204,9 +206,9 @@ class _ChantierFormDialogState extends State<ChantierFormDialog> {
                         children: [
                           TextButton(
                             onPressed: () => Navigator.of(context).pop(),
-                            child: const MyText(
+                            child: MyText(
                               texte: 'Annuler',
-                              color: Colors.black54,
+                              color: isDarkMode ? Colors.white : Colors.black54,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -234,9 +236,9 @@ class _ChantierFormDialogState extends State<ChantierFormDialog> {
                                 id: widget.chantier?.id ?? uuid.v4(),
                                 userId: widget.chantier?.userId ?? userId,
                                 name: _nomController.text,
-                                budgetMax: budget, // Utilise la valeur parsée ou null
-                                startDate: _dateDebut,  // Déjà optionnel
-                                endDate: _dateFin,      // Déjà optionnel
+                                budgetMax: budget, 
+                                startDate: _dateDebut, 
+                                endDate: _dateFin, 
                                 createdAt: widget.chantier?.createdAt ??
                                     DateTime.now(),
                                 updatedAt: DateTime.now(),

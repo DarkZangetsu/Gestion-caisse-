@@ -1,11 +1,12 @@
+import 'package:caisse/mode/dark_mode.dart';
+import 'package:caisse/mode/light_mode.dart';
 import 'package:caisse/pages/ChangePasswordPage.dart';
 import 'package:caisse/pages/PersonnelPage.dart';
 import 'package:caisse/pages/transaction.dart';
-import 'package:caisse/providers/app_theme.dart';
+import 'package:caisse/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'config/supabase_config.dart';
-import 'providers/theme_provider.dart';
 import 'pages/home_page.dart';
 import 'pages/login_page.dart';
 import 'pages/payment_page.dart';
@@ -34,8 +35,8 @@ class MyApp extends ConsumerWidget {
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
+      theme: lightTheme,
+      darkTheme: darkTheme,
       themeMode: themeMode,
       initialRoute: '/login',
       routes: {

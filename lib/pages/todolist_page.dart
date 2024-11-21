@@ -266,11 +266,13 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
     required String Function(T) getItemId,
     required String Function(T) getItemName,
   }) {
+    final primary = Theme.of(context).colorScheme.primary;
+    final secondary = Theme.of(context).colorScheme.secondary;
     return DropdownButtonFormField<String>(
       decoration: InputDecoration(
         labelText: labelText,
-        labelStyle: const TextStyle(
-          color: Colors.grey,
+        labelStyle: TextStyle(
+          color: secondary,
           fontWeight: FontWeight.bold,
         ),
         border: OutlineInputBorder(
@@ -279,7 +281,7 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8.0),
-          borderSide: const BorderSide(color: Colors.black54),
+          //borderSide: const BorderSide(color: Colors.black54),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8.0),

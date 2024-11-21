@@ -1,6 +1,4 @@
-import 'package:caisse/composants/custom_search_delegate.dart';
 import 'package:caisse/composants/empty_transaction_view.dart';
-import 'package:caisse/composants/tab_bottom_resume.dart';
 import 'package:caisse/composants/tab_header.dart';
 import 'package:caisse/composants/texts.dart';
 import 'package:caisse/home_composantes/transaction_row.dart';

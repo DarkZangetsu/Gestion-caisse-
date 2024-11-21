@@ -562,18 +562,12 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget build(BuildContext context) {
     final selectedAccount = ref.watch(selectedAccountProvider);
     final transactionsAsync = ref.watch(transactionsStateProvider);
-    final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
 
-    // Définir les couleurs en fonction du thème
-    final backgroundColor = isDarkMode ? Colors.grey[900] : Colors.white;
-    final cardColor = isDarkMode ? Colors.grey[800] : Colors.grey[100];
-    final headerColor = isDarkMode ? Colors.grey[850] : Colors.grey[200];
-    final textColor = isDarkMode ? Colors.white : Colors.black;
-    final shadowColor = isDarkMode
-        ? Colors.black.withOpacity(0.3)
-        : Colors.grey.withOpacity(0.2);
+    final primary = Theme.of(context).colorScheme.primary;
+    final secondary = Theme.of(context).colorScheme.secondary;
 
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.background,
       appBar: SearchableAppBar(
         onTap: _showDateRangePicker,
         selectedAccount: selectedAccount ??
@@ -664,11 +658,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                           child: Container(
                             margin: const EdgeInsets.all(8.0),
                             decoration: BoxDecoration(
-                              color: cardColor,
+                              color: primary,
                               borderRadius: BorderRadius.circular(8),
                               boxShadow: [
                                 BoxShadow(
-                                  color: shadowColor,
+                                  color: secondary,
                                   spreadRadius: 1,
                                   blurRadius: 5,
                                 ),
@@ -679,30 +673,30 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 Container(
                                   padding: const EdgeInsets.all(16.0),
                                   decoration: BoxDecoration(
-                                    color: headerColor,
+                                    color: secondary,
                                     borderRadius: const BorderRadius.only(
                                       topLeft: Radius.circular(8),
                                       topRight: Radius.circular(8),
                                     ),
                                   ),
-                                  child: Row(
+                                  child: const Row(
                                     children: [
                                       TabHeader(
                                         flex: 2,
                                         text: 'Date',
-                                        color: textColor,
+                                        //color: textColor,
                                       ),
                                       TabHeader(
                                         flex: 1,
                                         text: 'Reçu',
                                         textAlign: TextAlign.right,
-                                        color: textColor,
+                                        //color: textColor,
                                       ),
                                       TabHeader(
                                         flex: 1,
                                         text: 'Payé',
                                         textAlign: TextAlign.right,
-                                        color: textColor,
+                                        //color: textColor,
                                       ),
                                     ],
                                   ),
@@ -739,11 +733,11 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   //Fonction choice chip
   Padding myChoiceChip(int index, WidgetRef ref) {
-    final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4.0),
       child: ChoiceChip(
+        backgroundColor: Colors.white,
         avatar: null,
         selectedColor: const Color(0xffea6b24),
         labelPadding:
@@ -753,11 +747,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         label: Text(
           filterChoice[index],
           style: TextStyle(
-            color: _value == index
-                ? Colors.white
-                : isDarkMode
-                    ? Colors.grey[300]
-                    : Colors.black,
+            color: _value == index ? Colors.white : Colors.black,
             fontSize: 14.0,
           ),
         ),
@@ -773,11 +763,8 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   Container bottomSummary(double totalReceived, double totalPaid) {
-    final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
-    final backgroundColor = isDarkMode ? Colors.grey[800] : Colors.white;
-    final shadowColor = isDarkMode
-        ? Colors.black.withOpacity(0.3)
-        : Colors.grey.withOpacity(0.2);
+    final backgroundColor = Theme.of(context).colorScheme.primary;
+    final shadowColor = Theme.of(context).colorScheme.secondary;
 
     return Container(
       padding: const EdgeInsets.all(16.0),

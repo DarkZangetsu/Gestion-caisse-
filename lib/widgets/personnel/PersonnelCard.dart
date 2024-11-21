@@ -24,7 +24,7 @@ class PersonnelCard extends StatelessWidget {
         final paddingValue = screenSize.width < 600 ? 12.0 : 16.0;
 
         return Card(
-          elevation: 0,
+          elevation: 0.5,
           shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: const BorderSide(

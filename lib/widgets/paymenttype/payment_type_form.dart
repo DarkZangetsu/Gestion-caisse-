@@ -1,6 +1,9 @@
+import 'package:caisse/composants/texts.dart';
+import 'package:caisse/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class PaymentTypeForm extends StatefulWidget {
+class PaymentTypeForm extends ConsumerStatefulWidget {
   final String? initialName;
   final String? initialCategory;
   final Future<bool> Function(String name, String category) onSubmit;
@@ -13,10 +16,10 @@ class PaymentTypeForm extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<PaymentTypeForm> createState() => _PaymentTypeFormState();
+  ConsumerState<PaymentTypeForm> createState() => _PaymentTypeFormState();
 }
 
-class _PaymentTypeFormState extends State<PaymentTypeForm> {
+class _PaymentTypeFormState extends ConsumerState<PaymentTypeForm> {
   late TextEditingController _nameController;
   String _selectedCategory = 'dépense';
   final _formKey = GlobalKey<FormState>();
@@ -98,6 +101,7 @@ class _PaymentTypeFormState extends State<PaymentTypeForm> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
     return AlertDialog(
       title: Text(widget.initialName == null ? 'Ajouter un type' : 'Modifier le type'),
       content: Form(
@@ -145,9 +149,12 @@ class _PaymentTypeFormState extends State<PaymentTypeForm> {
       actions: [
         TextButton(
           onPressed: _isLoading ? null : () => Navigator.pop(context),
-          child: const Text('Annuler'),
+          child: MyText(texte:'Annuler',  color: isDarkMode ? Colors.white : Colors.black54,),
         ),
         ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xffea6b24),
+          ),
           onPressed: _isLoading ? null : () async {
             await _handleSubmit();
           },
@@ -159,7 +166,7 @@ class _PaymentTypeFormState extends State<PaymentTypeForm> {
               strokeWidth: 2,
             ),
           )
-              : const Text('Enregistrer'),
+              : const MyText(texte:'Enregistrer', color: Colors.white,),
         ),
       ],
     );
