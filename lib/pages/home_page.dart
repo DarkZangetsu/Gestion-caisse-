@@ -313,7 +313,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               label,
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
-                color: Colors.blue,
+                color:  Color(0xffea6b24),
               ),
             ),
           ),
@@ -338,7 +338,7 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.blue,
+        backgroundColor: const Color(0xffea6b24),
         title: Expanded(
           child: TextButton(
             onPressed: _showAccountDialog,
@@ -365,7 +365,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           children: [
             const DrawerHeader(
               decoration: BoxDecoration(
-                color: Colors.blue,
+                color: Color(0xffea6b24),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
