@@ -4,6 +4,7 @@ import 'package:caisse/composants/texts.dart';
 import 'package:caisse/models/chantier.dart';
 import 'package:caisse/models/payment_type.dart';
 import 'package:caisse/models/personnel.dart';
+import 'package:caisse/pages/payment_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -32,6 +33,8 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
   late TabController _tabController;
   final _formKey = GlobalKey<FormState>();
   final descriptionController = TextEditingController();
+  final TextEditingController _chantierSearchController =
+      TextEditingController();
 
   String? selectedChantierId;
   String? selectedPersonnelId;
@@ -48,6 +51,17 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadInitialData();
     });
+
+    final selectedAccount = ref.read(selectedAccountProvider);
+    ref
+        .read(chantiersStateProvider.notifier)
+        .loadChantiers(selectedAccount!.id);
+    Future.microtask(() {
+      final userId = ref.read(currentUserProvider)?.id ?? '';
+      ref.read(paymentTypesProvider.notifier).getPaymentTypes();
+      ref.read(personnelStateProvider.notifier).getPersonnel(userId);
+      ref.read(chantiersStateProvider.notifier).loadChantiers(userId);
+    });
   }
 
   Future<void> _loadInitialData() async {
@@ -57,24 +71,20 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
     if (selectedAccount != null && userId != null) {
       try {
         // Charger les chantiers en premier
-        await ref
+        final chantiers = await ref
             .read(chantiersStateProvider.notifier)
             .getChantiers(selectedAccount.id);
 
-        // Charger les autres données en parallèle
-        await Future.wait([
-          ref
-              .read(personnelStateProvider.notifier)
-              .getPersonnel(selectedAccount.id),
-          ref.read(paymentMethodsProvider.notifier).getPaymentMethods(),
-          ref.read(paymentTypesProvider.notifier).getPaymentTypes(),
-          ref.read(todosStateProvider.notifier).getTodos(selectedAccount.id),
-        ]);
+        // Add this debug print
+        print('Chantiers loaded: ${chantiers.length}');
+
+        // Rest of your code...
       } catch (e) {
+        print('Error loading chantiers: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Erreur lors du chargement des données'),
+            SnackBar(
+              content: Text('Erreur lors du chargement des chantiers: $e'),
               backgroundColor: Colors.red,
             ),
           );
@@ -109,17 +119,35 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
                   builder: (context, ref, _) {
                     final chantiersAsync = ref.watch(chantiersStateProvider);
                     return chantiersAsync.when(
-                      data: (chantiers) => myDropdownButtonFormField<Chantier>(
+                      data: (chantiers) {
+                        // Handle case where list is empty
+                        if (chantiers.isEmpty) {
+                          return const Text('Aucun chantier disponible');
+                        }
+
+                        return SearchableDropdown<Chantier>(
                           items: chantiers,
-                          labelText: 'Chantier',
-                          placeholderText: 'Sélectionner un chantier',
-                          selectedValue: selectedChantierId,
-                          onChanged: (value) =>
-                              setState(() => selectedChantierId = value),
-                          getItemId: (chantier) => chantier.id,
-                          getItemName: (chantier) => chantier.name),
-                      loading: () => const CircularProgressIndicator(),
-                      error: (error, _) => Text('Erreur: $error'),
+                          value: selectedChantierId != null
+                              ? chantiers.firstWhere(
+                                  (c) => c.id == selectedChantierId,
+                                  orElse: () => chantiers.first)
+                              : null,
+                          getLabel: (chantier) => chantier.name,
+                          getSearchString: (chantier) => chantier.name,
+                          onChanged: (chantier) {
+                            setState(() {
+                              selectedChantierId = chantier?.id;
+                              //_selectedChantierId = chantier?.id;
+                            });
+                          },
+                          label: 'Chantier (optionnel)',
+                          controller: _chantierSearchController,
+                        );
+                      },
+                      loading: () =>
+                          const Center(child: CircularProgressIndicator()),
+                      error: (error, __) =>
+                          Text('Erreur de chargement des chantiers: $error'),
                     );
                   },
                 ),
@@ -129,6 +157,7 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
                     final personnelAsync = ref.watch(personnelStateProvider);
                     return personnelAsync.when(
                       data: (personnel) => myDropdownButtonFormField<Personnel>(
+                        context: context,
                         items: personnel,
                         labelText: "Personnel",
                         placeholderText: "Sélectionner un personnel",
@@ -194,6 +223,7 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
                     final typesAsync = ref.watch(paymentTypesProvider);
                     return typesAsync.when(
                       data: (types) => myDropdownButtonFormField<PaymentType>(
+                          context: context,
                           items: types,
                           labelText: 'Type de paiement',
                           placeholderText: 'Sélectionner un type',
@@ -245,7 +275,7 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
             onPressed: () => Navigator.pop(context),
             child: const MyText(
               texte: 'Annuler',
-              color: Colors.black54,
+              color: Colors.grey,
             ),
           ),
           ElevatedButton(
@@ -263,57 +293,98 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
   }
 
   DropdownButtonFormField<String> myDropdownButtonFormField<T>({
+    required BuildContext context,
     required List<T> items,
     required String labelText,
     required String placeholderText,
-    required String? selectedValue,
+    String? selectedValue,
     required void Function(String?) onChanged,
     required String Function(T) getItemId,
     required String Function(T) getItemName,
+    String? Function(String?)? validator,
+    bool isRequired = false,
+    IconData? prefixIcon,
   }) {
-    final secondary = Theme.of(context).colorScheme.secondary;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return DropdownButtonFormField<String>(
+      validator: (value) {
+        if (isRequired && (value == null || value.isEmpty)) {
+          return '$labelText is required';
+        }
+        return validator?.call(value);
+      },
       decoration: InputDecoration(
-        labelText: labelText,
-        labelStyle: TextStyle(
-          color: secondary,
+        labelText: isRequired ? '$labelText *' : labelText,
+        labelStyle: textTheme.bodyMedium?.copyWith(
           fontWeight: FontWeight.bold,
+          color: colorScheme.onSurface.withOpacity(0.7),
         ),
+        prefixIcon: prefixIcon != null
+            ? Icon(prefixIcon, color: colorScheme.primary)
+            : null,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8.0),
-          borderSide: const BorderSide(color: Color(0xffea6b24)),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: colorScheme.outline),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8.0),
-          //borderSide: const BorderSide(color: Colors.black54),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: colorScheme.outline.withOpacity(0.5)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8.0),
-          borderSide: const BorderSide(color: Colors.grey, width: 2),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: colorScheme.primary,
+            width: 2,
+          ),
         ),
-        contentPadding:
-            const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: colorScheme.error),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 16,
+          horizontal: 12,
+        ),
       ),
-      icon: const Icon(Icons.payment, color: Colors.grey),
+      icon: Icon(
+        Icons.arrow_drop_down,
+        color: colorScheme.onSurface.withOpacity(0.7),
+      ),
       value: selectedValue,
+      hint: Text(
+        placeholderText,
+        style: textTheme.bodyMedium?.copyWith(
+          color: colorScheme.onSurface.withOpacity(0.5),
+        ),
+      ),
       items: [
         DropdownMenuItem(
           value: null,
           child: Text(
             placeholderText,
-            style: TextStyle(color: Colors.grey[800]),
+            style: textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurface.withOpacity(0.7),
+            ),
           ),
         ),
         ...items.map((item) {
           return DropdownMenuItem(
             value: getItemId(item),
-            child: Text(getItemName(item)),
+            child: Text(
+              getItemName(item),
+              style: textTheme.bodyMedium,
+            ),
           );
         }).toList(),
       ],
       onChanged: onChanged,
-      style: const TextStyle(color: Colors.black, fontSize: 16),
-      dropdownColor: Colors.white,
+      style: textTheme.bodyMedium?.copyWith(
+        color: colorScheme.onSurface,
+      ),
+      dropdownColor: colorScheme.surface,
+      isExpanded: true,
     );
   }
 

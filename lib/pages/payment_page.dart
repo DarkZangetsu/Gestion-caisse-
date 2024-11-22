@@ -33,7 +33,7 @@ class SearchableDropdown<T> extends StatefulWidget {
     required this.onChanged,
     required this.label,
     this.validator,
-    this.controller, // Ajout du controller optionnel
+    this.controller,
   }) : super(key: key);
 
   @override
@@ -88,6 +88,7 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
 
     final RenderBox renderBox = context.findRenderObject() as RenderBox;
     final size = renderBox.size;
+    final primary = Theme.of(context).colorScheme.primary;
 
     _overlayEntry = OverlayEntry(
       builder: (context) => Positioned(
@@ -98,6 +99,7 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
           offset: Offset(0, size.height + 5),
           child: Material(
             elevation: 4,
+            borderRadius: BorderRadius.circular(8),
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 8),
               constraints: BoxConstraints(
@@ -105,9 +107,9 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
                 minWidth: size.width,
               ),
               decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: Colors.grey[300]!),
-                borderRadius: BorderRadius.circular(4),
+                color: primary,
+                border: Border.all(color: primary),
+                borderRadius: BorderRadius.circular(8),
               ),
               child: ListView.builder(
                 shrinkWrap: true,
@@ -116,7 +118,10 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
                   final item = _filteredItems[index];
                   return ListTile(
                     dense: true,
-                    title: Text(widget.getLabel(item)),
+                    title: Text(
+                      widget.getLabel(item),
+                    ),
+                    hoverColor: primary,
                     onTap: () {
                       widget.onChanged(item);
                       _removeOverlay();
@@ -141,9 +146,9 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
     setState(() {
       _filteredItems = widget.items
           .where((item) => widget
-          .getSearchString(item)
-          .toLowerCase()
-          .contains(query.toLowerCase()))
+              .getSearchString(item)
+              .toLowerCase()
+              .contains(query.toLowerCase()))
           .toList();
     });
 
@@ -155,6 +160,10 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
 
   @override
   Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    final secondary = Theme.of(context).colorScheme.secondary;
+    //final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
+
     return FormField<T>(
       validator: widget.validator,
       builder: (FormFieldState<T> field) {
@@ -163,51 +172,72 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextFormField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  labelText: widget.label,
-                  suffixIcon: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (widget.value != null)
+              Container(
+                decoration: BoxDecoration(
+                  color: primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: TextFormField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    labelText: widget.label,
+                    filled: true,
+                    fillColor: Colors.transparent,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: secondary),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: secondary.withOpacity(0.5)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: secondary),
+                    ),
+                    suffixIcon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (widget.value != null)
+                          IconButton(
+                            icon: Icon(Icons.clear, color: secondary),
+                            onPressed: () {
+                              widget.onChanged(null);
+                              _searchController.clear();
+                              _filterItems('');
+                            },
+                          ),
                         IconButton(
-                          icon: const Icon(Icons.clear),
+                          icon: Icon(
+                            _isExpanded
+                                ? Icons.arrow_drop_up
+                                : Icons.arrow_drop_down,
+                            color: secondary,
+                          ),
                           onPressed: () {
-                            widget.onChanged(null);
-                            _searchController.clear();
-                            _filterItems('');
+                            setState(() {
+                              _isExpanded = !_isExpanded;
+                              if (_isExpanded) {
+                                _showOverlay();
+                              } else {
+                                _removeOverlay();
+                              }
+                            });
                           },
                         ),
-                      IconButton(
-                        icon: Icon(
-                          _isExpanded
-                              ? Icons.arrow_drop_up
-                              : Icons.arrow_drop_down,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _isExpanded = !_isExpanded;
-                            if (_isExpanded) {
-                              _showOverlay();
-                            } else {
-                              _removeOverlay();
-                            }
-                          });
-                        },
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                  onTap: () {
+                    if (!_isExpanded) {
+                      setState(() {
+                        _isExpanded = true;
+                        _showOverlay();
+                      });
+                    }
+                  },
+                  onChanged: _filterItems,
                 ),
-                onTap: () {
-                  if (!_isExpanded) {
-                    setState(() {
-                      _isExpanded = true;
-                      _showOverlay();
-                    });
-                  }
-                },
-                onChanged: _filterItems,
               ),
               if (field.hasError)
                 Padding(
@@ -255,8 +285,10 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
   String? _selectedChantierId;
   String? _selectedPersonnelId;
   late String _type;
-  final TextEditingController _chantierSearchController = TextEditingController();
-  final TextEditingController _personnelSearchController = TextEditingController();
+  final TextEditingController _chantierSearchController =
+      TextEditingController();
+  final TextEditingController _personnelSearchController =
+      TextEditingController();
 
   @override
   void initState() {
@@ -278,10 +310,14 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
         final userId = ref.read(currentUserProvider)?.id ?? '';
 
         // Chargement du chantier
-        ref.read(chantiersStateProvider.notifier).loadChantiers(userId).then((_) {
+        ref
+            .read(chantiersStateProvider.notifier)
+            .loadChantiers(userId)
+            .then((_) {
           if (_selectedChantierId != null) {
             final chantiers = ref.read(chantiersProvider(userId)).value ?? [];
-            final selectedChantier = chantiers.where((c) => c.id == _selectedChantierId).firstOrNull;
+            final selectedChantier =
+                chantiers.where((c) => c.id == _selectedChantierId).firstOrNull;
             if (selectedChantier != null) {
               _chantierSearchController.text = selectedChantier.name;
             }
@@ -289,10 +325,15 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
         });
 
         // Chargement du personnel
-        ref.read(personnelStateProvider.notifier).getPersonnel(userId).then((_) {
+        ref
+            .read(personnelStateProvider.notifier)
+            .getPersonnel(userId)
+            .then((_) {
           if (_selectedPersonnelId != null) {
             final personnel = ref.read(personnelStateProvider).value ?? [];
-            final selectedPersonnel = personnel.where((p) => p.id == _selectedPersonnelId).firstOrNull;
+            final selectedPersonnel = personnel
+                .where((p) => p.id == _selectedPersonnelId)
+                .firstOrNull;
             if (selectedPersonnel != null) {
               _personnelSearchController.text = selectedPersonnel.name;
             }
@@ -324,10 +365,11 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
 
   bool shouldShowPersonnelField() {
     final selectedType = ref.read(paymentTypesProvider).when(
-      data: (types) => types.where((t) => t.id == _selectedPaymentTypeId).firstOrNull,
-      loading: () => null,
-      error: (_, __) => null,
-    );
+          data: (types) =>
+              types.where((t) => t.id == _selectedPaymentTypeId).firstOrNull,
+          loading: () => null,
+          error: (_, __) => null,
+        );
 
     if (selectedType == null) return false;
 
@@ -351,36 +393,40 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
     final now = DateTime.now();
     final transaction = widget.isEditing && widget.transaction != null
         ? widget.transaction!.copyWith(
-      accountId: selectedAccount.id,
-      chantierId: _selectedChantierId,
-      personnelId: _selectedPersonnelId,
-      paymentTypeId: _selectedPaymentTypeId,
-      description: _descriptionController.text,
-      amount: double.parse(_amountController.text),
-      transactionDate: _transactionDate,
-      type: _type,
-      updatedAt: now,
-    )
+            accountId: selectedAccount.id,
+            chantierId: _selectedChantierId,
+            personnelId: _selectedPersonnelId,
+            paymentTypeId: _selectedPaymentTypeId,
+            description: _descriptionController.text,
+            amount: double.parse(_amountController.text),
+            transactionDate: _transactionDate,
+            type: _type,
+            updatedAt: now,
+          )
         : Transaction(
-      id: const Uuid().v4(),
-      accountId: selectedAccount.id,
-      chantierId: _selectedChantierId,
-      personnelId: _selectedPersonnelId,
-      paymentTypeId: _selectedPaymentTypeId,
-      description: _descriptionController.text,
-      amount: double.parse(_amountController.text),
-      transactionDate: _transactionDate,
-      type: _type,
-      createdAt: now,
-      updatedAt: now,
-    );
+            id: const Uuid().v4(),
+            accountId: selectedAccount.id,
+            chantierId: _selectedChantierId,
+            personnelId: _selectedPersonnelId,
+            paymentTypeId: _selectedPaymentTypeId,
+            description: _descriptionController.text,
+            amount: double.parse(_amountController.text),
+            transactionDate: _transactionDate,
+            type: _type,
+            createdAt: now,
+            updatedAt: now,
+          );
 
     try {
       if (widget.isEditing && widget.onSave != null) {
         await widget.onSave!(transaction);
       } else {
-        await ref.read(transactionsStateProvider.notifier).addTransaction(transaction);
-        await ref.read(transactionsStateProvider.notifier).loadTransactions(selectedAccount.id);
+        await ref
+            .read(transactionsStateProvider.notifier)
+            .addTransaction(transaction);
+        await ref
+            .read(transactionsStateProvider.notifier)
+            .loadTransactions(selectedAccount.id);
       }
 
       if (mounted) {
@@ -388,8 +434,7 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
           SnackBar(
             content: Text(widget.isEditing
                 ? 'Transaction mise à jour avec succès'
-                : 'Transaction enregistrée avec succès'
-            ),
+                : 'Transaction enregistrée avec succès'),
           ),
         );
         Navigator.pop(context);
@@ -413,8 +458,8 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
     List<PaymentType> filteredPaymentTypes = paymentTypesAsync.when(
       data: (types) => types
           .where((type) => _type == 'reçu'
-          ? type.category == 'revenu'
-          : type.category == 'dépense')
+              ? type.category == 'revenu'
+              : type.category == 'dépense')
           .toList(),
       loading: () => [],
       error: (_, __) => [],
@@ -424,8 +469,7 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
       appBar: AppBar(
         title: Text(widget.isEditing
             ? 'Modifier la transaction'
-            : (_type == 'reçu' ? 'Reçu' : 'Payé')
-        ),
+            : (_type == 'reçu' ? 'Reçu' : 'Payé')),
         backgroundColor: _type == 'reçu' ? Colors.green : Colors.red,
       ),
       body: Form(
@@ -449,7 +493,6 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
               ),
               const SizedBox(height: 16),
             ],
-
             TextFormField(
               controller: _amountController,
               keyboardType: TextInputType.number,
@@ -468,10 +511,10 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
               },
             ),
             const SizedBox(height: 16),
-
             ListTile(
               title: const Text('Date de transaction'),
-              subtitle: Text(DateFormat('dd/MM/yyyy HH:mm').format(_transactionDate)),
+              subtitle:
+                  Text(DateFormat('dd/MM/yyyy HH:mm').format(_transactionDate)),
               trailing: const Icon(Icons.calendar_today),
               onTap: () async {
                 final date = await showDatePicker(
@@ -500,22 +543,24 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
               },
             ),
             const SizedBox(height: 16),
-
             chantiersAsync.when(
               data: (chantiers) => SearchableDropdown<Chantier>(
                 items: chantiers,
-                value: chantiers.where((c) => c.id == _selectedChantierId).firstOrNull,
+                value: chantiers
+                    .where((c) => c.id == _selectedChantierId)
+                    .firstOrNull,
                 getLabel: (chantier) => chantier.name,
                 getSearchString: (chantier) => chantier.name,
-                onChanged: (chantier) => setState(() => _selectedChantierId = chantier?.id),
+                onChanged: (chantier) =>
+                    setState(() => _selectedChantierId = chantier?.id),
                 label: 'Chantier (optionnel)',
                 controller: _chantierSearchController,
               ),
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, __) => Text('Erreur de chargement des chantiers: $error'),
+              error: (error, __) =>
+                  Text('Erreur de chargement des chantiers: $error'),
             ),
             const SizedBox(height: 16),
-
             paymentTypesAsync.when(
               data: (_) => DropdownButtonFormField<String>(
                 value: _selectedPaymentTypeId,
@@ -524,34 +569,38 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
                 ),
                 items: filteredPaymentTypes
                     .map((type) => DropdownMenuItem(
-                  value: type.id,
-                  child: Text(type.name),
-                ))
+                          value: type.id,
+                          child: Text(type.name),
+                        ))
                     .toList(),
-                onChanged: (value) => setState(() => _selectedPaymentTypeId = value),
+                onChanged: (value) =>
+                    setState(() => _selectedPaymentTypeId = value),
               ),
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (_, __) => const Text('Erreur de chargement des types de paiement'),
+              error: (_, __) =>
+                  const Text('Erreur de chargement des types de paiement'),
             ),
             const SizedBox(height: 16),
-
             if (shouldShowPersonnelField()) ...[
               personnelAsync.when(
                 data: (personnelList) => SearchableDropdown<Personnel>(
                   items: personnelList,
-                  value: personnelList.where((p) => p.id == _selectedPersonnelId).firstOrNull,
+                  value: personnelList
+                      .where((p) => p.id == _selectedPersonnelId)
+                      .firstOrNull,
                   getLabel: (personnel) => personnel.name,
                   getSearchString: (personnel) => personnel.name,
-                  onChanged: (personnel) => setState(() => _selectedPersonnelId = personnel?.id),
+                  onChanged: (personnel) =>
+                      setState(() => _selectedPersonnelId = personnel?.id),
                   label: 'Personnel (optionnel)',
                   controller: _personnelSearchController,
                 ),
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (_, __) => const Text('Erreur de chargement du personnel'),
+                error: (_, __) =>
+                    const Text('Erreur de chargement du personnel'),
               ),
               const SizedBox(height: 16),
             ],
-
             TextFormField(
               controller: _descriptionController,
               decoration: const InputDecoration(
@@ -560,7 +609,6 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
               maxLines: 3,
             ),
             const SizedBox(height: 24),
-
             SizedBox(
               height: 50,
               child: ElevatedButton(
