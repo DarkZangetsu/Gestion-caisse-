@@ -131,11 +131,15 @@ create trigger update_todos_updated_at
     execute function update_updated_at_column();
 
 -- Fonction pour insérer automatiquement une transaction quand un todo est complété
-create or replace function insert_transaction_on_todo_completion()
-returns trigger as $$
-begin
-    if new.completed = true and old.completed = false then
-        insert into transactions (
+CREATE OR REPLACE FUNCTION insert_transaction_on_todo_completion()
+RETURNS TRIGGER AS $$
+DECLARE
+    new_transaction_id UUID;
+BEGIN
+    IF NEW.completed = true AND OLD.completed = false THEN
+        SELECT uuid_generate_v4() INTO new_transaction_id;
+        INSERT INTO transactions (
+            id,
             account_id,
             chantier_id,
             personnel_id,
@@ -147,23 +151,25 @@ begin
             type,
             created_at,
             updated_at
-        ) values (
-            new.account_id,
-            new.chantier_id,
-            new.personnel_id,
-            new.payment_method_id,
-            new.payment_type_id,
-            new.description,
-            new.estimated_amount,
-            now(),
+        )
+        VALUES (
+            new_transaction_id,
+            NEW.account_id,
+            NEW.chantier_id,
+            NEW.personnel_id,
+            NEW.payment_method_id,
+            NEW.payment_type_id,
+            NEW.description,
+            NEW.estimated_amount,
+            NOW(),
             'payé',
-            now(),
-            now()
+            NOW(),
+            NOW()
         );
-    end if;
-    return new;
-end;
-$$ language plpgsql;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
 -- Trigger pour appeler la fonction lors de la mise à jour des todos
 create trigger todo_completion_to_transaction

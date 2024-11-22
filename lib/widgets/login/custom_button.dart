@@ -1,3 +1,5 @@
+import 'package:caisse/composants/boutons.dart';
+import 'package:caisse/composants/texts.dart';
 import 'package:flutter/material.dart';
 
 class CustomButton extends StatelessWidget {
@@ -14,21 +16,17 @@ class CustomButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton(
+    return MyButtons(
+      backgroundColor: const Color(0xffea6b24),
       onPressed: isLoading ? null : onPressed,
-      style: ElevatedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-      ),
       child: isLoading
           ? const SizedBox(
         width: 24,
         height: 24,
         child: CircularProgressIndicator(strokeWidth: 2),
       )
-          : Text(text),
+          : MyText(texte: text, color: Colors.white,),
     );
+
   }
 }

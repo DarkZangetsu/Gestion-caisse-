@@ -13,8 +13,9 @@ class LoginForm extends ConsumerStatefulWidget {
 
 class _LoginFormState extends ConsumerState<LoginForm> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+  final _emailController = TextEditingController(text: "user@gmail.com"); 
   final _passwordController = TextEditingController();
+  var _isDisplay = true;
 
   @override
   void dispose() {
@@ -27,14 +28,15 @@ class _LoginFormState extends ConsumerState<LoginForm> {
     if (_formKey.currentState?.validate() ?? false) {
       try {
         await ref.read(userStateProvider.notifier).signInUser(
-          _emailController.text.trim(), // Add trim()
+          _emailController.text.trim(),
           _passwordController.text,
         );
       } catch (e) {
         if (mounted) {
+          print(e.toString());
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(e.toString()),
+            const SnackBar(
+              content: Text("Une erreur s'est produit! verifier votre connexion ou bien votre mot de passe"),
               backgroundColor: Colors.red,
             ),
           );
@@ -45,6 +47,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
 
   @override
   Widget build(BuildContext context) {
+
     final userState = ref.watch(userStateProvider);
 
     return Form(
@@ -53,24 +56,17 @@ class _LoginFormState extends ConsumerState<LoginForm> {
         mainAxisSize: MainAxisSize.min,
         children: [
           CustomTextField(
-            label: 'Email',
-            controller: _emailController,
-            keyboardType: TextInputType.emailAddress,
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Veuillez entrer votre email';
-              }
-              if (!value.contains('@')) {
-                return 'Veuillez entrer un email valide';
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 16),
-          CustomTextField(
             label: 'Mot de passe',
             controller: _passwordController,
-            obscureText: true,
+            obscureText: _isDisplay,
+            suffixIcon: IconButton(
+              onPressed: () {
+                setState(() {
+                  _isDisplay = !_isDisplay;
+                });
+              }, 
+              icon: Icon(_isDisplay ? Icons.visibility_off : Icons.visibility),
+              ),
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return 'Veuillez entrer votre mot de passe';

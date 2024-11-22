@@ -5,14 +5,7 @@ import '../services/database_helper.dart';
 
 final chantiersStateProvider = StateNotifierProvider<ChantiersNotifier, AsyncValue<List<Chantier>>>((ref) {
   final userId = ref.watch(currentUserProvider)?.id;
-  final notifier = ChantiersNotifier(ref.read(databaseHelperProvider), userId ?? '');
-
-  // Trigger initial load
-  if (userId != null) {
-    notifier.getChantiers(userId);
-  }
-
-  return notifier;
+  return ChantiersNotifier(ref.read(databaseHelperProvider), userId ?? '');
 });
 
 
@@ -23,16 +16,21 @@ final chantiersProvider = FutureProvider.family<List<Chantier>, String>((ref, us
 
 class ChantiersNotifier extends StateNotifier<AsyncValue<List<Chantier>>> {
   final DatabaseHelper _db;
+  final String _userId;
 
-  ChantiersNotifier(this._db, String userId) : super(const AsyncValue.data([]));
+  ChantiersNotifier(this._db, this._userId) : super(const AsyncValue.loading()) {
+    // Charger les chantiers initialement
+    loadChantiers(_userId);
+  }
 
   Future<List<Chantier>> getChantiers(String userId) async {
     try {
       final chantiers = await _db.getChantiers(userId);
+      state = AsyncValue.data(chantiers);
       return chantiers;
     } catch (e) {
       state = AsyncValue.error(e, StackTrace.current);
-      rethrow;
+      throw Exception("Erreur lors du chargement du chantier: $e");
     }
   }
 
@@ -48,15 +46,8 @@ class ChantiersNotifier extends StateNotifier<AsyncValue<List<Chantier>>> {
 
   Future<void> createChantier(Chantier chantier) async {
     try {
-      // Crée le chantier
-      final newChantier = await _db.createChantier(chantier);
-
-      // Met à jour la liste des chantiers en ajoutant le nouveau chantier
-      state = AsyncValue.data([...state.value ?? [], newChantier]);
-
-      // Récupère les chantiers après la création
-      final userId = chantier.userId;
-      await getChantiers(userId);
+      await _db.createChantier(chantier);
+      await loadChantiers(_userId);
     } catch (e) {
       state = AsyncValue.error(e, StackTrace.current);
     }
@@ -64,10 +55,8 @@ class ChantiersNotifier extends StateNotifier<AsyncValue<List<Chantier>>> {
 
   Future<void> updateChantier(Chantier chantier) async {
     try {
-      final updatedChantier = await _db.updateChantier(chantier);
-      state = AsyncValue.data(
-        (state.value ?? []).map((c) => c.id == chantier.id ? updatedChantier : c).toList(),
-      );
+      await _db.updateChantier(chantier);
+      await loadChantiers(_userId);
     } catch (e) {
       state = AsyncValue.error(e, StackTrace.current);
     }
@@ -76,12 +65,9 @@ class ChantiersNotifier extends StateNotifier<AsyncValue<List<Chantier>>> {
   Future<void> deleteChantier(String chantierId) async {
     try {
       await _db.deleteChantier(chantierId);
-      state = AsyncValue.data(
-        (state.value ?? []).where((c) => c.id != chantierId).toList(),
-      );
+      await loadChantiers(_userId);
     } catch (e) {
       state = AsyncValue.error(e, StackTrace.current);
     }
   }
 }
-

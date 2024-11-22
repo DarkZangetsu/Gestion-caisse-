@@ -189,8 +189,7 @@ class DatabaseHelper {
           .from('chantiers')
           .select()
           .eq('user_id', userId);
-
-      print("Réponse brute des chantiers : $response"); // Debug
+      print("Réponse brute des chantiers : $response");
       return (response as List).map((json) => Chantier.fromJson(json)).toList();
     } catch (e) {
       throw Exception('Erreur lors de la récupération des chantiers: $e');
@@ -306,7 +305,7 @@ class DatabaseHelper {
     }
   }
 
-  // Payment Types
+  // Payment Type Methods
   Future<List<PaymentType>> getPaymentTypes() async {
     try {
       final response = await _supabase
@@ -319,13 +318,54 @@ class DatabaseHelper {
     }
   }
 
-  // Transaction Methods
+  Future<PaymentType> createPaymentType(PaymentType paymentType) async {
+    try {
+      final response = await _supabase
+          .from('payment_types')
+          .insert(paymentType.toJson())
+          .select()
+          .single();
+
+      return PaymentType.fromJson(response);
+    } catch (e) {
+      throw Exception('Erreur lors de la création du type de paiement: $e');
+    }
+  }
+
+  Future<PaymentType> updatePaymentType(PaymentType paymentType) async {
+    try {
+      final response = await _supabase
+          .from('payment_types')
+          .update(paymentType.toJson())
+          .eq('id', paymentType.id)
+          .select()
+          .single();
+
+      return PaymentType.fromJson(response);
+    } catch (e) {
+      throw Exception('Erreur lors de la mise à jour du type de paiement: $e');
+    }
+  }
+
+  Future<void> deletePaymentType(String paymentTypeId) async {
+    try {
+      await _supabase
+          .from('payment_types')
+          .delete()
+          .eq('id', paymentTypeId);
+    } catch (e) {
+      throw Exception('Erreur lors de la suppression du type de paiement: $e');
+    }
+  }
+
+  // Transaction Methodse
   Future<List<Transaction>> getTransactions(String accountId) async {
     try {
       final response = await _supabase
           .from('transactions')
           .select()
-          .eq('account_id', accountId);
+          .eq('account_id', accountId)
+          .order('created_at',  ascending: false); // true pour LIFO
 
       return (response as List).map((json) => Transaction.fromJson(json)).toList();
     } catch (e) {
@@ -373,7 +413,21 @@ class DatabaseHelper {
     }
   }
 
-  // Todo Methods
+  /*Future<List<Transaction>> getTransactionsByChantier(String chantierId) async {
+    try {
+      final response = await _supabase
+          .from('transactions')
+          .select()
+          .eq('chantier_id', chantierId)
+          .order('created_at', ascending: false); // Pour avoir les plus récentes en premier
+
+      return (response as List).map((json) => Transaction.fromJson(json)).toList();
+    } catch (e) {
+      throw Exception('Erreur lors de la récupération des transactions du chantier: $e');
+    }
+  }*/
+
+  // Todos Methods
   Future<List<Todo>> getTodos(String accountId) async {
     try {
       final response = await _supabase
@@ -437,17 +491,34 @@ class DatabaseHelper {
     }
   }
 
+
+
+
   // Méthodes additionnelles utiles
   Future<List<Transaction>> getTransactionsByChantier(String chantierId) async {
     try {
+      print('Database query for chantierId: $chantierId');
+
       final response = await _supabase
           .from('transactions')
-          .select()
-          .eq('chantier_id', chantierId);
+          .select('*')
+          .eq('chantier_id', chantierId)  // Ensure this matches exactly
+          .order('transaction_date', ascending: false);
 
-      return (response as List).map((json) => Transaction.fromJson(json)).toList();
+      print('Raw database response length: ${response.length}');
+
+      return response.map((data) {
+        try {
+          return Transaction.fromJson(data);
+        } catch (e) {
+          print('Transaction parsing error: $e for data: $data');
+          return null;
+        }
+      }).whereType<Transaction>().toList();
+
     } catch (e) {
-      throw Exception('Erreur lors de la récupération des transactions du chantier: $e');
+      print('Comprehensive database error: $e');
+      return [];
     }
   }
 

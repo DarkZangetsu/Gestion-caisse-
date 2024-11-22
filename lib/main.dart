@@ -1,17 +1,26 @@
+import 'package:caisse/mode/dark_mode.dart';
+import 'package:caisse/mode/light_mode.dart';
+import 'package:caisse/pages/ChangePasswordPage.dart';
 import 'package:caisse/pages/PersonnelPage.dart';
-import 'package:caisse/pages/chantier_page.dart';
-import 'package:caisse/pages/todolist_page.dart';
+import 'package:caisse/pages/transaction.dart';
+import 'package:caisse/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'pages/home_page.dart';
-import 'pages/payment_page.dart';
-import 'pages/login_page.dart';
-import 'providers/auth_guard.dart';
 import 'config/supabase_config.dart';
+import 'pages/home_page.dart';
+import 'pages/login_page.dart';
+import 'pages/payment_page.dart';
+import 'pages/chantier_page.dart';
+import 'pages/todolist_page.dart';
+import 'pages/payment_types_page.dart';
+import 'providers/auth_guard.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final notificationService = TodoNotificationService();
+  await notificationService.initNotification();
   await SupabaseConfig.initialize();
+
   runApp(
     const ProviderScope(
       child: MyApp(),
@@ -24,8 +33,13 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeProvider);
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      theme: lightTheme,
+      darkTheme: darkTheme,
+      themeMode: themeMode,
       initialRoute: '/login',
       routes: {
         '/login': (context) => const LoginPage(),
@@ -34,7 +48,19 @@ class MyApp extends ConsumerWidget {
         '/chantier': (context) => const ChantierPage(),
         '/personnel': (context) => const PersonnelPage(),
         '/todos':(context) => const TodoListPage(),
+        '/payment-types':(context) => const PaymentTypesPage(),
+        '/change-password':(context) => const ChangePasswordPage(),
       },
+      onGenerateRoute: (settings) {
+        if(settings.name == '/transaction') {
+          final args = settings.arguments as Map<String, dynamic>;
+            return MaterialPageRoute(
+                builder: (context) => TransactionPage(
+                    chantierId: args['chantierId'] as String,
+                ) ,
+            );
+        }
+      }
     );
   }
 }

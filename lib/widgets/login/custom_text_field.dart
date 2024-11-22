@@ -6,6 +6,8 @@ class CustomTextField extends StatelessWidget {
   final bool obscureText;
   final String? Function(String?)? validator;
   final TextInputType keyboardType;
+  final Widget? suffixIcon;
+  final String? initialValue;
 
   const CustomTextField({
     super.key,
@@ -13,7 +15,7 @@ class CustomTextField extends StatelessWidget {
     required this.controller,
     this.obscureText = false,
     this.validator,
-    this.keyboardType = TextInputType.text,
+    this.keyboardType = TextInputType.text, this.suffixIcon, this.initialValue,
   });
 
   @override
@@ -23,10 +25,13 @@ class CustomTextField extends StatelessWidget {
       obscureText: obscureText,
       keyboardType: keyboardType,
       validator: validator,
+      initialValue: initialValue,
       decoration: InputDecoration(
+        
         labelText: label,
+        suffixIcon: suffixIcon,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(4),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
