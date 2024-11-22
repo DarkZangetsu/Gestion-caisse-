@@ -13,7 +13,7 @@ class LoginForm extends ConsumerStatefulWidget {
 
 class _LoginFormState extends ConsumerState<LoginForm> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController(text: "user@gmail.com"); 
+  final _emailController = TextEditingController(text: "user@gmail.com");
   final _passwordController = TextEditingController();
   var _isDisplay = true;
 
@@ -28,15 +28,16 @@ class _LoginFormState extends ConsumerState<LoginForm> {
     if (_formKey.currentState?.validate() ?? false) {
       try {
         await ref.read(userStateProvider.notifier).signInUser(
-          _emailController.text.trim(),
-          _passwordController.text,
-        );
+              _emailController.text.trim(),
+              _passwordController.text,
+            );
       } catch (e) {
         if (mounted) {
           print(e.toString());
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text("Une erreur s'est produit! verifier votre connexion ou bien votre mot de passe"),
+              content: Text(
+                  "Une erreur s'est produit! Vérifiez votre connexion ou votre mot de passe."),
               backgroundColor: Colors.red,
             ),
           );
@@ -47,51 +48,72 @@ class _LoginFormState extends ConsumerState<LoginForm> {
 
   @override
   Widget build(BuildContext context) {
-
     final userState = ref.watch(userStateProvider);
 
-    return Form(
-      key: _formKey,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          CustomTextField(
-            label: 'Mot de passe',
-            controller: _passwordController,
-            obscureText: _isDisplay,
-            suffixIcon: IconButton(
-              onPressed: () {
-                setState(() {
-                  _isDisplay = !_isDisplay;
-                });
-              }, 
-              icon: Icon(_isDisplay ? Icons.visibility_off : Icons.visibility),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Le champ email est caché mais le controller est toujours actif
+            Visibility(
+              visible: false,
+              maintainState: true,
+              child: CustomTextField(
+                label: 'Email',
+                controller: _emailController,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Veuillez entrer votre email';
+                  }
+                  if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+                    return 'Veuillez entrer un email valide';
+                  }
+                  return null;
+                },
               ),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Veuillez entrer votre mot de passe';
-              }
-              if (value.length < 6) {
-                return 'Le mot de passe doit contenir au moins 6 caractères';
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 24),
-          CustomButton(
-            text: 'Se connecter',
-            onPressed: _handleLogin,
-            isLoading: userState is AsyncLoading,
-          ),
-          if (userState is AsyncError) ...[
-            const SizedBox(height: 16),
-            Text(
-              (userState.error as dynamic).toString(),
-              style: const TextStyle(color: Colors.red),
-              textAlign: TextAlign.center,
             ),
+            CustomTextField(
+              label: 'Mot de passe',
+              controller: _passwordController,
+              obscureText: _isDisplay,
+              suffixIcon: IconButton(
+                onPressed: () {
+                  setState(() {
+                    _isDisplay = !_isDisplay;
+                  });
+                },
+                icon:
+                    Icon(_isDisplay ? Icons.visibility_off : Icons.visibility),
+              ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Veuillez entrer votre mot de passe';
+                }
+                if (value.length < 6) {
+                  return 'Le mot de passe doit contenir au moins 6 caractères';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 24),
+            CustomButton(
+              text: 'Se connecter',
+              onPressed: _handleLogin,
+              isLoading: userState is AsyncLoading,
+            ),
+            if (userState is AsyncError) ...[
+              const SizedBox(height: 16),
+              Text(
+                (userState.error as dynamic).toString(),
+                style: const TextStyle(color: Colors.red),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

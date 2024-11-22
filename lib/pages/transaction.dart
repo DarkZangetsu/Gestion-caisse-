@@ -2,7 +2,6 @@ import 'package:caisse/composants/empty_transaction_view.dart';
 import 'package:caisse/composants/tab_header.dart';
 import 'package:caisse/composants/texts.dart';
 import 'package:caisse/home_composantes/transaction_row.dart';
-import 'package:caisse/models/accounts.dart';
 import 'package:caisse/models/transaction.dart';
 import 'package:caisse/providers/theme_provider.dart';
 import 'package:caisse/providers/transactions_provider.dart';
@@ -38,26 +37,22 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
 
-
-
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       print('Loading transactions for chantierId: ${widget.chantierId}');
-      ref.read(transactionStateProvider.notifier)
+      ref
+          .read(transactionStateProvider.notifier)
           .loadTransactionsByChantier(widget.chantierId);
     });
   }
-
 
   @override
   void dispose() {
     ref.read(transactionStateProvider.notifier).resetTransactions();
     super.dispose();
   }
-
-
 
   void _resetDate() {
     setState(() {
@@ -525,17 +520,26 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
               ),
             ],
           ),
-          const SizedBox(height: 8.0,),
+          const SizedBox(
+            height: 8.0,
+          ),
           const Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-            MyText(texte: 'Balance: ', fontSize: 22.0, fontWeight: FontWeight.bold,),
-            SizedBox(width: 4.0,),
-            MyText(texte: "0.0 Ar", fontSize: 22.0, fontWeight: FontWeight.bold),
-          ],)
+              MyText(
+                texte: 'Balance: ',
+                fontSize: 22.0,
+                fontWeight: FontWeight.bold,
+              ),
+              SizedBox(
+                width: 4.0,
+              ),
+              MyText(
+                  texte: "0.0 Ar", fontSize: 22.0, fontWeight: FontWeight.bold),
+            ],
+          )
         ],
       ),
     );
   }
-
 }

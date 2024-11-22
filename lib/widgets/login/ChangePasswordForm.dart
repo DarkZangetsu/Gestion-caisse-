@@ -87,11 +87,17 @@ class _ChangePasswordFormState extends ConsumerState<ChangePasswordForm> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Form(
+Widget build(BuildContext context) {
+  final size = MediaQuery.of(context).size;
+
+  return SingleChildScrollView(
+    child: Form(
       key: _formKey,
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.symmetric(
+          horizontal: size.width * 0.1, // Ajustement dynamique
+          vertical: 16.0,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
@@ -138,6 +144,7 @@ class _ChangePasswordFormState extends ConsumerState<ChangePasswordForm> {
                     ? Icons.visibility_off
                     : Icons.visibility),
               ),
+              helperText: 'Le mot de passe doit contenir au moins 6 caractères',
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Veuillez entrer un nouveau mot de passe';
@@ -183,9 +190,15 @@ class _ChangePasswordFormState extends ConsumerState<ChangePasswordForm> {
               },
               isLoading: _isLoading,
             ),
+            if (_isLoading)
+              const Center(
+                child: CircularProgressIndicator(),
+              ),
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
+
 }

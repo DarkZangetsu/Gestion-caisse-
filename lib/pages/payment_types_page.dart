@@ -8,7 +8,7 @@ import '../widgets/paymenttype/payment_type_form.dart';
 import '../widgets/paymenttype/payment_type_list.dart';
 
 class PaymentTypesPage extends ConsumerStatefulWidget {
-  const PaymentTypesPage({Key? key}) : super(key: key);
+  const PaymentTypesPage({super.key});
 
   @override
   ConsumerState<PaymentTypesPage> createState() => _PaymentTypesPageState();

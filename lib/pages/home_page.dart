@@ -7,7 +7,6 @@ import 'package:caisse/home_composantes/drawer.dart';
 import 'package:caisse/home_composantes/transaction_row.dart';
 import 'package:caisse/imprimer/pdf.dart';
 import 'package:caisse/pages/payment_page.dart';
-import 'package:caisse/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/accounts.dart';
@@ -31,7 +30,6 @@ class HomePage extends ConsumerStatefulWidget {
 }
 
 class _HomePageState extends ConsumerState<HomePage> {
-  int? _value = 1;
   var filterChoice = ["Tous", "Quotidien", "Hebdomadaire", "Mensuel", "Annuel"];
   String _searchQuery = '';
   bool isSearching = false;
@@ -55,13 +53,9 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   bool _isThisWeek(DateTime date) {
     final now = DateTime.now();
-    // Find the most recent Monday (beginning of week)
     final monday = now.subtract(Duration(days: now.weekday - 1));
-    // Set time to start of day (00:00:00)
     final startOfWeek = DateTime(monday.year, monday.month, monday.day);
-    // Find the next Sunday (end of week)
     final sunday = startOfWeek.add(const Duration(days: 6));
-    // Set time to end of day (23:59:59)
     final endOfWeek =
         DateTime(sunday.year, sunday.month, sunday.day, 23, 59, 59);
 
@@ -72,9 +66,7 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   bool _isThisMonth(DateTime date) {
     final now = DateTime.now();
-    // First day of current month
     final startOfMonth = DateTime(now.year, now.month, 1);
-    // Calculate last day of current month
     final lastDay = DateTime(now.year, now.month + 1, 0);
     final endOfMonth = DateTime(now.year, now.month, lastDay.day, 23, 59, 59);
 
@@ -84,9 +76,7 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   bool _isThisYear(DateTime date) {
     final now = DateTime.now();
-    // First day of current year
     final startOfYear = DateTime(now.year, 1, 1);
-    // Last day of current year
     final endOfYear = DateTime(now.year, 12, 31, 23, 59, 59);
 
     return date.isAfter(startOfYear.subtract(const Duration(seconds: 1))) &&
@@ -97,69 +87,108 @@ class _HomePageState extends ConsumerState<HomePage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final selectedAccount = ref.read(selectedAccountProvider);
-      final userId = ref.read(currentUserProvider)?.id;
-      _showAccountDialog();
-
-      print('InitState - Selected Account: ${selectedAccount?.id}');
-      print('InitState - UserId: $userId');
-
-      if (selectedAccount != null && userId != null) {
-        try {
-          // Chargement des chantiers
-          await ref.read(chantiersStateProvider.notifier).loadChantiers(userId);
-          final chantiers = ref.read(chantiersStateProvider).value ?? [];
-          print('Chantiers chargés: ${chantiers.length}');
-          print(
-              'Chantiers: ${chantiers.map((c) => '${c.id}: ${c.name}').join(', ')}');
-
-          // Chargement du personnel
-          await ref.read(personnelStateProvider.notifier).getPersonnel(userId);
-          final personnel = ref.read(personnelStateProvider).value ?? [];
-          print('Personnel chargé: ${personnel.length}');
-          print(
-              'Personnel: ${personnel.map((p) => '${p.id}: ${p.name}').join(', ')}');
-
-          // Chargement des types de paiement
-          await ref.read(paymentTypesProvider.notifier).getPaymentTypes();
-          final types = ref.read(paymentTypesProvider).value ?? [];
-          print('Types de paiement chargés: ${types.length}');
-          print('Types: ${types.map((t) => '${t.id}: ${t.name}').join(', ')}');
-
-          // Chargement des transactions
-          await ref
-              .read(transactionsStateProvider.notifier)
-              .loadTransactions(selectedAccount.id);
-          final transactions = ref.read(transactionsStateProvider).value ?? [];
-          print('Transactions chargées: ${transactions.length}');
-        } catch (e) {
-          print('Erreur lors du chargement des données: $e');
-        }
-      }
+      await _initializeData();
     });
+  }
+
+  Future<void> _initializeData() async {
+    final selectedAccount = ref.read(selectedAccountProvider);
+    final userId = ref.read(currentUserProvider)?.id;
+
+    _showAccountDialog(context);
+
+    debugPrint('InitState - Selected Account: ${selectedAccount?.id}');
+    debugPrint('InitState - UserId: $userId');
+
+    if (selectedAccount != null && userId != null) {
+      try {
+        await Future.wait([
+          _loadChantiers(userId),
+          _loadPersonnel(userId),
+          _loadPaymentTypes(),
+          _loadTransactions(selectedAccount.id),
+        ]);
+      } catch (e) {
+        debugPrint('Erreur lors du chargement des données: $e');
+      }
+    }
+  }
+
+  Future<void> _loadChantiers(String userId) async {
+    await ref.read(chantiersStateProvider.notifier).loadChantiers(userId);
+    final chantiers = ref.read(chantiersStateProvider).value ?? [];
+    debugPrint('Chantiers chargés: ${chantiers.length}');
+    debugPrint(
+        'Chantiers: ${chantiers.map((c) => '${c.id}: ${c.name}').join(', ')}');
+  }
+
+  Future<void> _loadPersonnel(String userId) async {
+    await ref.read(personnelStateProvider.notifier).getPersonnel(userId);
+    final personnel = ref.read(personnelStateProvider).value ?? [];
+    debugPrint('Personnel chargé: ${personnel.length}');
+    debugPrint(
+        'Personnel: ${personnel.map((p) => '${p.id}: ${p.name}').join(', ')}');
+  }
+
+  Future<void> _loadPaymentTypes() async {
+    await ref.read(paymentTypesProvider.notifier).getPaymentTypes();
+    final types = ref.read(paymentTypesProvider).value ?? [];
+    debugPrint('Types de paiement chargés: ${types.length}');
+    debugPrint('Types: ${types.map((t) => '${t.id}: ${t.name}').join(', ')}');
+  }
+
+  Future<void> _loadTransactions(String accountId) async {
+    await ref
+        .read(transactionsStateProvider.notifier)
+        .loadTransactions(accountId);
+    final transactions = ref.read(transactionsStateProvider).value ?? [];
+    debugPrint('Transactions chargées: ${transactions.length}');
   }
 
   final selectedAccountProvider = StateProvider<Account?>((ref) => null);
 
-  void _showAccountDialog() {
+  void _showAccountDialog(BuildContext context) {
     DialogCompte.show(
       context,
       onCompteSelectionne: (Account selectedAccount) async {
-        print('Compte sélectionné: ${selectedAccount.id}');
+        debugPrint('Compte sélectionné: ${selectedAccount.id}');
         ref.read(selectedAccountProvider.notifier).state = selectedAccount;
+
         try {
           await ref
               .read(transactionsStateProvider.notifier)
               .loadTransactions(selectedAccount.id);
-          print(
+          debugPrint(
               'Transactions chargées pour le compte ${selectedAccount.solde}');
 
           // Vérifiez le nombre de transactions chargées
           final transactions = ref.read(transactionsStateProvider).value ?? [];
-          print('Nombre de transactions chargées: ${transactions.length}');
+          debugPrint('Nombre de transactions chargées: ${transactions.length}');
         } catch (e) {
-          print('Erreur lors du chargement des transactions: $e');
+          debugPrint('Erreur lors du chargement des transactions: $e');
+          _showErrorDialog(
+              context, 'Erreur lors du chargement des transactions');
         }
+      },
+    );
+  }
+
+  void _showErrorDialog(BuildContext context, String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Erreur'),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
       },
     );
   }
@@ -300,7 +329,8 @@ class _HomePageState extends ConsumerState<HomePage> {
 
             if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Transaction mise à jour avec succès')),
+                const SnackBar(
+                    content: Text('Transaction mise à jour avec succès')),
               );
               Navigator.of(context).pop();
             }
@@ -320,14 +350,26 @@ class _HomePageState extends ConsumerState<HomePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _detailRow('Date:',
-            DateFormat('dd/MM/yyyy HH:mm').format(transaction.transactionDate)),
-        _detailRow('Type:', transaction.type == 'reçu' ? 'Reçu' : 'Payé'),
-        _detailRow('Montant:',
-            '${NumberFormat.currency(locale: 'fr_FR', symbol: 'Ar').format(transaction.amount)} Ar'),
-        if (transaction.description?.isNotEmpty ?? false)
-          _detailRow('Description:', transaction.description!),
+        DetailRow(
+          label: 'Date:',
+          value: DateFormat('dd/MM/yyyy HH:mm')
+              .format(transaction.transactionDate),
+        ),
+        DetailRow(
+          label: 'Type:',
+          value: transaction.type == 'reçu' ? 'Reçu' : 'Payé',
+        ),
+        DetailRow(
+          label: 'Montant:',
+          value:
+              '${NumberFormat.currency(locale: 'fr_FR', symbol: 'Ar').format(transaction.amount)} Ar',
+        ),
 
+        if (transaction.description?.isNotEmpty ?? false)
+          DetailRow(
+            label: 'Description:',
+            value: transaction.description!,
+          ),
         // Chantier
         Consumer(
           builder: (context, ref, _) {
@@ -337,20 +379,29 @@ class _HomePageState extends ConsumerState<HomePage> {
                 final chantier = chantiers.firstWhere(
                   (c) => c.id == transaction.chantierId,
                   orElse: () {
-                    print(
+                    debugPrint(
                         'Chantier non trouvé pour l\'ID: ${transaction.chantierId}');
-                    print(
+                    debugPrint(
                         'Chantiers disponibles: ${chantiers.map((c) => '${c.id}: ${c.name}').join(', ')}');
                     return Chantier(id: '', name: 'Non trouvé', userId: '');
                   },
                 );
-                return _detailRow('Chantier:', chantier.name);
+                return DetailRow(
+                  label: 'Chantier:',
+                  value: chantier.name,
+                );
               },
-              loading: () => _detailRow('Chantier:', 'Chargement...'),
+              loading: () => const DetailRow(
+                label: 'Chantier:',
+                value: 'Chargement...',
+              ),
               error: (error, stack) {
-                print('Erreur lors du chargement des chantiers: $error');
-                print(stack);
-                return _detailRow('Chantier:', 'Erreur de chargement');
+                debugPrint('Erreur lors du chargement des chantiers: $error');
+                debugPrint('$stack');
+                return const DetailRow(
+                  label: 'Chantier:',
+                  value: 'Erreur de chargement',
+                );
               },
             );
           },
@@ -365,20 +416,29 @@ class _HomePageState extends ConsumerState<HomePage> {
                 final person = personnel.firstWhere(
                   (p) => p.id == transaction.personnelId,
                   orElse: () {
-                    print(
+                    debugPrint(
                         'Personnel non trouvé pour l\'ID: ${transaction.personnelId}');
-                    print(
+                    debugPrint(
                         'Personnel disponible: ${personnel.map((p) => '${p.id}: ${p.name}').join(', ')}');
                     return Personnel(id: '', name: 'Non trouvé', userId: '');
                   },
                 );
-                return _detailRow('Personnel:', person.name);
+                return DetailRow(
+                  label: 'Personnel:',
+                  value: person.name,
+                );
               },
-              loading: () => _detailRow('Personnel:', 'Chargement...'),
+              loading: () => const DetailRow(
+                label: 'Personnel:',
+                value: 'Chargement...',
+              ),
               error: (error, stack) {
-                print('Erreur lors du chargement du personnel: $error');
-                print(stack);
-                return _detailRow('Personnel:', 'Erreur de chargement');
+                debugPrint('Erreur lors du chargement du personnel: $error');
+                debugPrint('$stack');
+                return const DetailRow(
+                  label: 'Personnel:',
+                  value: 'Erreur de chargement',
+                );
               },
             );
           },
@@ -393,58 +453,36 @@ class _HomePageState extends ConsumerState<HomePage> {
                 final type = types.firstWhere(
                   (t) => t.id == transaction.paymentTypeId,
                   orElse: () {
-                    print(
+                    debugPrint(
                         'Type de paiement non trouvé pour l\'ID: ${transaction.paymentTypeId}');
-                    print(
+                    debugPrint(
                         'Types disponibles: ${types.map((t) => '${t.id}: ${t.name}').join(', ')}');
                     return PaymentType(
                         id: '', name: 'Non trouvé', category: '');
                   },
                 );
-                return _detailRow(
-                    'Type de paiement:', '${type.name} (${type.category})');
+                return DetailRow(
+                  label: 'Type de paiement:',
+                  value: '${type.name} (${type.category})',
+                );
               },
-              loading: () => _detailRow('Type de paiement:', 'Chargement...'),
+              loading: () => const DetailRow(
+                label: 'Type de paiement:',
+                value: 'Chargement...',
+              ),
               error: (error, stack) {
-                print(
+                debugPrint(
                     'Erreur lors du chargement des types de paiement: $error');
-                print(stack);
-                return _detailRow('Type de paiement:', 'Erreur de chargement');
+                debugPrint('$stack');
+                return const DetailRow(
+                  label: 'Type de paiement:',
+                  value: 'Erreur de chargement',
+                );
               },
             );
           },
         ),
       ],
-    );
-  }
-
-// Widget helper pour l'affichage des détails
-  Widget _detailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 150,
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color:  Color(0xffea6b24),
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(
-                fontSize: 14,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -454,7 +492,6 @@ class _HomePageState extends ConsumerState<HomePage> {
       _startDate = null;
       _endDate = null;
       _selectedTimeframeFilter = 'Tous';
-      _value = 0;
     });
 
     // Afficher un SnackBar pour informer l'utilisateur
@@ -468,7 +505,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       context: context,
       firstDate: DateTime(2000),
       lastDate: DateTime(2222),
-      initialDateRange: _startDate != null && _endDate != null
+      initialDateRange: (_startDate != null && _endDate != null)
           ? DateTimeRange(start: _startDate!, end: _endDate!)
           : null,
       builder: (context, child) {
@@ -482,9 +519,11 @@ class _HomePageState extends ConsumerState<HomePage> {
           child: Column(
             children: [
               Expanded(child: child!),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: MediaQuery.of(context).size.width * 0.04,
+                  vertical: MediaQuery.of(context).size.height * 0.02,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -515,7 +554,6 @@ class _HomePageState extends ConsumerState<HomePage> {
         _endDate = picked.end;
         // Réinitialiser le filtre temporel quand une plage de dates est sélectionnée
         _selectedTimeframeFilter = 'Tous';
-        _value = 0;
       });
     }
   }
@@ -536,63 +574,44 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   // Filter transactions based on search query
   // Debug helper method
-
   List<Transaction> _filterTransactions(List<Transaction> transactions) {
-    print('Compte actuel: ${ref.read(selectedAccountProvider)?.id}');
+    final selectedAccountId = ref.read(selectedAccountProvider)?.id;
+
+    // Afficher le compte actuel et le nombre total de transactions avant filtrage
+    if (selectedAccountId != null) {
+      print('Compte actuel: $selectedAccountId');
+    }
     print(
         'Nombre total de transactions avant filtrage: ${transactions.length}');
 
+    final startDateTime = _startDate != null
+        ? DateTime(_startDate!.year, _startDate!.month, _startDate!.day)
+        : null;
+    final endDateTime = _endDate != null
+        ? DateTime(_endDate!.year, _endDate!.month, _endDate!.day, 23, 59, 59)
+        : null;
+
     final filtered = transactions.where((transaction) {
       // Vérification du compte
-      bool matchesAccount =
-          transaction.accountId == ref.read(selectedAccountProvider)?.id;
-      if (!matchesAccount) {
-        print(
-            'Transaction ${transaction.id} ne correspond pas au compte ${ref.read(selectedAccountProvider)?.id}'); // Debug
-      }
+      final matchesAccount = transaction.accountId == selectedAccountId;
 
       // Vérification de la plage de dates
-      bool matchesDateRange = true;
-      if (_startDate != null && _endDate != null) {
-        // Créer des DateTime pour le début et la fin de la journée
-        final startDateTime =
-            DateTime(_startDate!.year, _startDate!.month, _startDate!.day);
-        final endDateTime = DateTime(
-            _endDate!.year, _endDate!.month, _endDate!.day, 23, 59, 59);
-
-        matchesDateRange =
-            transaction.transactionDate.isAtSameMomentAs(startDateTime) ||
-                transaction.transactionDate.isAtSameMomentAs(endDateTime) ||
-                (transaction.transactionDate.isAfter(startDateTime) &&
-                    transaction.transactionDate.isBefore(endDateTime));
-      }
+      final matchesDateRange = startDateTime != null && endDateTime != null
+          ? transaction.transactionDate.isAfter(startDateTime) &&
+                  transaction.transactionDate.isBefore(endDateTime) ||
+              transaction.transactionDate.isAtSameMomentAs(startDateTime) ||
+              transaction.transactionDate.isAtSameMomentAs(endDateTime)
+          : true;
 
       // Vérification de la recherche
-      bool matchesSearchQuery = _searchQuery.isEmpty ||
+      final matchesSearchQuery = _searchQuery.isEmpty ||
           transaction.description
                   ?.toLowerCase()
                   .contains(_searchQuery.toLowerCase()) ==
               true;
 
       // Vérification du filtre temporel
-      bool matchesTimeframe = true;
-      switch (_selectedTimeframeFilter) {
-        case 'Quotidien':
-          matchesTimeframe = _isToday(transaction.transactionDate);
-          break;
-        case 'Hebdomadaire':
-          matchesTimeframe = _isThisWeek(transaction.transactionDate);
-          break;
-        case 'Mensuel':
-          matchesTimeframe = _isThisMonth(transaction.transactionDate);
-          break;
-        case 'Annuel':
-          matchesTimeframe = _isThisYear(transaction.transactionDate);
-          break;
-        case 'Tous':
-        default:
-          matchesTimeframe = true;
-      }
+      final matchesTimeframe = _matchesTimeframe(transaction.transactionDate);
 
       return matchesAccount &&
           matchesDateRange &&
@@ -604,21 +623,40 @@ class _HomePageState extends ConsumerState<HomePage> {
     return filtered;
   }
 
+  bool _matchesTimeframe(DateTime transactionDate) {
+    switch (_selectedTimeframeFilter) {
+      case 'Quotidien':
+        return _isToday(transactionDate);
+      case 'Hebdomadaire':
+        return _isThisWeek(transactionDate);
+      case 'Mensuel':
+        return _isThisMonth(transactionDate);
+      case 'Annuel':
+        return _isThisYear(transactionDate);
+      case 'Tous':
+      default:
+        return true;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final selectedAccount = ref.watch(selectedAccountProvider);
     final transactionsAsync = ref.watch(transactionsStateProvider);
 
-    final primary = Theme.of(context).colorScheme.primary;
-    final secondary = Theme.of(context).colorScheme.secondary;
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+    final secondary = theme.colorScheme.secondary;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
+      backgroundColor: theme.colorScheme.background,
       appBar: SearchableAppBar(
         onTap: _showDateRangePicker,
         selectedAccount: selectedAccount ??
             Account(id: '', name: 'Comptah', solde: 0.0, userId: ''),
-        onAccountTap: _showAccountDialog,
+        onAccountTap: () {
+          _showAccountDialog(context);
+        },
         onSearch: (query) {
           setState(() {
             _searchQuery = query;
@@ -637,7 +675,8 @@ class _HomePageState extends ConsumerState<HomePage> {
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.all(8.0),
+              padding: EdgeInsets.symmetric(
+                  horizontal: MediaQuery.of(context).size.width * 0.02),
               height: 60,
               decoration: const BoxDecoration(color: Color(0xffea6b24)),
               child: ListView.builder(
@@ -673,23 +712,18 @@ class _HomePageState extends ConsumerState<HomePage> {
                           Text(
                             'Aucun résultat trouvé pour "$_searchQuery"',
                             style: const TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey,
-                            ),
+                                fontSize: 16, color: Colors.grey),
                           ),
                         ],
                       ),
                     );
                   }
 
-                  // Filter transactions based on selected filter
-                  final visibleTransactions = filteredTransactions;
-
                   // Calculate totals based on filtered transactions
                   double totalReceived = 0;
                   double totalPaid = 0;
 
-                  for (var transaction in visibleTransactions) {
+                  for (var transaction in filteredTransactions) {
                     if (transaction.type == 'reçu') {
                       totalReceived += transaction.amount;
                     } else {
@@ -702,7 +736,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                       Expanded(
                         child: SingleChildScrollView(
                           child: Container(
-                            margin: const EdgeInsets.all(8.0),
+                            margin: EdgeInsets.all(
+                                MediaQuery.of(context).size.width * 0.02),
                             decoration: BoxDecoration(
                               color: primary,
                               borderRadius: BorderRadius.circular(8),
@@ -717,7 +752,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                             child: Column(
                               children: [
                                 Container(
-                                  padding: const EdgeInsets.all(16.0),
+                                  padding: EdgeInsets.all(
+                                      MediaQuery.of(context).size.width * 0.04),
                                   decoration: BoxDecoration(
                                     color: secondary,
                                     borderRadius: const BorderRadius.only(
@@ -727,27 +763,19 @@ class _HomePageState extends ConsumerState<HomePage> {
                                   ),
                                   child: const Row(
                                     children: [
+                                      TabHeader(flex: 2, text: 'Date'),
                                       TabHeader(
-                                        flex: 2,
-                                        text: 'Date',
-                                        //color: textColor,
-                                      ),
+                                          flex: 1,
+                                          text: 'Reçu',
+                                          textAlign: TextAlign.right),
                                       TabHeader(
-                                        flex: 1,
-                                        text: 'Reçu',
-                                        textAlign: TextAlign.right,
-                                        //color: textColor,
-                                      ),
-                                      TabHeader(
-                                        flex: 1,
-                                        text: 'Payé',
-                                        textAlign: TextAlign.right,
-                                        //color: textColor,
-                                      ),
+                                          flex: 1,
+                                          text: 'Payé',
+                                          textAlign: TextAlign.right),
                                     ],
                                   ),
                                 ),
-                                ...visibleTransactions.map((transaction) {
+                                ...filteredTransactions.map((transaction) {
                                   return TransactionRow(
                                     transaction: transaction,
                                     onTap: () =>
@@ -759,7 +787,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                           ),
                         ),
                       ),
-
                       // Bottom summary
                       bottomSummary(totalReceived, totalPaid),
                     ],
@@ -779,28 +806,31 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   //Fonction choice chip
   Padding myChoiceChip(int index, WidgetRef ref) {
+    final isSelected = _selectedTimeframeFilter == filterChoice[index];
+
+    final screenWidth = MediaQuery.of(context).size.width;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
       child: ChoiceChip(
         backgroundColor: Colors.white,
-        avatar: null,
         selectedColor: const Color(0xffea6b24),
-        labelPadding:
-            const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
+        labelPadding: EdgeInsets.symmetric(
+          horizontal: screenWidth * 0.03,
+          vertical: screenWidth * 0.01,
+        ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
         side: const BorderSide(color: Colors.white),
         label: Text(
           filterChoice[index],
           style: TextStyle(
-            color: _value == index ? Colors.white : Colors.black,
-            fontSize: 14.0,
+            color: isSelected ? Colors.white : Colors.black,
+            fontSize: screenWidth * 0.035,
           ),
         ),
-        selected: _selectedTimeframeFilter == filterChoice[index],
+        selected: isSelected,
         onSelected: (bool selected) {
           setState(() {
-            _value = selected ? index : 0;
             _selectedTimeframeFilter = selected ? filterChoice[index] : 'Tous';
           });
         },
@@ -809,11 +839,15 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   Container bottomSummary(double totalReceived, double totalPaid) {
-    final backgroundColor = Theme.of(context).colorScheme.primary;
-    final shadowColor = Theme.of(context).colorScheme.secondary;
+    final theme = Theme.of(context);
+    final backgroundColor = theme.colorScheme.primary;
+    final shadowColor = theme.colorScheme.secondary;
 
     return Container(
-      padding: const EdgeInsets.all(16.0),
+      padding: EdgeInsets.symmetric(
+        horizontal: MediaQuery.of(context).size.width * 0.05,
+        vertical: MediaQuery.of(context).size.height * 0.02,
+      ),
       decoration: BoxDecoration(
         color: backgroundColor,
         boxShadow: [
@@ -828,6 +862,59 @@ class _HomePageState extends ConsumerState<HomePage> {
       child: TabBottomResume(
         totalReceived: totalReceived,
         totalPaid: totalPaid,
+      ),
+    );
+  }
+}
+
+class DetailRow extends StatefulWidget {
+  final String label;
+  final String value;
+
+  const DetailRow({super.key, required this.label, required this.value});
+
+  @override
+  State<DetailRow> createState() => _DetailRowState();
+}
+
+class _DetailRowState extends State<DetailRow> {
+  @override
+  Widget build(BuildContext context) {
+    return _detailRow(widget.label, widget.value);
+  }
+
+  Widget _detailRow(String label, String value) {
+    final double labelWidth = MediaQuery.of(context).size.width * 0.35;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: labelWidth,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Color(0xffea6b24),
+                fontSize:
+                    16, // Augmenter la taille de la police pour une meilleure lisibilité
+              ),
+            ),
+          ),
+          const SizedBox(width: 8.0), // Espace entre le label et la valeur
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors
+                    .black, // Assurez-vous que la couleur est suffisamment contrastée
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

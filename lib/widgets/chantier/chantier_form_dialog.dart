@@ -1,5 +1,7 @@
 import 'package:caisse/composants/MyTextFormField.dart';
 import 'package:caisse/composants/texts.dart';
+import 'package:caisse/mode/dark_mode.dart';
+import 'package:caisse/mode/light_mode.dart';
 import 'package:caisse/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:caisse/models/chantier.dart';
@@ -47,6 +49,7 @@ class _ChantierFormDialogState extends ConsumerState<ChantierFormDialog> {
   }
 
   Future<void> _selectDate(BuildContext context, bool isStartDate) async {
+    final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: isStartDate
@@ -54,17 +57,26 @@ class _ChantierFormDialogState extends ConsumerState<ChantierFormDialog> {
           : (_dateFin ?? DateTime.now()),
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
-      builder: (context, child) {
+      cancelText: 'Annuler',
+      confirmText: 'Confirmer',
+      builder: (context, Widget? child) {
         return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: Theme.of(context).primaryColor,
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: Colors.black,
-            ),
-          ),
-          child: child!,
+          data: isDarkMode
+              ? darkTheme.copyWith(
+                  textButtonTheme: TextButtonThemeData(
+                    style: TextButton.styleFrom(
+                      foregroundColor: isDarkMode ? Colors.white : Colors.black,
+                    ),
+                  ),
+                )
+              : lightTheme.copyWith(
+                  textButtonTheme: TextButtonThemeData(
+                    style: TextButton.styleFrom(
+                      foregroundColor: isDarkMode ? Colors.white : Colors.black,
+                    ),
+                  ),
+                ),
+          child: child ?? const SizedBox(),
         );
       },
     );
@@ -95,7 +107,7 @@ class _ChantierFormDialogState extends ConsumerState<ChantierFormDialog> {
             borderRadius: BorderRadius.circular(8),
           ),
           contentPadding:
-          const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -125,7 +137,7 @@ class _ChantierFormDialogState extends ConsumerState<ChantierFormDialog> {
           child: LayoutBuilder(
             builder: (context, constraints) {
               final dialogWidth =
-              constraints.maxWidth > 600 ? 600.0 : constraints.maxWidth;
+                  constraints.maxWidth > 600 ? 600.0 : constraints.maxWidth;
 
               return Container(
                 width: dialogWidth,
@@ -146,13 +158,14 @@ class _ChantierFormDialogState extends ConsumerState<ChantierFormDialog> {
                       const SizedBox(height: 24),
                       MyTextFormField(
                         budgetController: _nomController,
-                        labelText: 'Nom du chantier *', 
+                        labelText: 'Nom du chantier *',
                       ),
                       const SizedBox(height: 16),
                       MyTextFormField(
                         budgetController: _budgetController,
-                        labelText: 'Budget Maximum (optionnel)', 
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        labelText: 'Budget Maximum (optionnel)',
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
                       ),
                       const SizedBox(height: 16),
                       LayoutBuilder(
@@ -229,16 +242,17 @@ class _ChantierFormDialogState extends ConsumerState<ChantierFormDialog> {
                               // Parse le budget seulement s'il est renseigné
                               double? budget;
                               if (_budgetController.text.isNotEmpty) {
-                                budget = double.tryParse(_budgetController.text);
+                                budget =
+                                    double.tryParse(_budgetController.text);
                               }
 
                               final nouveauChantier = Chantier(
                                 id: widget.chantier?.id ?? uuid.v4(),
                                 userId: widget.chantier?.userId ?? userId,
                                 name: _nomController.text,
-                                budgetMax: budget, 
-                                startDate: _dateDebut, 
-                                endDate: _dateFin, 
+                                budgetMax: budget,
+                                startDate: _dateDebut,
+                                endDate: _dateFin,
                                 createdAt: widget.chantier?.createdAt ??
                                     DateTime.now(),
                                 updatedAt: DateTime.now(),

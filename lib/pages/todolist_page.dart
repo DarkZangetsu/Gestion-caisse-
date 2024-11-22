@@ -1,10 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:caisse/composants/texts.dart';
+import 'package:caisse/mode/dark_mode.dart';
+import 'package:caisse/mode/light_mode.dart';
 import 'package:caisse/models/chantier.dart';
 import 'package:caisse/models/payment_type.dart';
 import 'package:caisse/models/personnel.dart';
 import 'package:caisse/pages/payment_page.dart';
+import 'package:caisse/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -100,6 +103,7 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
   }
 
   void _showAddTodoDialog() {
+    final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
     setState(() {
       selectedChantierId = null;
       selectedPersonnelId = null;
@@ -130,16 +134,12 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
                         items: chantiers,
                         labelText: 'Chantier (optionnel)',
                         placeholderText: "Sélectionner un chantier",
-                        selectedValue:
-                            selectedChantierId, // Changed from selectedPersonnelId
+                        selectedValue: selectedChantierId,
                         onChanged: (value) {
-                          setState(() => selectedChantierId =
-                              value); // Changed from selectedPersonnelId
+                          setState(() => selectedChantierId = value);
                         },
-                        getItemId: (chantier) =>
-                            chantier.id, // Changed from person
-                        getItemName: (chantier) =>
-                            chantier.name, // Changed from person
+                        getItemId: (chantier) => chantier.id,
+                        getItemName: (chantier) => chantier.name,
                       ),
                       loading: () => const CircularProgressIndicator(),
                       error: (error, _) => Text('Erreur: $error'),
@@ -255,6 +255,32 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
                       initialDate: DateTime.now(),
                       firstDate: DateTime.now(),
                       lastDate: DateTime.now().add(const Duration(days: 365)),
+                      cancelText: 'Annuler',
+                      confirmText: 'Confirmer',
+                      builder: (context, Widget? child) {
+                        return Theme(
+                          data: isDarkMode
+                              ? darkTheme.copyWith(
+                                  textButtonTheme: TextButtonThemeData(
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: isDarkMode
+                                          ? Colors.white
+                                          : Colors.black,
+                                    ),
+                                  ),
+                                )
+                              : lightTheme.copyWith(
+                                  textButtonTheme: TextButtonThemeData(
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: isDarkMode
+                                          ? Colors.white
+                                          : Colors.black,
+                                    ),
+                                  ),
+                                ),
+                          child: child ?? const SizedBox(),
+                        );
+                      },
                     );
                     if (date != null) {
                       setState(() => dueDate = date);
@@ -845,35 +871,31 @@ class TodoNotificationService {
       FlutterLocalNotificationsPlugin();
   bool _isInitialized = false;
 
+  // Constantes pour la configuration
+  static const int _notificationHour = 8; // Notification à 8h du matin
+  static const String _channelId = 'todo_alerts';
+  static const String _channelName = 'Alertes des tâches';
+  static const String _channelDescription =
+      'Notifications pour les tâches à venir';
+  static const Color _notificationColor = Color(0xffea6b24);
+
   Future<bool> initNotification() async {
     if (_isInitialized) return true;
 
     try {
-      // Initialisation des fuseaux horaires
       tz.initializeTimeZones();
-
-      // On utilise directement le fuseau horaire local
       tz.setLocalLocation(tz.local);
 
-      // Configuration des paramètres d'initialisation
-      const AndroidInitializationSettings initializationSettingsAndroid =
-          AndroidInitializationSettings('@mipmap/ic_launcher');
-
-      const DarwinInitializationSettings initializationSettingsIOS =
-          DarwinInitializationSettings(
-        requestAlertPermission: true,
-        requestBadgePermission: true,
-        requestSoundPermission: true,
+      const initializationSettings = InitializationSettings(
+        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        iOS: DarwinInitializationSettings(
+          requestAlertPermission: true,
+          requestBadgePermission: true,
+          requestSoundPermission: true,
+        ),
       );
 
-      const InitializationSettings initializationSettings =
-          InitializationSettings(
-        android: initializationSettingsAndroid,
-        iOS: initializationSettingsIOS,
-      );
-
-      // Initialisation du plugin avec gestion des erreurs
-      final bool? success = await notificationsPlugin.initialize(
+      final success = await notificationsPlugin.initialize(
         initializationSettings,
         onDidReceiveNotificationResponse: _handleNotificationResponse,
       );
@@ -888,13 +910,11 @@ class TodoNotificationService {
 
   Future<void> _handleNotificationResponse(
       NotificationResponse response) async {
+    if (response.payload == null) return;
+
     try {
-      if (response.payload != null) {
-        // Décodage du payload JSON
-        final Map<String, dynamic> payload = json.decode(response.payload!);
-        // Traitement du payload selon vos besoins
-        debugPrint('Payload reçu: $payload');
-      }
+      final payload = json.decode(response.payload!) as Map<String, dynamic>;
+      debugPrint('Payload reçu: $payload');
     } catch (e) {
       debugPrint('Erreur lors du traitement de la notification: $e');
     }
@@ -904,32 +924,29 @@ class TodoNotificationService {
     if (!_isInitialized || todo.dueDate == null) return;
 
     try {
-      // Vérifier d'abord les permissions
       if (!await _checkNotificationPermissions()) {
         debugPrint('Permissions de notification non accordées');
         return;
       }
 
-      // Annuler les notifications existantes pour cette tâche
       await cancelTaskNotifications(todo.id);
 
-      // Configuration des alertes
-      final List<NotificationAlert> alerts = [
-        NotificationAlert(days: 3, importance: Importance.defaultImportance),
-        NotificationAlert(days: 2, importance: Importance.high),
-        NotificationAlert(days: 1, importance: Importance.max),
+      final alerts = [
+        (days: 3, importance: Importance.defaultImportance),
+        (days: 2, importance: Importance.high),
+        (days: 1, importance: Importance.max),
       ];
 
       for (var alert in alerts) {
         final alertDate = _calculateAlertDateTime(todo.dueDate!, alert.days);
 
         if (alertDate.isAfter(tz.TZDateTime.now(tz.local))) {
-          final String payload = json.encode({
+          final payload = {
             'todoId': todo.id,
             'description': todo.description,
             'dueDate': todo.dueDate!.toIso8601String(),
             'alertDays': alert.days,
-          });
+          };
 
           await notificationsPlugin.zonedSchedule(
             _generateNotificationId(todo.id, alert.days),
@@ -938,9 +955,9 @@ class TodoNotificationService {
             alertDate,
             NotificationDetails(
               android: _createAndroidNotificationDetails(alert.importance),
-              iOS: _createIOSNotificationDetails(alert.importance),
+              iOS: _createIOSNotificationDetails(),
             ),
-            payload: payload,
+            payload: json.encode(payload),
             uiLocalNotificationDateInterpretation:
                 UILocalNotificationDateInterpretation.absoluteTime,
             androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
@@ -956,20 +973,19 @@ class TodoNotificationService {
   AndroidNotificationDetails _createAndroidNotificationDetails(
       Importance importance) {
     return AndroidNotificationDetails(
-      'todo_alerts',
-      'Alertes des tâches',
-      channelDescription: 'Notifications pour les tâches à venir',
+      _channelId,
+      _channelName,
+      channelDescription: _channelDescription,
       importance: importance,
       priority: Priority.high,
-      color: const Color(0xffea6b24),
+      color: _notificationColor,
       enableLights: true,
       enableVibration: true,
       styleInformation: const BigTextStyleInformation(''),
     );
   }
 
-  DarwinNotificationDetails _createIOSNotificationDetails(
-      Importance importance) {
+  DarwinNotificationDetails _createIOSNotificationDetails() {
     return const DarwinNotificationDetails(
       presentAlert: true,
       presentBadge: true,
@@ -984,7 +1000,7 @@ class TodoNotificationService {
       alertDate.year,
       alertDate.month,
       alertDate.day,
-      9,
+      _notificationHour, // Utilisation de la constante pour 8h
       0,
     );
   }

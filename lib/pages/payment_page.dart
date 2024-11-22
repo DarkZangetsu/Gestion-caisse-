@@ -1,3 +1,8 @@
+import 'dart:math';
+
+import 'package:caisse/mode/dark_mode.dart';
+import 'package:caisse/mode/light_mode.dart';
+import 'package:caisse/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -62,7 +67,6 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
   @override
   void didUpdateWidget(SearchableDropdown<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Mettre à jour le texte si la valeur change
     if (widget.value != null && widget.value != oldWidget.value) {
       _searchController.text = widget.getLabel(widget.value!);
     }
@@ -70,7 +74,6 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
 
   @override
   void dispose() {
-    // Ne disposer le controller que s'il n'a pas été fourni de l'extérieur
     if (widget.controller == null) {
       _searchController.dispose();
     }
@@ -111,28 +114,46 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
     if (_filteredItems.isEmpty) {
       return const Padding(
         padding: EdgeInsets.all(16.0),
-        child: Text("No results found", textAlign: TextAlign.center),
+        child: Text(
+          "No results found",
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 16, color: Colors.grey),
+        ),
       );
     }
 
-    return ListView.builder(
-      shrinkWrap: true,
-      itemCount: _filteredItems.length,
-      itemBuilder: (context, index) {
-        final item = _filteredItems[index];
-        return ListTile(
-          dense: true,
-          title: Text(widget.getLabel(item)),
-          onTap: () {
-            widget.onChanged(item);
-            _removeOverlay();
-            setState(() {
-              _isExpanded = false;
-              _searchController.text = widget.getLabel(item);
-            });
-          },
-        );
-      },
+    return SizedBox(
+      height: MediaQuery.of(context).size.height * 0.4,
+      child: ListView.separated(
+        shrinkWrap: true,
+        itemCount: _filteredItems.length,
+        separatorBuilder: (context, index) =>
+            const Divider(height: 1, color: Colors.grey),
+        itemBuilder: (context, index) {
+          final item = _filteredItems[index];
+          return ListTile(
+            dense: true,
+            title: Text(
+              widget.getLabel(item),
+              style: TextStyle(
+                fontSize: 16,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+            onTap: () {
+              widget.onChanged(item);
+              _removeOverlay();
+              setState(() {
+                _isExpanded = false;
+                _searchController.text = widget.getLabel(item);
+              });
+            },
+            visualDensity: VisualDensity.compact,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          );
+        },
+      ),
     );
   }
 
@@ -149,100 +170,132 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
 
   @override
   Widget build(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
-    final secondary = Theme.of(context).colorScheme.secondary;
-    //final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
+    final colorScheme = Theme.of(context).colorScheme;
+    final responsive = MediaQuery.of(context);
 
     return FormField<T>(
       validator: widget.validator,
       builder: (FormFieldState<T> field) {
         return CompositedTransformTarget(
           link: _layerLink,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  color: primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: TextFormField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    labelText: widget.label,
-                    filled: true,
-                    fillColor: Colors.transparent,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: secondary),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    constraints: BoxConstraints(
+                      maxWidth: min(constraints.maxWidth, 600),
                     ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: secondary.withOpacity(0.5)),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: secondary),
-                    ),
-                    suffixIcon: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (widget.value != null)
-                          IconButton(
-                            icon: Icon(Icons.clear, color: secondary),
-                            onPressed: () {
-                              widget.onChanged(null);
-                              _searchController.clear();
-                              _filterItems('');
-                            },
-                          ),
-                        IconButton(
-                          icon: Icon(
-                            _isExpanded
-                                ? Icons.arrow_drop_up
-                                : Icons.arrow_drop_down,
-                            color: secondary,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _isExpanded = !_isExpanded;
-                              if (_isExpanded) {
-                                _showOverlay();
-                              } else {
-                                _removeOverlay();
-                              }
-                            });
-                          },
+                    child: TextFormField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        labelText: widget.label,
+                        labelStyle: TextStyle(
+                          color: colorScheme.onSurface.withOpacity(0.7),
                         ),
-                      ],
+                        filled: true,
+                        fillColor: Colors.transparent,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: responsive.size.width > 600 ? 16 : 12,
+                          vertical: responsive.size.width > 600 ? 16 : 12,
+                        ),
+                        border: _buildOutlineBorder(colorScheme.secondary),
+                        enabledBorder: _buildOutlineBorder(
+                          colorScheme.secondary.withOpacity(0.5),
+                        ),
+                        focusedBorder:
+                            _buildOutlineBorder(colorScheme.secondary),
+                        suffixIcon: _buildSuffixIcons(colorScheme.secondary),
+                      ),
+                      onTap: _handleTap,
+                      onChanged: _filterItems,
+                      style: TextStyle(
+                        fontSize: responsive.textScaleFactor * 16,
+                        color: colorScheme.onSurface,
+                      ),
                     ),
                   ),
-                  onTap: () {
-                    if (!_isExpanded) {
-                      setState(() {
-                        _isExpanded = true;
-                        _showOverlay();
-                      });
-                    }
-                  },
-                  onChanged: _filterItems,
-                ),
-              ),
-              if (field.hasError)
-                Padding(
-                  padding: const EdgeInsets.only(left: 12, top: 8),
-                  child: Text(
-                    field.errorText!,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-            ],
+                  if (field.hasError) _buildErrorText(context, field),
+                ],
+              );
+            },
           ),
         );
       },
+    );
+  }
+
+  OutlineInputBorder _buildOutlineBorder(Color color) {
+    return OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: color, width: 1.5),
+    );
+  }
+
+  Widget _buildSuffixIcons(Color secondary) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (widget.value != null) _buildClearButton(secondary),
+        _buildExpandCollapseButton(secondary),
+      ],
+    );
+  }
+
+  IconButton _buildClearButton(Color secondary) {
+    return IconButton(
+      icon: Icon(Icons.clear, color: secondary),
+      onPressed: () {
+        widget.onChanged(null);
+        _searchController.clear();
+        _filterItems('');
+      },
+      tooltip: 'Clear search',
+    );
+  }
+
+  IconButton _buildExpandCollapseButton(Color secondary) {
+    return IconButton(
+      icon: Icon(
+        _isExpanded ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+        color: secondary,
+      ),
+      onPressed: _toggleExpand,
+      tooltip: _isExpanded ? 'Collapse' : 'Expand',
+    );
+  }
+
+  void _handleTap() {
+    if (!_isExpanded) {
+      setState(() {
+        _isExpanded = true;
+        _showOverlay();
+      });
+    }
+  }
+
+  void _toggleExpand() {
+    setState(() {
+      _isExpanded = !_isExpanded;
+      _isExpanded ? _showOverlay() : _removeOverlay();
+    });
+  }
+
+  Widget _buildErrorText(BuildContext context, FormFieldState<T> field) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 12, top: 8),
+      child: Text(
+        field.errorText!,
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.error,
+          fontSize: 12,
+        ),
+      ),
     );
   }
 }
@@ -430,8 +483,11 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
       }
     } catch (e) {
       if (mounted) {
+        debugPrint(e.toString());
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: ${e.toString()}')),
+          const SnackBar(
+              content:
+                  Text('Une erreur est survenue lors de l\'enregistrement')),
         );
       }
     }
@@ -463,159 +519,232 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
       ),
       body: Form(
         key: _formKey,
-        child: ListView(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
-          children: [
-            if (!widget.isEditing) ...[
-              SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(value: 'reçu', label: Text('Reçu')),
-                  ButtonSegment(value: 'payé', label: Text('Payé')),
-                ],
-                selected: {_type},
-                onSelectionChanged: (Set<String> selection) {
-                  setState(() {
-                    _type = selection.first;
-                    _selectedPaymentTypeId = null;
-                  });
-                },
-              ),
-              const SizedBox(height: 16),
-            ],
-            TextFormField(
-              controller: _amountController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Montant',
-                prefixText: 'Ar ',
-              ),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Veuillez entrer un montant';
-                }
-                if (double.tryParse(value) == null) {
-                  return 'Veuillez entrer un montant valide';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            ListTile(
-              title: const Text('Date de transaction'),
-              subtitle:
-                  Text(DateFormat('dd/MM/yyyy HH:mm').format(_transactionDate)),
-              trailing: const Icon(Icons.calendar_today),
-              onTap: () async {
-                final date = await showDatePicker(
-                  context: context,
-                  initialDate: _transactionDate,
-                  firstDate: DateTime(2000),
-                  lastDate: DateTime(2100),
-                );
-                if (date != null) {
-                  final time = await showTimePicker(
-                    context: context,
-                    initialTime: TimeOfDay.fromDateTime(_transactionDate),
-                  );
-                  if (time != null) {
+          child: Column(
+            children: [
+              if (!widget.isEditing) ...[
+                SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(value: 'reçu', label: Text('Reçu')),
+                    ButtonSegment(value: 'payé', label: Text('Payé')),
+                  ],
+                  selected: {_type},
+                  onSelectionChanged: (Set<String> selection) {
                     setState(() {
-                      _transactionDate = DateTime(
-                        date.year,
-                        date.month,
-                        date.day,
-                        time.hour,
-                        time.minute,
-                      );
+                      _type = selection.first;
+                      _selectedPaymentTypeId = null;
                     });
-                  }
-                }
-              },
-            ),
-            const SizedBox(height: 16),
-            chantiersAsync.when(
-              data: (chantiers) => SearchableDropdown<Chantier>(
-                items: chantiers,
-                value: chantiers
-                    .where((c) => c.id == _selectedChantierId)
-                    .firstOrNull,
-                getLabel: (chantier) => chantier.name,
-                getSearchString: (chantier) => chantier.name,
-                onChanged: (chantier) =>
-                    setState(() => _selectedChantierId = chantier?.id),
-                label: 'Chantier (optionnel)',
-                controller: _chantierSearchController,
-              ),
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, __) =>
-                  Text('Erreur de chargement des chantiers: $error'),
-            ),
-            const SizedBox(height: 16),
-            paymentTypesAsync.when(
-              data: (_) => DropdownButtonFormField<String>(
-                value: _selectedPaymentTypeId,
-                decoration: const InputDecoration(
-                  labelText: 'Type de paiement (optionnel)',
+                  },
                 ),
-                items: filteredPaymentTypes
-                    .map((type) => DropdownMenuItem(
-                          value: type.id,
-                          child: Text(type.name),
-                        ))
-                    .toList(),
-                onChanged: (value) =>
-                    setState(() => _selectedPaymentTypeId = value),
-              ),
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (_, __) =>
-                  const Text('Erreur de chargement des types de paiement'),
-            ),
-            const SizedBox(height: 16),
-            if (shouldShowPersonnelField()) ...[
-              personnelAsync.when(
-                data: (personnelList) => SearchableDropdown<Personnel>(
-                  items: personnelList,
-                  value: personnelList
-                      .where((p) => p.id == _selectedPersonnelId)
-                      .firstOrNull,
-                  getLabel: (personnel) => personnel.name,
-                  getSearchString: (personnel) => personnel.name,
-                  onChanged: (personnel) =>
-                      setState(() => _selectedPersonnelId = personnel?.id),
-                  label: 'Personnel (optionnel)',
-                  controller: _personnelSearchController,
-                ),
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (_, __) =>
-                    const Text('Erreur de chargement du personnel'),
-              ),
+                const SizedBox(height: 16),
+              ],
+              _buildAmountField(),
               const SizedBox(height: 16),
+              _buildTransactionDateField(),
+              const SizedBox(height: 16),
+              _buildChantierDropdown(chantiersAsync),
+              const SizedBox(height: 16),
+              _buildPaymentTypeDropdown(filteredPaymentTypes),
+              const SizedBox(height: 16),
+              if (shouldShowPersonnelField()) ...[
+                _buildPersonnelDropdown(personnelAsync),
+                const SizedBox(height: 16),
+              ],
+              _buildDescriptionField(),
+              const SizedBox(height: 24),
+              _buildSaveButton(),
             ],
-            TextFormField(
-              controller: _descriptionController,
-              decoration: const InputDecoration(
-                labelText: 'Description (optionnelle)',
-              ),
-              maxLines: 3,
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              height: 50,
-              child: ElevatedButton(
-                onPressed: _saveTransaction,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _type == 'reçu' ? Colors.green : Colors.red,
-                ),
-                child: Text(
-                  widget.isEditing ? 'Mettre à jour' : 'Sauvegarder',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-          ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAmountField() {
+    return TextFormField(
+      controller: _amountController,
+      keyboardType: TextInputType.number,
+      decoration: const InputDecoration(
+        labelText: 'Montant',
+        prefixText: 'Ar ',
+      ),
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Veuillez entrer un montant';
+        }
+        if (double.tryParse(value) == null) {
+          return 'Veuillez entrer un montant valide';
+        }
+        return null;
+      },
+    );
+  }
+
+  Widget _buildTransactionDateField() {
+    final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
+    return ListTile(
+      title: const Text('Date de transaction'),
+      subtitle: Text(DateFormat('dd/MM/yyyy HH:mm').format(_transactionDate)),
+      trailing: const Icon(Icons.calendar_today),
+      onTap: () async {
+        final date = await showDatePicker(
+          context: context,
+          initialDate: _transactionDate,
+          firstDate: DateTime(2000),
+          lastDate: DateTime(2100),
+          cancelText: 'Annuler',
+          confirmText: 'Confirmer',
+          builder: (context, Widget? child) {
+            return Theme(
+              data: isDarkMode
+                  ? darkTheme.copyWith(
+                      textButtonTheme: TextButtonThemeData(
+                        style: TextButton.styleFrom(
+                          foregroundColor:
+                              isDarkMode ? Colors.white : Colors.black,
+                        ),
+                      ),
+                    )
+                  : lightTheme.copyWith(
+                      textButtonTheme: TextButtonThemeData(
+                        style: TextButton.styleFrom(
+                          foregroundColor:
+                              isDarkMode ? Colors.white : Colors.black,
+                        ),
+                      ),
+                    ),
+              child: child ?? const SizedBox(),
+            );
+          },
+        );
+
+        if (date != null) {
+          final time = await showTimePicker(
+            context: context,
+            initialTime: TimeOfDay.fromDateTime(_transactionDate),
+            builder: (context, Widget? child) {
+              return Theme(
+                data: isDarkMode
+                    ? darkTheme.copyWith(
+                        textButtonTheme: TextButtonThemeData(
+                          style: TextButton.styleFrom(
+                            foregroundColor:
+                                isDarkMode ? Colors.white : Colors.black,
+                          ),
+                        ),
+                      )
+                    : lightTheme.copyWith(
+                        textButtonTheme: TextButtonThemeData(
+                          style: TextButton.styleFrom(
+                            foregroundColor:
+                                isDarkMode ? Colors.white : Colors.black,
+                          ),
+                        ),
+                      ),
+                child: child ?? const SizedBox(),
+              );
+            },
+          );
+
+          if (time != null) {
+            setState(() {
+              _transactionDate = DateTime(
+                date.year,
+                date.month,
+                date.day,
+                time.hour,
+                time.minute,
+              );
+            });
+          }
+        }
+      },
+    );
+  }
+
+  Widget _buildChantierDropdown(AsyncValue<List<Chantier>> chantiersAsync) {
+    return chantiersAsync.when(
+      data: (chantiers) => DropdownButtonFormField<String>(
+        value: _selectedChantierId,
+        decoration: const InputDecoration(
+          labelText: 'Chantier (optionnel)',
+          labelStyle: TextStyle(color: Colors.grey),
+        ),
+        items: chantiers
+            .map((chantier) => DropdownMenuItem(
+                  value: chantier.id,
+                  child: Text(chantier.name),
+                ))
+            .toList(),
+        onChanged: (value) => setState(() => _selectedChantierId = value),
+      ),
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, __) => const Text('Erreur de chargement des chantiers'),
+    );
+  }
+
+  Widget _buildPaymentTypeDropdown(List<PaymentType> filteredPaymentTypes) {
+    return DropdownButtonFormField<String>(
+      value: _selectedPaymentTypeId,
+      decoration: const InputDecoration(
+        labelText: 'Type de paiement (optionnel)',
+        labelStyle: TextStyle(color: Colors.grey),
+      ),
+      items: filteredPaymentTypes
+          .map((type) => DropdownMenuItem(
+                value: type.id,
+                child: Text(type.name),
+              ))
+          .toList(),
+      onChanged: (value) => setState(() => _selectedPaymentTypeId = value),
+    );
+  }
+
+  Widget _buildPersonnelDropdown(AsyncValue<List<Personnel>> personnelAsync) {
+    return personnelAsync.when(
+      data: (personnelList) => SearchableDropdown<Personnel>(
+        items: personnelList,
+        value: personnelList
+            .where((p) => p.id == _selectedPersonnelId)
+            .firstOrNull,
+        getLabel: (personnel) => personnel.name,
+        getSearchString: (personnel) => personnel.name,
+        onChanged: (personnel) =>
+            setState(() => _selectedPersonnelId = personnel?.id),
+        label: 'Personnel (optionnel)',
+        controller: _personnelSearchController,
+      ),
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => const Text('Erreur de chargement du personnel'),
+    );
+  }
+
+  Widget _buildDescriptionField() {
+    return TextFormField(
+      controller: _descriptionController,
+      decoration: const InputDecoration(
+        labelText: 'Description (optionnelle)',
+      ),
+      maxLines: 3,
+    );
+  }
+
+  Widget _buildSaveButton() {
+    return SizedBox(
+      height: 50,
+      child: ElevatedButton(
+        onPressed: _saveTransaction,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _type == 'reçu' ? Colors.green : Colors.red,
+        ),
+        child: Text(
+          widget.isEditing ? 'Mettre à jour' : 'Sauvegarder',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );

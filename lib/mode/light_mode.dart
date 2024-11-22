@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 ThemeData lightTheme = ThemeData(
@@ -11,5 +10,11 @@ ThemeData lightTheme = ThemeData(
     primary: Colors.grey[200]!,
     secondary: Colors.grey[300]!,
     onPrimary: Colors.white,
+  ),
+  textButtonTheme: TextButtonThemeData(
+    style: TextButton.styleFrom(
+      foregroundColor: Colors.black,
+      textStyle: const TextStyle(color: Colors.black),
+    ),
   ),
 );
