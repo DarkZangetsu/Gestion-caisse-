@@ -84,62 +84,56 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
   }
 
   void _showOverlay() {
-    _removeOverlay();
+    if (_overlayEntry == null) {
+      final RenderBox renderBox = context.findRenderObject() as RenderBox;
+      final size = renderBox.size;
 
-    final RenderBox renderBox = context.findRenderObject() as RenderBox;
-    final size = renderBox.size;
-    final primary = Theme.of(context).colorScheme.primary;
-
-    _overlayEntry = OverlayEntry(
-      builder: (context) => Positioned(
-        width: size.width,
-        child: CompositedTransformFollower(
-          link: _layerLink,
-          showWhenUnlinked: false,
-          offset: Offset(0, size.height + 5),
-          child: Material(
-            elevation: 4,
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              constraints: BoxConstraints(
-                maxHeight: 200,
-                minWidth: size.width,
-              ),
-              decoration: BoxDecoration(
-                color: primary,
-                border: Border.all(color: primary),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: _filteredItems.length,
-                itemBuilder: (context, index) {
-                  final item = _filteredItems[index];
-                  return ListTile(
-                    dense: true,
-                    title: Text(
-                      widget.getLabel(item),
-                    ),
-                    hoverColor: primary,
-                    onTap: () {
-                      widget.onChanged(item);
-                      _removeOverlay();
-                      setState(() {
-                        _isExpanded = false;
-                        _searchController.text = widget.getLabel(item);
-                      });
-                    },
-                  );
-                },
-              ),
+      _overlayEntry = OverlayEntry(
+        builder: (context) => Positioned(
+          width: size.width,
+          child: CompositedTransformFollower(
+            link: _layerLink,
+            offset: Offset(0, size.height + 5),
+            child: Material(
+              elevation: 4,
+              borderRadius: BorderRadius.circular(8),
+              child: _buildDropdownList(),
             ),
           ),
         ),
-      ),
-    );
+      );
 
-    Overlay.of(context).insert(_overlayEntry!);
+      Overlay.of(context).insert(_overlayEntry!);
+    }
+  }
+
+  Widget _buildDropdownList() {
+    if (_filteredItems.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(16.0),
+        child: Text("No results found", textAlign: TextAlign.center),
+      );
+    }
+
+    return ListView.builder(
+      shrinkWrap: true,
+      itemCount: _filteredItems.length,
+      itemBuilder: (context, index) {
+        final item = _filteredItems[index];
+        return ListTile(
+          dense: true,
+          title: Text(widget.getLabel(item)),
+          onTap: () {
+            widget.onChanged(item);
+            _removeOverlay();
+            setState(() {
+              _isExpanded = false;
+              _searchController.text = widget.getLabel(item);
+            });
+          },
+        );
+      },
+    );
   }
 
   void _filterItems(String query) {
@@ -151,11 +145,6 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
               .contains(query.toLowerCase()))
           .toList();
     });
-
-    if (_isExpanded) {
-      _removeOverlay();
-      _showOverlay();
-    }
   }
 
   @override

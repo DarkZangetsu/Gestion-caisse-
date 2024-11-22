@@ -33,8 +33,6 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
   late TabController _tabController;
   final _formKey = GlobalKey<FormState>();
   final descriptionController = TextEditingController();
-  final TextEditingController _chantierSearchController =
-      TextEditingController();
 
   String? selectedChantierId;
   String? selectedPersonnelId;
@@ -45,17 +43,30 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
   DateTime? dueDate;
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loadInitialData();
+  }
+
+  @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadInitialData();
     });
 
-    final selectedAccount = ref.read(selectedAccountProvider);
+    final userId = ref.read(currentUserProvider)?.id ?? '';
+    ref.read(chantiersStateProvider.notifier).loadChantiers(userId);
+
     ref
         .read(chantiersStateProvider.notifier)
-        .loadChantiers(selectedAccount!.id);
+        .loadChantiers(ref.read(currentUserProvider)?.id ?? '');
+
+    print(
+        "user: ** ${ref.read(chantiersStateProvider.notifier).loadChantiers(ref.read(currentUserProvider)?.id ?? '')}");
+
     Future.microtask(() {
       final userId = ref.read(currentUserProvider)?.id ?? '';
       ref.read(paymentTypesProvider.notifier).getPaymentTypes();
@@ -70,15 +81,10 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
 
     if (selectedAccount != null && userId != null) {
       try {
-        // Charger les chantiers en premier
-        final chantiers = await ref
+        // Use the notifier to load chantiers
+        await ref
             .read(chantiersStateProvider.notifier)
-            .getChantiers(selectedAccount.id);
-
-        // Add this debug print
-        print('Chantiers loaded: ${chantiers.length}');
-
-        // Rest of your code...
+            .loadChantiers(selectedAccount.id);
       } catch (e) {
         print('Error loading chantiers: $e');
         if (mounted) {
@@ -119,35 +125,24 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
                   builder: (context, ref, _) {
                     final chantiersAsync = ref.watch(chantiersStateProvider);
                     return chantiersAsync.when(
-                      data: (chantiers) {
-                        // Handle case where list is empty
-                        if (chantiers.isEmpty) {
-                          return const Text('Aucun chantier disponible');
-                        }
-
-                        return SearchableDropdown<Chantier>(
-                          items: chantiers,
-                          value: selectedChantierId != null
-                              ? chantiers.firstWhere(
-                                  (c) => c.id == selectedChantierId,
-                                  orElse: () => chantiers.first)
-                              : null,
-                          getLabel: (chantier) => chantier.name,
-                          getSearchString: (chantier) => chantier.name,
-                          onChanged: (chantier) {
-                            setState(() {
-                              selectedChantierId = chantier?.id;
-                              //_selectedChantierId = chantier?.id;
-                            });
-                          },
-                          label: 'Chantier (optionnel)',
-                          controller: _chantierSearchController,
-                        );
-                      },
-                      loading: () =>
-                          const Center(child: CircularProgressIndicator()),
-                      error: (error, __) =>
-                          Text('Erreur de chargement des chantiers: $error'),
+                      data: (chantiers) => myDropdownButtonFormField<Chantier>(
+                        context: context,
+                        items: chantiers,
+                        labelText: 'Chantier (optionnel)',
+                        placeholderText: "Sélectionner un chantier",
+                        selectedValue:
+                            selectedChantierId, // Changed from selectedPersonnelId
+                        onChanged: (value) {
+                          setState(() => selectedChantierId =
+                              value); // Changed from selectedPersonnelId
+                        },
+                        getItemId: (chantier) =>
+                            chantier.id, // Changed from person
+                        getItemName: (chantier) =>
+                            chantier.name, // Changed from person
+                      ),
+                      loading: () => const CircularProgressIndicator(),
+                      error: (error, _) => Text('Erreur: $error'),
                     );
                   },
                 ),
