@@ -60,4 +60,32 @@ class Transaction {
       'updated_at': updatedAt.toIso8601String(),
     };
   }
+
+  Transaction copyWith({
+    String? id,
+    String? accountId,
+    double? amount,
+    String? description,
+    DateTime? transactionDate,
+    String? type,
+    String? chantierId,
+    String? personnelId,
+    String? paymentTypeId,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return Transaction(
+      id: id ?? this.id,
+      accountId: accountId ?? this.accountId,
+      amount: amount ?? this.amount,
+      description: description ?? this.description,
+      transactionDate: transactionDate ?? this.transactionDate,
+      type: type ?? this.type,
+      chantierId: chantierId ?? this.chantierId,
+      personnelId: personnelId ?? this.personnelId,
+      paymentTypeId: paymentTypeId ?? this.paymentTypeId,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
 }
