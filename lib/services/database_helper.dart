@@ -413,20 +413,6 @@ class DatabaseHelper {
     }
   }
 
-  /*Future<List<Transaction>> getTransactionsByChantier(String chantierId) async {
-    try {
-      final response = await _supabase
-          .from('transactions')
-          .select()
-          .eq('chantier_id', chantierId)
-          .order('created_at', ascending: false); // Pour avoir les plus récentes en premier
-
-      return (response as List).map((json) => Transaction.fromJson(json)).toList();
-    } catch (e) {
-      throw Exception('Erreur lors de la récupération des transactions du chantier: $e');
-    }
-  }*/
-
   // Todos Methods
   Future<List<Todo>> getTodos(String accountId) async {
     try {

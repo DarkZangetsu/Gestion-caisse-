@@ -94,6 +94,34 @@ class TransactionsNotifier
     }
   }
 
+  Future<void> updateTransaction(Transaction transaction) async {
+    try {
+      print('Updating transaction: ${transaction.toJson()}');
+
+      // Mettre à jour la transaction dans la base de données
+      final updatedTransaction = await _db.updateTransaction(transaction);
+      print('Transaction successfully updated with ID: ${updatedTransaction.id}');
+
+      // Mettre à jour l'état avec la transaction modifiée
+      state.whenData((currentTransactions) {
+        final index = currentTransactions.indexWhere((t) => t.id == transaction.id);
+        if (index != -1) {
+          final updatedTransactions = List<Transaction>.from(currentTransactions);
+          updatedTransactions[index] = updatedTransaction;
+          state = AsyncValue.data(updatedTransactions);
+        }
+      });
+
+      // Recharger toutes les transactions pour s'assurer de la synchronisation
+      await loadTransactions(transaction.accountId);
+    } catch (e, stackTrace) {
+      print('Error in updateTransaction: $e');
+      print('Stack trace: $stackTrace');
+      state = AsyncValue.error(e, stackTrace);
+      rethrow;
+    }
+  }
+
   Future<void> createTransferTransaction({
     required String sourceAccountId,
     required String destinationAccountId,

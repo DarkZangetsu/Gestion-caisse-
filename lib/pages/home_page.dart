@@ -6,6 +6,7 @@ import 'package:caisse/composants/texts.dart';
 import 'package:caisse/home_composantes/drawer.dart';
 import 'package:caisse/home_composantes/transaction_row.dart';
 import 'package:caisse/imprimer/pdf.dart';
+import 'package:caisse/pages/payment_page.dart';
 import 'package:caisse/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -254,6 +255,21 @@ class _HomePageState extends ConsumerState<HomePage> {
               ),
             ),
             actions: [
+              TextButton.icon(
+                icon: const Icon(Icons.edit, color: Colors.white),
+                label: const MyText(
+                  texte: 'Modifier',
+                  color: Colors.white,
+                ),
+                style: TextButton.styleFrom(
+                  backgroundColor: const Color(0xFF2196F3),
+                ),
+                onPressed: () {
+                  Navigator.pop(context);
+                  _showEditTransactionDialog(transaction);
+                },
+              ),
+              const SizedBox(width: 8),
               TextButton(
                 style: TextButton.styleFrom(
                     backgroundColor: const Color(0xffea6b24)),
@@ -265,6 +281,36 @@ class _HomePageState extends ConsumerState<HomePage> {
               ),
             ],
           );
+        },
+      ),
+    );
+  }
+
+  _showEditTransactionDialog(Transaction transaction) {
+    showDialog(
+      context: context,
+      builder: (context) => PaymentPage(
+        isEditing: true,
+        transaction: transaction,
+        onSave: (updatedTransaction) async {
+          try {
+            await ref
+                .read(transactionsStateProvider.notifier)
+                .updateTransaction(updatedTransaction);
+
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Transaction mise à jour avec succès')),
+              );
+              Navigator.of(context).pop();
+            }
+          } catch (e) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Erreur lors de la mise à jour: $e')),
+              );
+            }
+          }
         },
       ),
     );
