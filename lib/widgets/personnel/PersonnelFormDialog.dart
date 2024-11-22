@@ -1,10 +1,10 @@
-import 'package:caisse/composants/texts.dart';
-import 'package:caisse/providers/theme_provider.dart';
+import 'package:gestion_caisse_flutter/composants/texts.dart';
+import 'package:gestion_caisse_flutter/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
-import 'package:caisse/models/personnel.dart';
+import 'package:gestion_caisse_flutter/models/personnel.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:caisse/providers/users_provider.dart';
+import 'package:gestion_caisse_flutter/providers/users_provider.dart';
 
 class PersonnelFormDialog extends ConsumerStatefulWidget {
   final Personnel? personnel;

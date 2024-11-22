@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:caisse/providers/theme_provider.dart';
-import 'package:caisse/composants/drawer_list_menu.dart';
-import 'package:caisse/composants/texts.dart';
+import 'package:gestion_caisse_flutter/providers/theme_provider.dart';
+import 'package:gestion_caisse_flutter/composants/drawer_list_menu.dart';
+import 'package:gestion_caisse_flutter/composants/texts.dart';
 
 class MyDrawer extends ConsumerWidget {
   const MyDrawer({super.key});

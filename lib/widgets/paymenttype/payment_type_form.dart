@@ -1,5 +1,5 @@
-import 'package:caisse/composants/texts.dart';
-import 'package:caisse/providers/theme_provider.dart';
+import 'package:gestion_caisse_flutter/composants/texts.dart';
+import 'package:gestion_caisse_flutter/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

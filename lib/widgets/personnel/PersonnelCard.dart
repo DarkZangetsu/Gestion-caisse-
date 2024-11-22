@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:caisse/models/personnel.dart';
+import 'package:gestion_caisse_flutter/models/personnel.dart';
 
 class PersonnelCard extends StatelessWidget {
   final Personnel personnel;

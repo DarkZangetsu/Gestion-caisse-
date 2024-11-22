@@ -1,5 +1,5 @@
-import 'package:caisse/composants/text_transaction.dart';
-import 'package:caisse/models/transaction.dart';
+import 'package:gestion_caisse_flutter/composants/text_transaction.dart';
+import 'package:gestion_caisse_flutter/models/transaction.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 

@@ -1,14 +1,14 @@
-import 'package:caisse/composants/MyTextFormField.dart';
-import 'package:caisse/composants/texts.dart';
-import 'package:caisse/mode/dark_mode.dart';
-import 'package:caisse/mode/light_mode.dart';
-import 'package:caisse/providers/theme_provider.dart';
+import 'package:gestion_caisse_flutter/composants/MyTextFormField.dart';
+import 'package:gestion_caisse_flutter/composants/texts.dart';
+import 'package:gestion_caisse_flutter/mode/dark_mode.dart';
+import 'package:gestion_caisse_flutter/mode/light_mode.dart';
+import 'package:gestion_caisse_flutter/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
-import 'package:caisse/models/chantier.dart';
+import 'package:gestion_caisse_flutter/models/chantier.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:caisse/providers/users_provider.dart';
+import 'package:gestion_caisse_flutter/providers/users_provider.dart';
 
 class ChantierFormDialog extends ConsumerStatefulWidget {
   final Chantier? chantier;

@@ -1,4 +1,4 @@
-import 'package:caisse/providers/transactions_provider.dart';
+import 'package:gestion_caisse_flutter/providers/transactions_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';

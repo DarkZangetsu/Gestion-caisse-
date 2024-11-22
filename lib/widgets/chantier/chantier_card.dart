@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:caisse/models/chantier.dart';
+import 'package:gestion_caisse_flutter/models/chantier.dart';
 import 'package:intl/intl.dart';
 
 class ChantierCard extends StatelessWidget {

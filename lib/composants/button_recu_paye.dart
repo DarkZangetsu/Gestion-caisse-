@@ -1,4 +1,4 @@
-import 'package:caisse/pages/payment_page.dart';
+import 'package:gestion_caisse_flutter/pages/payment_page.dart';
 import 'package:flutter/material.dart';
 
 class ButtonRecuPaye extends StatelessWidget {

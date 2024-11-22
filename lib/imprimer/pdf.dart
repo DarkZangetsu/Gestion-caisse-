@@ -1,6 +1,6 @@
-import 'package:caisse/models/transaction.dart';
-import 'package:caisse/providers/accounts_provider.dart';
-import 'package:caisse/providers/transactions_provider.dart';
+import 'package:gestion_caisse_flutter/models/transaction.dart';
+import 'package:gestion_caisse_flutter/providers/accounts_provider.dart';
+import 'package:gestion_caisse_flutter/providers/transactions_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';

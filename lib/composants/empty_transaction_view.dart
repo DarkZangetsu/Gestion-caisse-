@@ -1,6 +1,6 @@
 // Extracted widgets for better organization
-import 'package:caisse/composants/boutons.dart';
-import 'package:caisse/composants/texts.dart';
+import 'package:gestion_caisse_flutter/composants/boutons.dart';
+import 'package:gestion_caisse_flutter/composants/texts.dart';
 import 'package:flutter/material.dart';
 
 class EmptyTransactionView extends StatelessWidget {

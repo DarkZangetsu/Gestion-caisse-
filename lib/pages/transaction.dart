@@ -1,10 +1,10 @@
-import 'package:caisse/composants/empty_transaction_view.dart';
-import 'package:caisse/composants/tab_header.dart';
-import 'package:caisse/composants/texts.dart';
-import 'package:caisse/home_composantes/transaction_row.dart';
-import 'package:caisse/models/transaction.dart';
-import 'package:caisse/providers/theme_provider.dart';
-import 'package:caisse/providers/transactions_provider.dart';
+import 'package:gestion_caisse_flutter/composants/empty_transaction_view.dart';
+import 'package:gestion_caisse_flutter/composants/tab_header.dart';
+import 'package:gestion_caisse_flutter/composants/texts.dart';
+import 'package:gestion_caisse_flutter/home_composantes/transaction_row.dart';
+import 'package:gestion_caisse_flutter/models/transaction.dart';
+import 'package:gestion_caisse_flutter/providers/theme_provider.dart';
+import 'package:gestion_caisse_flutter/providers/transactions_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';

@@ -7,6 +7,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   open_file_linux
   printing
   url_launcher_linux
+  window_size
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST

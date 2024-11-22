@@ -1,5 +1,5 @@
-import 'package:caisse/composants/button_recu_paye.dart';
-import 'package:caisse/composants/texts.dart';
+import 'package:gestion_caisse_flutter/composants/button_recu_paye.dart';
+import 'package:gestion_caisse_flutter/composants/texts.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/src/consumer.dart';
 import 'package:intl/intl.dart';

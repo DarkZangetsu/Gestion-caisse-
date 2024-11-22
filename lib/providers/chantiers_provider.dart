@@ -1,4 +1,4 @@
-import 'package:caisse/providers/users_provider.dart';
+import 'package:gestion_caisse_flutter/providers/users_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/chantier.dart';
 import '../services/database_helper.dart';

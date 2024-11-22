@@ -1,4 +1,4 @@
-import 'package:caisse/composants/boutons.dart';
+import 'package:gestion_caisse_flutter/composants/boutons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';

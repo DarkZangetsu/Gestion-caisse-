@@ -1,4 +1,4 @@
-import 'package:caisse/check_connexion/service_connexion_reseau.dart';
+import 'package:gestion_caisse_flutter/check_connexion/service_connexion_reseau.dart';
 import 'package:flutter/material.dart';
 
 class WidgetAwareConnexion extends StatefulWidget {

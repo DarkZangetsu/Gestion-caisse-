@@ -1,4 +1,4 @@
-import 'package:caisse/composants/texts.dart';
+import 'package:gestion_caisse_flutter/composants/texts.dart';
 import 'package:flutter/material.dart';
 
 class TabHeader extends StatelessWidget {
