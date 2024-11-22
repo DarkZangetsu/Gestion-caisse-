@@ -431,7 +431,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               label,
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
-                color: Color(0xffea6b24),
+                color:  Color(0xffea6b24),
               ),
             ),
           ),

@@ -116,6 +116,8 @@ class _EtatWidgetAwareConnexion extends State<WidgetAwareConnexion> {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final notificationService = TodoNotificationService();
+  await notificationService.initNotification();
   await SupabaseConfig.initialize();
 
   runApp(

@@ -1,8 +1,12 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:caisse/composants/texts.dart';
 import 'package:caisse/models/chantier.dart';
 import 'package:caisse/models/payment_type.dart';
 import 'package:caisse/models/personnel.dart';
+import 'package:caisse/pages/payment_page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../models/todo.dart';
@@ -14,9 +18,11 @@ import '../providers/payment_types_provider.dart';
 import '../providers/todos_provider.dart';
 import '../providers/users_provider.dart';
 import 'package:intl/intl.dart';
+import 'package:timezone/timezone.dart' as tz;
+import 'package:timezone/data/latest.dart' as tz;
 
 class TodoListPage extends ConsumerStatefulWidget {
-  const TodoListPage({Key? key}) : super(key: key);
+  const TodoListPage({super.key});
 
   @override
   ConsumerState<TodoListPage> createState() => _TodoListPageState();
@@ -37,11 +43,35 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
   DateTime? dueDate;
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loadInitialData();
+  }
+
+  @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadInitialData();
+    });
+
+    final userId = ref.read(currentUserProvider)?.id ?? '';
+    ref.read(chantiersStateProvider.notifier).loadChantiers(userId);
+
+    ref
+        .read(chantiersStateProvider.notifier)
+        .loadChantiers(ref.read(currentUserProvider)?.id ?? '');
+
+    print(
+        "user: ** ${ref.read(chantiersStateProvider.notifier).loadChantiers(ref.read(currentUserProvider)?.id ?? '')}");
+
+    Future.microtask(() {
+      final userId = ref.read(currentUserProvider)?.id ?? '';
+      ref.read(paymentTypesProvider.notifier).getPaymentTypes();
+      ref.read(personnelStateProvider.notifier).getPersonnel(userId);
+      ref.read(chantiersStateProvider.notifier).loadChantiers(userId);
     });
   }
 
@@ -51,25 +81,16 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
 
     if (selectedAccount != null && userId != null) {
       try {
-        // Charger les chantiers en premier
+        // Use the notifier to load chantiers
         await ref
             .read(chantiersStateProvider.notifier)
-            .getChantiers(selectedAccount.id);
-
-        // Charger les autres données en parallèle
-        await Future.wait([
-          ref
-              .read(personnelStateProvider.notifier)
-              .getPersonnel(selectedAccount.id),
-          ref.read(paymentMethodsProvider.notifier).getPaymentMethods(),
-          ref.read(paymentTypesProvider.notifier).getPaymentTypes(),
-          ref.read(todosStateProvider.notifier).getTodos(selectedAccount.id),
-        ]);
+            .loadChantiers(selectedAccount.id);
       } catch (e) {
+        print('Error loading chantiers: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Erreur lors du chargement des données'),
+            SnackBar(
+              content: Text('Erreur lors du chargement des chantiers: $e'),
               backgroundColor: Colors.red,
             ),
           );
@@ -105,14 +126,21 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
                     final chantiersAsync = ref.watch(chantiersStateProvider);
                     return chantiersAsync.when(
                       data: (chantiers) => myDropdownButtonFormField<Chantier>(
-                          items: chantiers,
-                          labelText: 'Chantier',
-                          placeholderText: 'Sélectionner un chantier',
-                          selectedValue: selectedChantierId,
-                          onChanged: (value) =>
-                              setState(() => selectedChantierId = value),
-                          getItemId: (chantier) => chantier.id,
-                          getItemName: (chantier) => chantier.name),
+                        context: context,
+                        items: chantiers,
+                        labelText: 'Chantier (optionnel)',
+                        placeholderText: "Sélectionner un chantier",
+                        selectedValue:
+                            selectedChantierId, // Changed from selectedPersonnelId
+                        onChanged: (value) {
+                          setState(() => selectedChantierId =
+                              value); // Changed from selectedPersonnelId
+                        },
+                        getItemId: (chantier) =>
+                            chantier.id, // Changed from person
+                        getItemName: (chantier) =>
+                            chantier.name, // Changed from person
+                      ),
                       loading: () => const CircularProgressIndicator(),
                       error: (error, _) => Text('Erreur: $error'),
                     );
@@ -124,6 +152,7 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
                     final personnelAsync = ref.watch(personnelStateProvider);
                     return personnelAsync.when(
                       data: (personnel) => myDropdownButtonFormField<Personnel>(
+                        context: context,
                         items: personnel,
                         labelText: "Personnel",
                         placeholderText: "Sélectionner un personnel",
@@ -189,6 +218,7 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
                     final typesAsync = ref.watch(paymentTypesProvider);
                     return typesAsync.when(
                       data: (types) => myDropdownButtonFormField<PaymentType>(
+                          context: context,
                           items: types,
                           labelText: 'Type de paiement',
                           placeholderText: 'Sélectionner un type',
@@ -240,7 +270,7 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
             onPressed: () => Navigator.pop(context),
             child: const MyText(
               texte: 'Annuler',
-              color: Colors.black54,
+              color: Colors.grey,
             ),
           ),
           ElevatedButton(
@@ -258,58 +288,98 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
   }
 
   DropdownButtonFormField<String> myDropdownButtonFormField<T>({
+    required BuildContext context,
     required List<T> items,
     required String labelText,
     required String placeholderText,
-    required String? selectedValue,
+    String? selectedValue,
     required void Function(String?) onChanged,
     required String Function(T) getItemId,
     required String Function(T) getItemName,
+    String? Function(String?)? validator,
+    bool isRequired = false,
+    IconData? prefixIcon,
   }) {
-    final primary = Theme.of(context).colorScheme.primary;
-    final secondary = Theme.of(context).colorScheme.secondary;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return DropdownButtonFormField<String>(
+      validator: (value) {
+        if (isRequired && (value == null || value.isEmpty)) {
+          return '$labelText is required';
+        }
+        return validator?.call(value);
+      },
       decoration: InputDecoration(
-        labelText: labelText,
-        labelStyle: TextStyle(
-          color: secondary,
+        labelText: isRequired ? '$labelText *' : labelText,
+        labelStyle: textTheme.bodyMedium?.copyWith(
           fontWeight: FontWeight.bold,
+          color: colorScheme.onSurface.withOpacity(0.7),
         ),
+        prefixIcon: prefixIcon != null
+            ? Icon(prefixIcon, color: colorScheme.primary)
+            : null,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8.0),
-          borderSide: const BorderSide(color: Color(0xffea6b24)),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: colorScheme.outline),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8.0),
-          //borderSide: const BorderSide(color: Colors.black54),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: colorScheme.outline.withOpacity(0.5)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8.0),
-          borderSide: const BorderSide(color: Colors.grey, width: 2),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: colorScheme.primary,
+            width: 2,
+          ),
         ),
-        contentPadding:
-            const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: colorScheme.error),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 16,
+          horizontal: 12,
+        ),
       ),
-      icon: const Icon(Icons.payment, color: Colors.grey),
+      icon: Icon(
+        Icons.arrow_drop_down,
+        color: colorScheme.onSurface.withOpacity(0.7),
+      ),
       value: selectedValue,
+      hint: Text(
+        placeholderText,
+        style: textTheme.bodyMedium?.copyWith(
+          color: colorScheme.onSurface.withOpacity(0.5),
+        ),
+      ),
       items: [
         DropdownMenuItem(
           value: null,
           child: Text(
             placeholderText,
-            style: TextStyle(color: Colors.grey[800]),
+            style: textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurface.withOpacity(0.7),
+            ),
           ),
         ),
         ...items.map((item) {
           return DropdownMenuItem(
             value: getItemId(item),
-            child: Text(getItemName(item)),
+            child: Text(
+              getItemName(item),
+              style: textTheme.bodyMedium,
+            ),
           );
         }).toList(),
       ],
       onChanged: onChanged,
-      style: const TextStyle(color: Colors.black, fontSize: 16),
-      dropdownColor: Colors.white,
+      style: textTheme.bodyMedium?.copyWith(
+        color: colorScheme.onSurface,
+      ),
+      dropdownColor: colorScheme.surface,
+      isExpanded: true,
     );
   }
 
@@ -329,7 +399,7 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
           final uniqueId = uuid.v4();
 
           final todo = Todo(
-            id: uniqueId, // Maintenant c'est un UUID v4 valide
+            id: uniqueId,
             accountId: selectedAccount.id,
             chantierId: selectedChantierId,
             personnelId: selectedPersonnelId,
@@ -344,6 +414,8 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
           );
 
           await ref.read(todosStateProvider.notifier).createTodo(todo);
+          final notificationService = TodoNotificationService();
+          await notificationService.scheduleTaskNotifications(todo);
 
           if (mounted) {
             Navigator.pop(context);
@@ -552,7 +624,13 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
                     Expanded(
                       child: Text(
                         DateFormat('dd/MM/yyyy').format(todo.dueDate!),
-                        style: const TextStyle(fontSize: 12),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: todo.getDueDateColor(),
+                          fontWeight: todo.isApproachingDueDate()
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -629,16 +707,33 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
                               ref.watch(chantiersStateProvider);
                           return chantiersAsync.when(
                             data: (chantiers) {
-                              final chantier = chantiers.firstWhere(
-                                (c) => c.id == todo.chantierId,
-                                orElse: () =>
-                                    throw Exception('Chantier non trouvé'),
-                              );
-                              return _buildInfoRow('Chantier', chantier.name);
+                              // Chercher le chantier de façon sécurisée
+                              final chantier = chantiers
+                                  .where((c) => c.id == todo.chantierId)
+                                  .toList();
+
+                              // Si aucun chantier n'est trouvé, afficher un message d'erreur
+                              if (chantier.isEmpty) {
+                                return _buildInfoRow(
+                                  'Chantier',
+                                  'Chantier non disponible (ID: ${todo.chantierId})',
+                                );
+                              }
+
+                              // Si le chantier est trouvé, afficher ses informations
+                              return _buildInfoRow(
+                                  'Chantier', chantier.first.name);
                             },
-                            loading: () => const CircularProgressIndicator(),
-                            error: (_, __) =>
-                                const Text('Chantier non disponible'),
+                            loading: () => const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(8.0),
+                                child: CircularProgressIndicator(),
+                              ),
+                            ),
+                            error: (error, stack) => _buildInfoRow(
+                              'Chantier',
+                              'Erreur de chargement du chantier',
+                            ),
                           );
                         },
                       ),
@@ -649,16 +744,23 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
                                 ref.watch(personnelStateProvider);
                             return personnelAsync.when(
                               data: (personnel) {
-                                final person = personnel.firstWhere(
-                                  (p) => p.id == todo.personnelId,
-                                  orElse: () =>
-                                      throw Exception('Personnel non trouvé'),
-                                );
-                                return _buildInfoRow('Personnel', person.name);
+                                final person = personnel
+                                    .where((p) => p.id == todo.personnelId)
+                                    .toList();
+                                if (person.isEmpty) {
+                                  return _buildInfoRow(
+                                    'Personnel',
+                                    'Personnel non disponible (ID: ${todo.personnelId})',
+                                  );
+                                }
+                                return _buildInfoRow(
+                                    'Personnel', person.first.name);
                               },
                               loading: () => const CircularProgressIndicator(),
-                              error: (_, __) =>
-                                  const Text('Personnel non disponible'),
+                              error: (_, __) => _buildInfoRow(
+                                'Personnel',
+                                'Erreur de chargement du personnel',
+                              ),
                             );
                           },
                         ),
@@ -730,5 +832,226 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+}
+
+class TodoNotificationService {
+  static final TodoNotificationService _instance =
+      TodoNotificationService._internal();
+  factory TodoNotificationService() => _instance;
+  TodoNotificationService._internal();
+
+  final FlutterLocalNotificationsPlugin notificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+  bool _isInitialized = false;
+
+  Future<bool> initNotification() async {
+    if (_isInitialized) return true;
+
+    try {
+      // Initialisation des fuseaux horaires
+      tz.initializeTimeZones();
+
+      // On utilise directement le fuseau horaire local
+      tz.setLocalLocation(tz.local);
+
+      // Configuration des paramètres d'initialisation
+      const AndroidInitializationSettings initializationSettingsAndroid =
+          AndroidInitializationSettings('@mipmap/ic_launcher');
+
+      const DarwinInitializationSettings initializationSettingsIOS =
+          DarwinInitializationSettings(
+        requestAlertPermission: true,
+        requestBadgePermission: true,
+        requestSoundPermission: true,
+      );
+
+      const InitializationSettings initializationSettings =
+          InitializationSettings(
+        android: initializationSettingsAndroid,
+        iOS: initializationSettingsIOS,
+      );
+
+      // Initialisation du plugin avec gestion des erreurs
+      final bool? success = await notificationsPlugin.initialize(
+        initializationSettings,
+        onDidReceiveNotificationResponse: _handleNotificationResponse,
+      );
+
+      _isInitialized = success ?? false;
+      return _isInitialized;
+    } catch (e) {
+      debugPrint('Erreur lors de l\'initialisation des notifications: $e');
+      return false;
+    }
+  }
+
+  Future<void> _handleNotificationResponse(
+      NotificationResponse response) async {
+    try {
+      if (response.payload != null) {
+        // Décodage du payload JSON
+        final Map<String, dynamic> payload = json.decode(response.payload!);
+        // Traitement du payload selon vos besoins
+        debugPrint('Payload reçu: $payload');
+      }
+    } catch (e) {
+      debugPrint('Erreur lors du traitement de la notification: $e');
+    }
+  }
+
+  Future<void> scheduleTaskNotifications(Todo todo) async {
+    if (!_isInitialized || todo.dueDate == null) return;
+
+    try {
+      // Vérifier d'abord les permissions
+      if (!await _checkNotificationPermissions()) {
+        debugPrint('Permissions de notification non accordées');
+        return;
+      }
+
+      // Annuler les notifications existantes pour cette tâche
+      await cancelTaskNotifications(todo.id);
+
+      // Configuration des alertes
+      final List<NotificationAlert> alerts = [
+        NotificationAlert(days: 3, importance: Importance.defaultImportance),
+        NotificationAlert(days: 2, importance: Importance.high),
+        NotificationAlert(days: 1, importance: Importance.max),
+      ];
+
+      for (var alert in alerts) {
+        final alertDate = _calculateAlertDateTime(todo.dueDate!, alert.days);
+
+        if (alertDate.isAfter(tz.TZDateTime.now(tz.local))) {
+          final String payload = json.encode({
+            'todoId': todo.id,
+            'description': todo.description,
+            'dueDate': todo.dueDate!.toIso8601String(),
+            'alertDays': alert.days,
+          });
+
+          await notificationsPlugin.zonedSchedule(
+            _generateNotificationId(todo.id, alert.days),
+            'Rappel de tâche',
+            _generateNotificationBody(todo, alert.days),
+            alertDate,
+            NotificationDetails(
+              android: _createAndroidNotificationDetails(alert.importance),
+              iOS: _createIOSNotificationDetails(alert.importance),
+            ),
+            payload: payload,
+            uiLocalNotificationDateInterpretation:
+                UILocalNotificationDateInterpretation.absoluteTime,
+            androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+            matchDateTimeComponents: DateTimeComponents.time,
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Erreur lors de la programmation des notifications: $e');
+    }
+  }
+
+  AndroidNotificationDetails _createAndroidNotificationDetails(
+      Importance importance) {
+    return AndroidNotificationDetails(
+      'todo_alerts',
+      'Alertes des tâches',
+      channelDescription: 'Notifications pour les tâches à venir',
+      importance: importance,
+      priority: Priority.high,
+      color: const Color(0xffea6b24),
+      enableLights: true,
+      enableVibration: true,
+      styleInformation: const BigTextStyleInformation(''),
+    );
+  }
+
+  DarwinNotificationDetails _createIOSNotificationDetails(
+      Importance importance) {
+    return const DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+  }
+
+  tz.TZDateTime _calculateAlertDateTime(DateTime dueDate, int days) {
+    final DateTime alertDate = dueDate.subtract(Duration(days: days));
+    return tz.TZDateTime(
+      tz.local,
+      alertDate.year,
+      alertDate.month,
+      alertDate.day,
+      9,
+      0,
+    );
+  }
+
+  String _generateNotificationBody(Todo todo, int days) {
+    return 'La tâche "${todo.description}" arrive à échéance dans $days jour${days > 1 ? 's' : ''}';
+  }
+
+  int _generateNotificationId(String todoId, int days) {
+    return (todoId + days.toString()).hashCode;
+  }
+
+  Future<bool> _checkNotificationPermissions() async {
+    if (Platform.isAndroid) return true;
+
+    if (Platform.isIOS) {
+      final settings = await notificationsPlugin
+          .resolvePlatformSpecificImplementation<
+              IOSFlutterLocalNotificationsPlugin>()
+          ?.requestPermissions(
+            alert: true,
+            badge: true,
+            sound: true,
+          );
+      return settings ?? false;
+    }
+    return false;
+  }
+
+  Future<void> cancelTaskNotifications(String todoId) async {
+    try {
+      for (var days in [3, 2, 1]) {
+        await notificationsPlugin.cancel(_generateNotificationId(todoId, days));
+      }
+    } catch (e) {
+      debugPrint('Erreur lors de l\'annulation des notifications: $e');
+    }
+  }
+}
+
+class NotificationAlert {
+  final int days;
+  final Importance importance;
+
+  NotificationAlert({
+    required this.days,
+    required this.importance,
+  });
+}
+
+extension TodoNotifications on Todo {
+  bool isApproachingDueDate() {
+    if (dueDate == null) return false;
+    final daysUntilDue = dueDate!.difference(DateTime.now()).inDays;
+    return daysUntilDue <= 3 && daysUntilDue > 0;
+  }
+
+  Color getDueDateColor() {
+    if (dueDate == null) return Colors.grey;
+    if (completed) return Colors.green;
+
+    final daysUntilDue = dueDate!.difference(DateTime.now()).inDays;
+
+    if (daysUntilDue < 0) return Colors.red.shade700;
+    if (daysUntilDue <= 1) return Colors.red;
+    if (daysUntilDue <= 2) return Colors.orange;
+    if (daysUntilDue <= 3) return Colors.yellow.shade700;
+    return Colors.green;
   }
 }

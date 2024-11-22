@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:caisse/models/chantier.dart';
 import 'package:intl/intl.dart';
 
-import '../../pages/transaction.dart';
-
 class ChantierCard extends StatelessWidget {
   final Chantier chantier;
   final VoidCallback onTap;
