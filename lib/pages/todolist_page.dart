@@ -48,7 +48,7 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _loadInitialData();
+    //_loadInitialData();
   }
 
   @override
@@ -59,41 +59,29 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadInitialData();
     });
-
-    final userId = ref.read(currentUserProvider)?.id ?? '';
-    ref.read(chantiersStateProvider.notifier).loadChantiers(userId);
-
-    ref
-        .read(chantiersStateProvider.notifier)
-        .loadChantiers(ref.read(currentUserProvider)?.id ?? '');
-
-    print(
-        "user: ** ${ref.read(chantiersStateProvider.notifier).loadChantiers(ref.read(currentUserProvider)?.id ?? '')}");
-
-    Future.microtask(() {
-      final userId = ref.read(currentUserProvider)?.id ?? '';
-      ref.read(paymentTypesProvider.notifier).getPaymentTypes();
-      ref.read(personnelStateProvider.notifier).getPersonnel(userId);
-      ref.read(chantiersStateProvider.notifier).loadChantiers(userId);
-    });
   }
 
   Future<void> _loadInitialData() async {
     final selectedAccount = ref.read(selectedAccountProvider);
-    final userId = ref.read(currentUserProvider)?.id;
-
-    if (selectedAccount != null && userId != null) {
+    if (selectedAccount != null) {
       try {
-        // Use the notifier to load chantiers
+        // Charger les todos pour le compte sélectionné
         await ref
-            .read(chantiersStateProvider.notifier)
-            .loadChantiers(selectedAccount.id);
+            .read(todosStateProvider.notifier)
+            .getTodos(selectedAccount.id);
+
+        // Charger les autres données nécessaires
+        final userId = ref.read(currentUserProvider)?.id;
+        if (userId != null) {
+          await ref.read(chantiersStateProvider.notifier).loadChantiers(userId);
+          await ref.read(paymentTypesProvider.notifier).getPaymentTypes();
+          await ref.read(personnelStateProvider.notifier).getPersonnel(userId);
+        }
       } catch (e) {
-        print('Error loading chantiers: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Erreur lors du chargement des chantiers: $e'),
+              content: Text('Erreur lors du chargement des données: $e'),
               backgroundColor: Colors.red,
             ),
           );
@@ -485,7 +473,6 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
           ],
         ),
         actions: [
-          // Ajouter un bouton de rafraîchissement manuel
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadInitialData,
@@ -494,9 +481,18 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
       ),
       body: Consumer(
         builder: (context, ref, child) {
+          // Écouter les changements dans le provider de todos
           final todosAsync = ref.watch(todosStateProvider);
+
+          // Afficher les données en fonction de l'état
           return todosAsync.when(
             data: (todos) {
+              if (todos.isEmpty) {
+                return const Center(
+                  child: Text('Aucune tâche disponible'),
+                );
+              }
+
               final pendingTodos =
                   todos.where((todo) => !todo.completed).toList();
               final completedTodos =
@@ -510,16 +506,18 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
                 ],
               );
             },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (error, stackTrace) => Center(
+            loading: () => const Center(
+              child: CircularProgressIndicator(),
+            ),
+            error: (error, stack) => Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Icon(Icons.error_outline, size: 48, color: Colors.red),
                   const SizedBox(height: 16),
-                  const Text(
-                    'Erreur lors du chargement des tâches',
-                    style: TextStyle(fontSize: 16),
+                  Text(
+                    'Erreur: $error',
+                    textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
                   ElevatedButton(
@@ -535,10 +533,7 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xffea6b24),
         onPressed: _showAddTodoDialog,
-        child: const Icon(
-          Icons.add,
-          color: Colors.white,
-        ),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
