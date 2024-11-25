@@ -423,35 +423,11 @@ class DatabaseHelper {
     }
   }
 
-  /*Future<Todo> createTodo(Todo todo) async {
-    try {
-      print('Début createTodo dans DatabaseHelper');
-      print('Données à insérer: ${todo.toJson()}');
-
-      final response = await _supabase
-          .from('todos')
-          .insert(todo.toJson())
-          .select()
-          .single();
-
-      print('Réponse Supabase: $response');
-
-      final createdTodo = Todo.fromJson(response);
-      print('Todo créé avec succès: ${createdTodo.toJson()}');
-
-      return createdTodo;
-    } catch (e, stackTrace) {
-      print('Erreur dans DatabaseHelper.createTodo: $e');
-      print('Stack trace: $stackTrace');
-      throw Exception('Erreur lors de la création du todo: $e');
-    }
-  }*/
-
   Future<Todo> updateTodo(Todo todo) async {
     try {
       final response = await _supabase
           .from('todos')
-          .update(todo.toJson())
+          .update(todo.toJson(forDatabase: true))
           .eq('id', todo.id)
           .select()
           .single();

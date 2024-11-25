@@ -106,7 +106,7 @@ class Splash extends StatelessWidget {
                             return Opacity(
                               opacity: value,
                               child: Text(
-                                "Bienvenue dans l'application\nCompth",
+                                "Bienvenue dans l'application\nCOMPTAH!",
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: fontSize,

@@ -854,6 +854,7 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
                             }
                           } catch (e) {
                             if (mounted) {
+                              debugPrint("Erreur tâche: $e");
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text(
