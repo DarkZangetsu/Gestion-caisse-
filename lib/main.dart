@@ -6,6 +6,7 @@ import 'package:gestion_caisse_flutter/pages/home_page.dart';
 import 'package:gestion_caisse_flutter/pages/login_page.dart';
 import 'package:gestion_caisse_flutter/pages/payment_page.dart';
 import 'package:gestion_caisse_flutter/pages/payment_types_page.dart';
+import 'package:gestion_caisse_flutter/pages/splash.dart';
 import 'package:gestion_caisse_flutter/pages/todolist_page.dart';
 import 'package:gestion_caisse_flutter/pages/transaction.dart';
 import 'package:gestion_caisse_flutter/providers/auth_guard.dart';
@@ -40,16 +41,24 @@ class MaApplication extends ConsumerWidget {
       theme: lightTheme,
       darkTheme: darkTheme,
       themeMode: themeCourant,
-      initialRoute: '/login',
+      initialRoute: '/splash',
       routes: {
+        '/splash': (context) => Splash(),
         '/login': (context) => const WidgetAwareConnexion(child: LoginPage()),
-        '/': (context) => const WidgetAwareConnexion(child: AuthGuard(child: HomePage())),
-        '/payement': (context) => const WidgetAwareConnexion(child: AuthGuard(child: PaymentPage())),
-        '/chantier': (context) => const WidgetAwareConnexion(child: ChantierPage()),
-        '/personnel': (context) => const WidgetAwareConnexion(child: PersonnelPage()),
-        '/todos': (context) => const WidgetAwareConnexion(child: TodoListPage()),
-        '/payment-types': (context) => const WidgetAwareConnexion(child: PaymentTypesPage()),
-        '/change-password': (context) => const WidgetAwareConnexion(child: ChangePasswordPage()),
+        '/': (context) =>
+            const WidgetAwareConnexion(child: AuthGuard(child: HomePage())),
+        '/payement': (context) =>
+            const WidgetAwareConnexion(child: AuthGuard(child: PaymentPage())),
+        '/chantier': (context) =>
+            const WidgetAwareConnexion(child: ChantierPage()),
+        '/personnel': (context) =>
+            const WidgetAwareConnexion(child: PersonnelPage()),
+        '/todos': (context) =>
+            const WidgetAwareConnexion(child: TodoListPage()),
+        '/payment-types': (context) =>
+            const WidgetAwareConnexion(child: PaymentTypesPage()),
+        '/change-password': (context) =>
+            const WidgetAwareConnexion(child: ChangePasswordPage()),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/transaction') {
