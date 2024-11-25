@@ -41,11 +41,10 @@ class MaApplication extends ConsumerWidget {
       theme: lightTheme,
       darkTheme: darkTheme,
       themeMode: themeCourant,
-      initialRoute: '/splash',
+      home: Splash(),
       routes: {
-        '/splash': (context) => Splash(),
         '/login': (context) => const WidgetAwareConnexion(child: LoginPage()),
-        '/': (context) =>
+        '/home': (context) =>
             const WidgetAwareConnexion(child: AuthGuard(child: HomePage())),
         '/payement': (context) =>
             const WidgetAwareConnexion(child: AuthGuard(child: PaymentPage())),
