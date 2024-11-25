@@ -12,7 +12,6 @@ import '../config/supabase_config.dart';
 import 'package:crypto/crypto.dart';
 import 'dart:convert';
 
-
 class DatabaseHelper {
   final SupabaseClient _supabase = SupabaseConfig.client;
 
@@ -45,11 +44,8 @@ class DatabaseHelper {
         'created_at': DateTime.now().toIso8601String(),
       };
 
-      final response = await _supabase
-          .from('users')
-          .insert(userData)
-          .select()
-          .single();
+      final response =
+          await _supabase.from('users').insert(userData).select().single();
 
       return AppUser.fromJson(response);
     } catch (e) {
@@ -85,7 +81,6 @@ class DatabaseHelper {
     }
   }
 
-
   Future<void> signOutUser() async {
     // Ici vous pouvez implémenter une logique de déconnexion locale
     // comme effacer les données en cache ou les préférences utilisateur
@@ -93,11 +88,8 @@ class DatabaseHelper {
 
   Future<AppUser?> getCurrentUser(String userId) async {
     try {
-      final response = await _supabase
-          .from('users')
-          .select()
-          .eq('id', userId)
-          .single();
+      final response =
+          await _supabase.from('users').select().eq('id', userId).single();
 
       return AppUser.fromJson(response);
     } catch (e) {
@@ -109,8 +101,7 @@ class DatabaseHelper {
     try {
       await _supabase
           .from('users')
-          .update({'password': _hashPassword(newPassword)})
-          .eq('id', userId);
+          .update({'password': _hashPassword(newPassword)}).eq('id', userId);
     } catch (e) {
       throw Exception('Erreur lors de la mise à jour du mot de passe: $e');
     }
@@ -118,23 +109,17 @@ class DatabaseHelper {
 
   Future<void> deleteUser(String userId) async {
     try {
-      await _supabase
-          .from('users')
-          .delete()
-          .eq('id', userId);
+      await _supabase.from('users').delete().eq('id', userId);
     } catch (e) {
       throw Exception('Erreur lors de la suppression de l\'utilisateur: $e');
     }
   }
 
-
   // Account Methods
   Future<List<Account>> getAccounts(String userId) async {
     try {
-      final response = await _supabase
-          .from('accounts')
-          .select()
-          .eq('user_id', userId);
+      final response =
+          await _supabase.from('accounts').select().eq('user_id', userId);
 
       return (response as List).map((json) => Account.fromJson(json)).toList();
     } catch (e) {
@@ -173,10 +158,7 @@ class DatabaseHelper {
 
   Future<void> deleteAccount(String accountId) async {
     try {
-      await _supabase
-          .from('accounts')
-          .delete()
-          .eq('id', accountId);
+      await _supabase.from('accounts').delete().eq('id', accountId);
     } catch (e) {
       throw Exception('Erreur lors de la suppression du compte: $e');
     }
@@ -185,10 +167,8 @@ class DatabaseHelper {
   // Chantier Methods
   Future<List<Chantier>> getChantiers(String userId) async {
     try {
-      final response = await _supabase
-          .from('chantiers')
-          .select()
-          .eq('user_id', userId);
+      final response =
+          await _supabase.from('chantiers').select().eq('user_id', userId);
       print("Réponse brute des chantiers : $response");
       return (response as List).map((json) => Chantier.fromJson(json)).toList();
     } catch (e) {
@@ -229,10 +209,7 @@ class DatabaseHelper {
 
   Future<void> deleteChantier(String chantierId) async {
     try {
-      await _supabase
-          .from('chantiers')
-          .delete()
-          .eq('id', chantierId);
+      await _supabase.from('chantiers').delete().eq('id', chantierId);
     } catch (e) {
       throw Exception('Erreur lors de la suppression du chantier: $e');
     }
@@ -241,12 +218,12 @@ class DatabaseHelper {
   // Personnel Methods
   Future<List<Personnel>> getPersonnel(String userId) async {
     try {
-      final response = await _supabase
-          .from('personnel')
-          .select()
-          .eq('user_id', userId);
+      final response =
+          await _supabase.from('personnel').select().eq('user_id', userId);
       print("Réponse brute des personnel : $response");
-      return (response as List).map((json) => Personnel.fromJson(json)).toList();
+      return (response as List)
+          .map((json) => Personnel.fromJson(json))
+          .toList();
     } catch (e) {
       throw Exception('Erreur lors de la récupération du personnel: $e');
     }
@@ -283,10 +260,7 @@ class DatabaseHelper {
 
   Future<void> deletePersonnel(String personnelId) async {
     try {
-      await _supabase
-          .from('personnel')
-          .delete()
-          .eq('id', personnelId);
+      await _supabase.from('personnel').delete().eq('id', personnelId);
     } catch (e) {
       throw Exception('Erreur lors de la suppression du personnel: $e');
     }
@@ -295,26 +269,28 @@ class DatabaseHelper {
   // Payment Methods
   Future<List<PaymentMethod>> getPaymentMethods() async {
     try {
-      final response = await _supabase
-          .from('payment_methods')
-          .select();
+      final response = await _supabase.from('payment_methods').select();
 
-      return (response as List).map((json) => PaymentMethod.fromJson(json)).toList();
+      return (response as List)
+          .map((json) => PaymentMethod.fromJson(json))
+          .toList();
     } catch (e) {
-      throw Exception('Erreur lors de la récupération des méthodes de paiement: $e');
+      throw Exception(
+          'Erreur lors de la récupération des méthodes de paiement: $e');
     }
   }
 
   // Payment Type Methods
   Future<List<PaymentType>> getPaymentTypes() async {
     try {
-      final response = await _supabase
-          .from('payment_types')
-          .select();
+      final response = await _supabase.from('payment_types').select();
 
-      return (response as List).map((json) => PaymentType.fromJson(json)).toList();
+      return (response as List)
+          .map((json) => PaymentType.fromJson(json))
+          .toList();
     } catch (e) {
-      throw Exception('Erreur lors de la récupération des types de paiement: $e');
+      throw Exception(
+          'Erreur lors de la récupération des types de paiement: $e');
     }
   }
 
@@ -349,10 +325,7 @@ class DatabaseHelper {
 
   Future<void> deletePaymentType(String paymentTypeId) async {
     try {
-      await _supabase
-          .from('payment_types')
-          .delete()
-          .eq('id', paymentTypeId);
+      await _supabase.from('payment_types').delete().eq('id', paymentTypeId);
     } catch (e) {
       throw Exception('Erreur lors de la suppression du type de paiement: $e');
     }
@@ -365,9 +338,11 @@ class DatabaseHelper {
           .from('transactions')
           .select()
           .eq('account_id', accountId)
-          .order('created_at',  ascending: false); // true pour LIFO
+          .order('created_at', ascending: false); // true pour LIFO
 
-      return (response as List).map((json) => Transaction.fromJson(json)).toList();
+      return (response as List)
+          .map((json) => Transaction.fromJson(json))
+          .toList();
     } catch (e) {
       throw Exception('Erreur lors de la récupération des transactions: $e');
     }
@@ -404,10 +379,7 @@ class DatabaseHelper {
 
   Future<void> deleteTransaction(String transactionId) async {
     try {
-      await _supabase
-          .from('transactions')
-          .delete()
-          .eq('id', transactionId);
+      await _supabase.from('transactions').delete().eq('id', transactionId);
     } catch (e) {
       throw Exception('Erreur lors de la suppression de la transaction: $e');
     }
@@ -416,10 +388,8 @@ class DatabaseHelper {
   // Todos Methods
   Future<List<Todo>> getTodos(String accountId) async {
     try {
-      final response = await _supabase
-          .from('todos')
-          .select()
-          .eq('account_id', accountId);
+      final response =
+          await _supabase.from('todos').select().eq('account_id', accountId);
 
       return (response as List).map((json) => Todo.fromJson(json)).toList();
     } catch (e) {
@@ -428,6 +398,32 @@ class DatabaseHelper {
   }
 
   Future<Todo> createTodo(Todo todo) async {
+    try {
+      print('Début createTodo dans DatabaseHelper');
+      print(
+          'Données à insérer: ${todo.toJson(forDatabase: true)}'); // Ajout de forDatabase: true ici
+
+      final response = await _supabase
+          .from('todos')
+          .insert(
+              todo.toJson(forDatabase: true)) // Ajout de forDatabase: true ici
+          .select()
+          .single();
+
+      print('Réponse Supabase: $response');
+
+      final createdTodo = Todo.fromJson(response);
+      print('Todo créé avec succès: ${createdTodo.toJson()}');
+
+      return createdTodo;
+    } catch (e, stackTrace) {
+      print('Erreur dans DatabaseHelper.createTodo: $e');
+      print('Stack trace: $stackTrace');
+      throw Exception('Erreur lors de la création du todo: $e');
+    }
+  }
+
+  /*Future<Todo> createTodo(Todo todo) async {
     try {
       print('Début createTodo dans DatabaseHelper');
       print('Données à insérer: ${todo.toJson()}');
@@ -449,7 +445,7 @@ class DatabaseHelper {
       print('Stack trace: $stackTrace');
       throw Exception('Erreur lors de la création du todo: $e');
     }
-  }
+  }*/
 
   Future<Todo> updateTodo(Todo todo) async {
     try {
@@ -468,17 +464,11 @@ class DatabaseHelper {
 
   Future<void> deleteTodo(String todoId) async {
     try {
-      await _supabase
-          .from('todos')
-          .delete()
-          .eq('id', todoId);
+      await _supabase.from('todos').delete().eq('id', todoId);
     } catch (e) {
       throw Exception('Erreur lors de la suppression du todo: $e');
     }
   }
-
-
-
 
   // Méthodes additionnelles utiles
   Future<List<Transaction>> getTransactionsByChantier(String chantierId) async {
@@ -488,49 +478,54 @@ class DatabaseHelper {
       final response = await _supabase
           .from('transactions')
           .select('*')
-          .eq('chantier_id', chantierId)  // Ensure this matches exactly
+          .eq('chantier_id', chantierId) // Ensure this matches exactly
           .order('transaction_date', ascending: false);
 
       print('Raw database response length: ${response.length}');
 
-      return response.map((data) {
-        try {
-          return Transaction.fromJson(data);
-        } catch (e) {
-          print('Transaction parsing error: $e for data: $data');
-          return null;
-        }
-      }).whereType<Transaction>().toList();
-
+      return response
+          .map((data) {
+            try {
+              return Transaction.fromJson(data);
+            } catch (e) {
+              print('Transaction parsing error: $e for data: $data');
+              return null;
+            }
+          })
+          .whereType<Transaction>()
+          .toList();
     } catch (e) {
       print('Comprehensive database error: $e');
       return [];
     }
   }
 
-  Future<List<Transaction>> getTransactionsByPersonnel(String personnelId) async {
+  Future<List<Transaction>> getTransactionsByPersonnel(
+      String personnelId) async {
     try {
       final response = await _supabase
           .from('transactions')
           .select()
           .eq('personnel_id', personnelId);
 
-      return (response as List).map((json) => Transaction.fromJson(json)).toList();
+      return (response as List)
+          .map((json) => Transaction.fromJson(json))
+          .toList();
     } catch (e) {
-      throw Exception('Erreur lors de la récupération des transactions du personnel: $e');
+      throw Exception(
+          'Erreur lors de la récupération des transactions du personnel: $e');
     }
   }
 
   Future<List<Todo>> getTodosByChantier(String chantierId) async {
     try {
-      final response = await _supabase
-          .from('todos')
-          .select()
-          .eq('chantier_id', chantierId);
+      final response =
+          await _supabase.from('todos').select().eq('chantier_id', chantierId);
 
       return (response as List).map((json) => Todo.fromJson(json)).toList();
     } catch (e) {
-      throw Exception('Erreur lors de la récupération des todos du chantier: $e');
+      throw Exception(
+          'Erreur lors de la récupération des todos du chantier: $e');
     }
   }
 
@@ -544,7 +539,8 @@ class DatabaseHelper {
 
       return (response as List).map((json) => Todo.fromJson(json)).toList();
     } catch (e) {
-      throw Exception('Erreur lors de la récupération des todos en attente: $e');
+      throw Exception(
+          'Erreur lors de la récupération des todos en attente: $e');
     }
   }
 }

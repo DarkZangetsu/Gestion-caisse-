@@ -12,14 +12,14 @@ import 'package:gestion_caisse_flutter/providers/auth_guard.dart';
 import 'package:gestion_caisse_flutter/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gestion_caisse_flutter/services/work_manager_service.dart';
 import 'config/supabase_config.dart';
 import 'mode/dark_mode.dart';
 import 'mode/light_mode.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final notificationService = TodoNotificationService();
-  await notificationService.initNotification();
+  await WorkManagerService.initialize();
   await SupabaseConfig.initialize();
 
   runApp(

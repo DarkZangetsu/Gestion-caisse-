@@ -1,22 +1,21 @@
-import 'dart:convert';
-import 'dart:io';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:gestion_caisse_flutter/composants/texts.dart';
 import 'package:gestion_caisse_flutter/mode/dark_mode.dart';
 import 'package:gestion_caisse_flutter/mode/light_mode.dart';
 import 'package:gestion_caisse_flutter/models/chantier.dart';
 import 'package:gestion_caisse_flutter/models/payment_type.dart';
 import 'package:gestion_caisse_flutter/models/personnel.dart';
-import 'package:gestion_caisse_flutter/pages/payment_page.dart';
 import 'package:gestion_caisse_flutter/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gestion_caisse_flutter/services/notification_manager.dart';
+import 'package:gestion_caisse_flutter/services/work_manager_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import '../models/todo.dart';
 import '../providers/accounts_provider.dart';
 import '../providers/chantiers_provider.dart';
 import '../providers/personnel_provider.dart';
-import '../providers/payment_methods_provider.dart';
 import '../providers/payment_types_provider.dart';
 import '../providers/todos_provider.dart';
 import '../providers/users_provider.dart';
@@ -36,6 +35,8 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
   late TabController _tabController;
   final _formKey = GlobalKey<FormState>();
   final descriptionController = TextEditingController();
+  late FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
+  late NotificationManager notificationManager;
 
   String? selectedChantierId;
   String? selectedPersonnelId;
@@ -44,6 +45,7 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
   String? selectedPaymentTypeId;
   double? estimatedAmount;
   DateTime? dueDate;
+  TimeOfDay? notificationTime;
 
   @override
   void didChangeDependencies() {
@@ -54,11 +56,74 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
   @override
   void initState() {
     super.initState();
+    flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+    notificationManager = NotificationManager(
+      flutterLocalNotificationsPlugin: flutterLocalNotificationsPlugin,
+    );
     _tabController = TabController(length: 2, vsync: this);
 
+    // Initialiser le fuseau horaire de Madagascar
+    tz.initializeTimeZones();
+    tz.setLocalLocation(tz.getLocation('Indian/Antananarivo'));
+
+    _initializeServices();
+
+    // Vérifier et reprogrammer les notifications au démarrage
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      //notificationManager.checkAndRescheduleNotifications();
       _loadInitialData();
     });
+  }
+
+  Future<void> _initializeServices() async {
+    // Initialiser le fuseau horaire
+    tz.initializeTimeZones();
+    tz.setLocalLocation(tz.getLocation('Indian/Antananarivo'));
+
+    // Initialiser les notifications
+    //await initializeNotifications(flutterLocalNotificationsPlugin);
+
+    // Initialiser WorkManager
+    await WorkManagerService.initialize();
+  }
+
+  // Helper function to generate unique notification IDs
+  int uniqueNotificationId(String todoId, int index) {
+    return int.parse(
+        todoId.hashCode.toString().substring(0, 5) + index.toString());
+  }
+
+  Future<void> _selectNotificationTime() async {
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+      cancelText: 'Annuler',
+      confirmText: 'Confirmer',
+    );
+
+    if (pickedTime != null) {
+      setState(() {
+        notificationTime = pickedTime;
+      });
+    }
+  }
+
+  // Ajouter cette nouvelle méthode pour obtenir le statut de la date d'échéance
+  (String, Color) getDueDateStatus(DateTime dueDate) {
+    final now = tz.TZDateTime.now(tz.getLocation('Indian/Antananarivo'));
+    final difference = dueDate.difference(now).inDays;
+
+    if (difference < 0) {
+      return ('En retard', Colors.red);
+    } else if (difference == 0) {
+      return ('Échéance aujourd\'hui', Colors.orange);
+    } else if (difference == 1) {
+      return ('Échéance demain', Colors.orange);
+    } else if (difference <= 3) {
+      return ('Échéance dans $difference jours', Colors.amber);
+    } else {
+      return ('', Colors.grey);
+    }
   }
 
   Future<void> _loadInitialData() async {
@@ -275,6 +340,24 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
                     }
                   },
                 ),
+                ListTile(
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  title: Text(
+                    notificationTime == null
+                        ? 'Sélectionner une heure de notification'
+                        : 'Notification: ${notificationTime!.format(context)}',
+                    style: TextStyle(
+                      color: notificationTime == null
+                          ? Colors.grey[600]
+                          : Colors.grey[600],
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  trailing: const Icon(Icons.access_time, color: Colors.grey),
+                  onTap: () => _selectNotificationTime(),
+                ),
               ],
             ),
           ),
@@ -403,52 +486,116 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
     }
   }
 
+  Future<void> _saveDueDate(Todo todo) async {
+    try {
+      if (todo.dueDate != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('dueDate', todo.dueDate!.toIso8601String());
+      }
+    } catch (e) {
+      print('Erreur lors de la sauvegarde de la date d\'échéance: $e');
+      // Ne pas lever d'exception pour ne pas interrompre le flux principal
+    }
+  }
+
   Future<void> _saveTodo() async {
     if (_formKey.currentState?.validate() ?? false) {
       final selectedAccount = ref.read(selectedAccountProvider);
-      if (selectedAccount != null && description != null) {
-        try {
-          // Utilisez Uuid() pour générer un UUID v4 valide
-          final uuid = Uuid();
-          final uniqueId = uuid.v4();
 
-          final todo = Todo(
-            id: uniqueId,
-            accountId: selectedAccount.id,
-            chantierId: selectedChantierId,
-            personnelId: selectedPersonnelId,
-            description: description!,
-            estimatedAmount: estimatedAmount,
-            dueDate: dueDate,
-            paymentMethodId: selectedPaymentMethodId,
-            paymentTypeId: selectedPaymentTypeId,
-            completed: false,
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
+      if (selectedAccount == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('Erreur: Aucun compte sélectionné'),
+                backgroundColor: Colors.red),
           );
+        }
+        return;
+      }
 
-          await ref.read(todosStateProvider.notifier).createTodo(todo);
-          final notificationService = TodoNotificationService();
-          await notificationService.scheduleTaskNotifications(todo);
+      if (description == null || description!.trim().isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('Erreur: La description est requise'),
+                backgroundColor: Colors.red),
+          );
+        }
+        return;
+      }
 
-          if (mounted) {
-            Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
+      try {
+        final uuid = Uuid();
+        final uniqueId = uuid.v4();
+
+        // Remove notificationTime from Todo object since it's not in the database schema
+        final todo = Todo(
+          id: uniqueId,
+          accountId: selectedAccount.id,
+          chantierId: selectedChantierId?.isNotEmpty == true
+              ? selectedChantierId
+              : null,
+          personnelId: selectedPersonnelId?.isNotEmpty == true
+              ? selectedPersonnelId
+              : null,
+          description: description!.trim(),
+          estimatedAmount: estimatedAmount,
+          dueDate: dueDate,
+          // Remove notificationTime field
+          paymentMethodId: selectedPaymentMethodId?.isNotEmpty == true
+              ? selectedPaymentMethodId
+              : null,
+          paymentTypeId: selectedPaymentTypeId?.isNotEmpty == true
+              ? selectedPaymentTypeId
+              : null,
+          completed: false,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+
+        // Save the todo first
+        await ref.read(todosStateProvider.notifier).createTodo(todo);
+
+        if (todo.dueDate != null) {
+          try {
+            await WorkManagerService.scheduleNotification(
+              todoId: todo.id,
+              todoDescription: todo.description,
+              dueDate: todo.dueDate!,
+              notificationTime: notificationTime,
+            );
+          } catch (notifError) {
+            print(
+                'Erreur lors de la programmation des notifications: $notifError');
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                      'La tâche a été créée mais les notifications n\'ont pas pu être programmées'),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+            }
+          }
+        }
+
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
                 content: Text('Tâche créée avec succès'),
-                backgroundColor: Colors.green,
-              ),
-            );
-          }
-        } catch (e) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Erreur lors de la création de la tâche: $e'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
+                backgroundColor: Colors.green),
+          );
+        }
+      } catch (e) {
+        print('Erreur détaillée lors de la création de la tâche: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text(
+                    'Erreur lors de la création de la tâche: ${e.toString()}'),
+                backgroundColor: Colors.red),
+          );
         }
       }
     }
@@ -566,6 +713,9 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
       padding: const EdgeInsets.all(8),
       itemBuilder: (context, index) {
         final todo = todos[index];
+        final (dueDateStatus, statusColor) = todo.dueDate != null
+            ? getDueDateStatus(todo.dueDate!)
+            : ('', Colors.grey);
         return Dismissible(
           key: Key(todo.id),
           direction: DismissDirection.endToStart,
@@ -647,8 +797,8 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
                         DateFormat('dd/MM/yyyy').format(todo.dueDate!),
                         style: TextStyle(
                           fontSize: 12,
-                          color: todo.getDueDateColor(),
-                          fontWeight: todo.isApproachingDueDate()
+                          color: statusColor,
+                          fontWeight: dueDateStatus.isNotEmpty
                               ? FontWeight.bold
                               : FontWeight.normal,
                         ),
@@ -853,216 +1003,5 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
   void dispose() {
     _tabController.dispose();
     super.dispose();
-  }
-}
-
-class TodoNotificationService {
-  static final TodoNotificationService _instance =
-      TodoNotificationService._internal();
-  factory TodoNotificationService() => _instance;
-  TodoNotificationService._internal();
-
-  final FlutterLocalNotificationsPlugin notificationsPlugin =
-      FlutterLocalNotificationsPlugin();
-  bool _isInitialized = false;
-
-  // Constantes pour la configuration
-  static const int _notificationHour = 8; // Notification à 8h du matin
-  static const String _channelId = 'todo_alerts';
-  static const String _channelName = 'Alertes des tâches';
-  static const String _channelDescription =
-      'Notifications pour les tâches à venir';
-  static const Color _notificationColor = Color(0xffea6b24);
-
-  Future<bool> initNotification() async {
-    if (_isInitialized) return true;
-
-    try {
-      tz.initializeTimeZones();
-      tz.setLocalLocation(tz.local);
-
-      const initializationSettings = InitializationSettings(
-        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-        iOS: DarwinInitializationSettings(
-          requestAlertPermission: true,
-          requestBadgePermission: true,
-          requestSoundPermission: true,
-        ),
-      );
-
-      final success = await notificationsPlugin.initialize(
-        initializationSettings,
-        onDidReceiveNotificationResponse: _handleNotificationResponse,
-      );
-
-      _isInitialized = success ?? false;
-      return _isInitialized;
-    } catch (e) {
-      debugPrint('Erreur lors de l\'initialisation des notifications: $e');
-      return false;
-    }
-  }
-
-  Future<void> _handleNotificationResponse(
-      NotificationResponse response) async {
-    if (response.payload == null) return;
-
-    try {
-      final payload = json.decode(response.payload!) as Map<String, dynamic>;
-      debugPrint('Payload reçu: $payload');
-    } catch (e) {
-      debugPrint('Erreur lors du traitement de la notification: $e');
-    }
-  }
-
-  Future<void> scheduleTaskNotifications(Todo todo) async {
-    if (!_isInitialized || todo.dueDate == null) return;
-
-    try {
-      if (!await _checkNotificationPermissions()) {
-        debugPrint('Permissions de notification non accordées');
-        return;
-      }
-
-      await cancelTaskNotifications(todo.id);
-
-      final alerts = [
-        (days: 3, importance: Importance.defaultImportance),
-        (days: 2, importance: Importance.high),
-        (days: 1, importance: Importance.max),
-      ];
-
-      for (var alert in alerts) {
-        final alertDate = _calculateAlertDateTime(todo.dueDate!, alert.days);
-
-        if (alertDate.isAfter(tz.TZDateTime.now(tz.local))) {
-          final payload = {
-            'todoId': todo.id,
-            'description': todo.description,
-            'dueDate': todo.dueDate!.toIso8601String(),
-            'alertDays': alert.days,
-          };
-
-          await notificationsPlugin.zonedSchedule(
-            _generateNotificationId(todo.id, alert.days),
-            'Rappel de tâche',
-            _generateNotificationBody(todo, alert.days),
-            alertDate,
-            NotificationDetails(
-              android: _createAndroidNotificationDetails(alert.importance),
-              iOS: _createIOSNotificationDetails(),
-            ),
-            payload: json.encode(payload),
-            uiLocalNotificationDateInterpretation:
-                UILocalNotificationDateInterpretation.absoluteTime,
-            androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-            matchDateTimeComponents: DateTimeComponents.time,
-          );
-        }
-      }
-    } catch (e) {
-      debugPrint('Erreur lors de la programmation des notifications: $e');
-    }
-  }
-
-  AndroidNotificationDetails _createAndroidNotificationDetails(
-      Importance importance) {
-    return AndroidNotificationDetails(
-      _channelId,
-      _channelName,
-      channelDescription: _channelDescription,
-      importance: importance,
-      priority: Priority.high,
-      color: _notificationColor,
-      enableLights: true,
-      enableVibration: true,
-      styleInformation: const BigTextStyleInformation(''),
-    );
-  }
-
-  DarwinNotificationDetails _createIOSNotificationDetails() {
-    return const DarwinNotificationDetails(
-      presentAlert: true,
-      presentBadge: true,
-      presentSound: true,
-    );
-  }
-
-  tz.TZDateTime _calculateAlertDateTime(DateTime dueDate, int days) {
-    final DateTime alertDate = dueDate.subtract(Duration(days: days));
-    return tz.TZDateTime(
-      tz.local,
-      alertDate.year,
-      alertDate.month,
-      alertDate.day,
-      _notificationHour, // Utilisation de la constante pour 8h
-      0,
-    );
-  }
-
-  String _generateNotificationBody(Todo todo, int days) {
-    return 'La tâche "${todo.description}" arrive à échéance dans $days jour${days > 1 ? 's' : ''}';
-  }
-
-  int _generateNotificationId(String todoId, int days) {
-    return (todoId + days.toString()).hashCode;
-  }
-
-  Future<bool> _checkNotificationPermissions() async {
-    if (Platform.isAndroid) return true;
-
-    if (Platform.isIOS) {
-      final settings = await notificationsPlugin
-          .resolvePlatformSpecificImplementation<
-              IOSFlutterLocalNotificationsPlugin>()
-          ?.requestPermissions(
-            alert: true,
-            badge: true,
-            sound: true,
-          );
-      return settings ?? false;
-    }
-    return false;
-  }
-
-  Future<void> cancelTaskNotifications(String todoId) async {
-    try {
-      for (var days in [3, 2, 1]) {
-        await notificationsPlugin.cancel(_generateNotificationId(todoId, days));
-      }
-    } catch (e) {
-      debugPrint('Erreur lors de l\'annulation des notifications: $e');
-    }
-  }
-}
-
-class NotificationAlert {
-  final int days;
-  final Importance importance;
-
-  NotificationAlert({
-    required this.days,
-    required this.importance,
-  });
-}
-
-extension TodoNotifications on Todo {
-  bool isApproachingDueDate() {
-    if (dueDate == null) return false;
-    final daysUntilDue = dueDate!.difference(DateTime.now()).inDays;
-    return daysUntilDue <= 3 && daysUntilDue > 0;
-  }
-
-  Color getDueDateColor() {
-    if (dueDate == null) return Colors.grey;
-    if (completed) return Colors.green;
-
-    final daysUntilDue = dueDate!.difference(DateTime.now()).inDays;
-
-    if (daysUntilDue < 0) return Colors.red.shade700;
-    if (daysUntilDue <= 1) return Colors.red;
-    if (daysUntilDue <= 2) return Colors.orange;
-    if (daysUntilDue <= 3) return Colors.yellow.shade700;
-    return Colors.green;
   }
 }

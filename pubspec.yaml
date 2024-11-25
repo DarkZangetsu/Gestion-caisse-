@@ -50,17 +50,27 @@ dependencies:
   open_file: ^3.5.10
   printing: ^5.13.4
   shared_preferences: ^2.2.2
+  timezone: ^0.9.1
   flutter_local_notifications: ^18.0.1
-  flutter_timezone: ^3.0.1
+  permission_handler: ^10.2.0
 
   window_size:
     git:
       url: https://github.com/google/flutter-desktop-embedding
       path: plugins/window_size
+  android_alarm_manager_plus: ^4.0.4
+  workmanager: ^0.5.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+
+  flutter_launcher_icons: "^0.14.1"
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "img/Logo.png"
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
