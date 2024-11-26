@@ -1,3 +1,4 @@
+import 'package:gestion_caisse_flutter/composants/texts.dart';
 import 'package:gestion_caisse_flutter/providers/transactions_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -211,9 +212,31 @@ class _DialogCompteState extends ConsumerState<DialogCompte> {
                 icon: const Icon(Icons.delete),
                 onPressed: () {
                   // Supprimer le compte
-                  ref
-                      .read(accountsStateProvider.notifier)
-                      .deleteAccount(compte.id);
+                  showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                            title: MyText(texte: "Supprimer compte"),
+                            content: MyText(
+                                texte:
+                                    "Vous voulez vrais supprimer le compte: '${compte.name}'"),
+                            actions: [
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                },
+                                child: const Text('NON'),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  ref
+                                      .read(accountsStateProvider.notifier)
+                                      .deleteAccount(compte.id);
+                                },
+                                child: const Text('OUI'),
+                              ),
+                            ],
+                          ));
                 },
               ),
             ],

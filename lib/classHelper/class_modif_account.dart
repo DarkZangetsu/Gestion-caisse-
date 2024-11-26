@@ -114,7 +114,7 @@ class _ModifierCompteDialogState extends ConsumerState<ModifierCompteDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: const MyText(texte: "ANNULER", color: Colors.black,),
+          child: const MyText(texte: "ANNULER"),
         ),
         MyButtons(
           backgroundColor: const Color(0xffea6b24),
