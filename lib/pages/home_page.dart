@@ -572,10 +572,18 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
+  // recharger les données de type de payement et nom de parsonne après recherche
+  Future<void> _refreshData() async {
+    final userId = ref.read(currentUserProvider)?.id;
+  await ref.read(personnelStateProvider.notifier).getPersonnel(userId!);
+  await ref.read(paymentTypesProvider.notifier).getPaymentTypes();
+}
+
   // Filter transactions based on search query
   // Debug helper method
   List<Transaction> _filterTransactions(List<Transaction> transactions) {
     final selectedAccountId = ref.read(selectedAccountProvider)?.id;
+    _refreshData();
 
     // Afficher le compte actuel et le nombre total de transactions avant filtrage
     if (selectedAccountId != null) {
@@ -591,6 +599,10 @@ class _HomePageState extends ConsumerState<HomePage> {
         ? DateTime(_endDate!.year, _endDate!.month, _endDate!.day, 23, 59, 59)
         : null;
 
+    // Récupération synchrone des données
+    final personnel = ref.read(personnelStateProvider).value ?? [];
+    final paymentTypes = ref.read(paymentTypesProvider).value ?? [];
+
     final filtered = transactions.where((transaction) {
       // Vérification du compte
       final matchesAccount = transaction.accountId == selectedAccountId;
@@ -604,11 +616,44 @@ class _HomePageState extends ConsumerState<HomePage> {
           : true;
 
       // Vérification de la recherche
-      final matchesSearchQuery = _searchQuery.isEmpty ||
-          transaction.description
-                  ?.toLowerCase()
-                  .contains(_searchQuery.toLowerCase()) ==
-              true;
+      bool matchesSearchQuery = _searchQuery.isEmpty;
+
+      if (!matchesSearchQuery) {
+        // Recherche par personnel
+        final person = personnel.firstWhere(
+          (p) => p.id == transaction.personnelId,
+          orElse: () => Personnel(id: '', name: 'Non trouvé', userId: ''),
+        );
+
+        // Vérifier si le nom du personnel correspond à la requête de recherche
+        if (person.name.toLowerCase().contains(_searchQuery.toLowerCase())) {
+          matchesSearchQuery = true;
+        }
+
+        // Vérifier si la description correspond à la requête de recherche
+        if (!matchesSearchQuery &&
+            transaction.description
+                    ?.toLowerCase()
+                    .contains(_searchQuery.toLowerCase()) ==
+                true) {
+          matchesSearchQuery = true;
+        }
+
+        // Vérifier le type de paiement
+        if (!matchesSearchQuery) {
+          final paymentType = paymentTypes.firstWhere(
+            (type) => type.id == transaction.paymentTypeId,
+            orElse: () => PaymentType(id: '', name: 'Non trouvé', category: ''),
+          );
+
+          // Vérifier si le nom du type de paiement correspond à la requête de recherche
+          if (paymentType.name
+              .toLowerCase()
+              .contains(_searchQuery.toLowerCase())) {
+            matchesSearchQuery = true;
+          }
+        }
+      }
 
       // Vérification du filtre temporel
       final matchesTimeframe = _matchesTimeframe(transaction.transactionDate);
@@ -899,18 +944,16 @@ class _DetailRowState extends State<DetailRow> {
                 fontWeight: FontWeight.bold,
                 color: Color(0xffea6b24),
                 fontSize:
-                    16, // Augmenter la taille de la police pour une meilleure lisibilité
+                    16, 
               ),
             ),
           ),
-          const SizedBox(width: 8.0), // Espace entre le label et la valeur
+          const SizedBox(width: 8.0),
           Expanded(
             child: Text(
               value,
               style: const TextStyle(
                 fontSize: 14,
-                color: Colors
-                    .black, // Assurez-vous que la couleur est suffisamment contrastée
               ),
             ),
           ),
