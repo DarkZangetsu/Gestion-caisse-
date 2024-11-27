@@ -33,7 +33,6 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
   String _searchQuery = '';
   String _selectedTimeframeFilter = 'Tous';
   int _selectedFilterIndex = 0;
-  bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
 
@@ -41,7 +40,6 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      print('Loading transactions for chantierId: ${widget.chantierId}');
       ref
           .read(transactionStateProvider.notifier)
           .loadTransactionsByChantier(widget.chantierId);
@@ -50,7 +48,9 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
 
   @override
   void dispose() {
-    ref.read(transactionStateProvider.notifier).resetTransactions();
+    //ref.read(transactionStateProvider.notifier).resetTransactions();
+    _searchController.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -59,42 +59,20 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
       _startDate = null;
       _endDate = null;
     });
-    _showResetSnackBar();
-  }
-
-  void _showResetSnackBar() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Plage de dates réinitialisée')),
     );
   }
 
-  void _toggleSearch() {
-    setState(() {
-      _isSearching = !_isSearching;
-      if (!_isSearching) {
-        _searchController.clear();
-        setState(() => _searchQuery = '');
-        _focusNode.unfocus();
-      } else {
-        _focusNode.requestFocus();
-      }
-    });
-  }
-
   bool _isWithinTimeframe(DateTime date, String timeframe) {
     final now = DateTime.now();
-    switch (timeframe) {
-      case 'Quotidien':
-        return _isSameDay(date, now);
-      case 'Hebdomadaire':
-        return _isInCurrentWeek(date, now);
-      case 'Mensuel':
-        return _isInCurrentMonth(date, now);
-      case 'Annuel':
-        return date.year == now.year;
-      default:
-        return true;
-    }
+    return switch (timeframe) {
+      'Quotidien' => _isSameDay(date, now),
+      'Hebdomadaire' => _isInCurrentWeek(date, now),
+      'Mensuel' => _isInCurrentMonth(date, now),
+      'Annuel' => date.year == now.year,
+      _ => true
+    };
   }
 
   bool _isSameDay(DateTime date1, DateTime date2) {
@@ -212,33 +190,58 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
   Widget build(BuildContext context) {
     final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
     final transactionsAsync = ref.watch(transactionsStateProvider);
-    bool _isSearching = false;
 
     return Scaffold(
       appBar: AppBar(
         iconTheme: const IconThemeData(color: Colors.white),
         backgroundColor: const Color(0xffea6b24),
-        title: _isSearching
-            ? TextField(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              "Transactions",
+              style: TextStyle(
+                fontSize: 12.0, 
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                height:
+                    0.5,
+              ),
+            ),
+            const SizedBox(
+                height: 8.0), 
+            SizedBox(
+              height: 40, 
+              child: TextField(
                 controller: _searchController,
                 focusNode: _focusNode,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: 'Rechercher...',
-                  hintStyle: TextStyle(color: Colors.white70),
-                  border: InputBorder.none,
+                  hintStyle: const TextStyle(color: Colors.white70),
+                  filled: true,
+                  fillColor: Colors.white24,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
+                  ),
+                  prefixIcon:
+                      const Icon(Icons.search, color: Colors.white70, size: 20),
                 ),
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14.0,
+                  height:
+                      1.4, 
+                ),
                 onChanged: (value) => setState(() => _searchQuery = value),
-              )
-            : const Text('Transactions', style: TextStyle(color: Colors.white)),
-        actions: [
-          IconButton(
-            icon: Icon(
-              _isSearching ? Icons.close : Icons.search,
-              color: Colors.white,
+              ),
             ),
-            onPressed: _toggleSearch,
-          ),
+          ],
+        ),
+        actions: [
           IconButton(
             icon: const Icon(
               Icons.date_range_outlined,
@@ -315,8 +318,8 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
       data: (transactions) =>
           _buildTransactionsContent(transactions, isDarkMode),
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (_, __) => const Center(
-        child: Text('Erreur lors du chargement des transactions'),
+      error: (error, stackTrace) => Center(
+        child: Text('Erreur lors du chargement des transactions: $error'),
       ),
     );
   }

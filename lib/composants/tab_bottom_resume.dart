@@ -19,7 +19,6 @@ class TabBottomResume extends ConsumerWidget {
   // Ajoutez WidgetRef ref dans la méthode build
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final montantController = TextEditingController();
     return Column(
       children: [
         Row(

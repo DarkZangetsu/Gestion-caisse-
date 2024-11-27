@@ -454,7 +454,7 @@ class DatabaseHelper {
       final response = await _supabase
           .from('transactions')
           .select('*')
-          .eq('chantier_id', chantierId) // Ensure this matches exactly
+          .eq('chantier_id', chantierId)
           .order('transaction_date', ascending: false);
 
       print('Raw database response length: ${response.length}');

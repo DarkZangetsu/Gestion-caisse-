@@ -9,6 +9,7 @@ import 'package:gestion_caisse_flutter/imprimer/pdf.dart';
 import 'package:gestion_caisse_flutter/pages/payment_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gestion_caisse_flutter/providers/accounts_provider.dart';
 import '../models/accounts.dart';
 import '../models/chantier.dart';
 import '../models/payment_type.dart';
@@ -145,29 +146,27 @@ class _HomePageState extends ConsumerState<HomePage> {
     debugPrint('Transactions chargées: ${transactions.length}');
   }
 
-  final selectedAccountProvider = StateProvider<Account?>((ref) => null);
-
   void _showAccountDialog(BuildContext context) {
     DialogCompte.show(
       context,
       onCompteSelectionne: (Account selectedAccount) async {
-        debugPrint('Compte sélectionné: ${selectedAccount.id}');
+        // Mise à jour de l'ID du compte sélectionné
         ref.read(selectedAccountProvider.notifier).state = selectedAccount;
 
         try {
+          // Chargement des transactions du compte
           await ref
               .read(transactionsStateProvider.notifier)
               .loadTransactions(selectedAccount.id);
-          debugPrint(
-              'Transactions chargées pour le compte ${selectedAccount.solde}');
 
-          // Vérifiez le nombre de transactions chargées
+          // Log des transactions chargées
           final transactions = ref.read(transactionsStateProvider).value ?? [];
-          debugPrint('Nombre de transactions chargées: ${transactions.length}');
+          debugPrint('Compte sélectionné: ${selectedAccount.id}');
+          debugPrint('Transactions chargées: ${transactions.length}');
         } catch (e) {
           debugPrint('Erreur lors du chargement des transactions: $e');
           _showErrorDialog(
-              context, 'Erreur lors du chargement des transactions');
+              context, 'Impossible de charger les transactions du compte');
         }
       },
     );
@@ -575,9 +574,9 @@ class _HomePageState extends ConsumerState<HomePage> {
   // recharger les données de type de payement et nom de parsonne après recherche
   Future<void> _refreshData() async {
     final userId = ref.read(currentUserProvider)?.id;
-  await ref.read(personnelStateProvider.notifier).getPersonnel(userId!);
-  await ref.read(paymentTypesProvider.notifier).getPaymentTypes();
-}
+    await ref.read(personnelStateProvider.notifier).getPersonnel(userId!);
+    await ref.read(paymentTypesProvider.notifier).getPaymentTypes();
+  }
 
   // Filter transactions based on search query
   // Debug helper method
@@ -943,8 +942,7 @@ class _DetailRowState extends State<DetailRow> {
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 color: Color(0xffea6b24),
-                fontSize:
-                    16, 
+                fontSize: 16,
               ),
             ),
           ),

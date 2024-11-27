@@ -347,6 +347,8 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
       _selectedChantierId = transaction.chantierId;
       _selectedPersonnelId = transaction.personnelId;
 
+      debugPrint("selected *****: ${ref.read(selectedAccountProvider)}");
+
       // Charger les données initiales pour le chantier et le personnel
       Future.microtask(() {
         final userId = ref.read(currentUserProvider)?.id ?? '';
@@ -420,6 +422,109 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
   }
 
   Future<void> _saveTransaction() async {
+    // Form validation
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    // Account selection validation
+    final selectedAccount = ref.watch(selectedAccountProvider);
+    if (selectedAccount == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Veuillez sélectionner un compte')),
+      );
+      return;
+    }
+
+    // Additional validations
+    final amountText = _amountController.text.trim();
+    final amount = double.tryParse(amountText);
+    if (amount == null || amount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Veuillez entrer un montant valide')),
+      );
+      return;
+    }
+
+    final description = _descriptionController.text.trim();
+    if (description.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('La description est obligatoire')),
+      );
+      return;
+    }
+
+    final now = DateTime.now();
+    final transaction = widget.isEditing && widget.transaction != null
+        ? widget.transaction!.copyWith(
+            accountId: selectedAccount.id,
+            chantierId: _selectedChantierId,
+            personnelId: _selectedPersonnelId,
+            paymentTypeId: _selectedPaymentTypeId,
+            description: description,
+            amount: amount,
+            transactionDate: _transactionDate,
+            type: _type,
+            updatedAt: now,
+          )
+        : Transaction(
+            id: const Uuid().v4(),
+            accountId: selectedAccount.id,
+            chantierId: _selectedChantierId,
+            personnelId: _selectedPersonnelId,
+            paymentTypeId: _selectedPaymentTypeId,
+            description: description,
+            amount: amount,
+            transactionDate: _transactionDate,
+            type: _type,
+            createdAt: now,
+            updatedAt: now,
+          );
+
+    try {
+      final transactionsNotifier = ref.read(transactionsStateProvider.notifier);
+
+      if (widget.isEditing && widget.onSave != null) {
+        // If a custom save handler is provided (for external editing)
+        await widget.onSave!(transaction);
+      } else {
+        // Standard transaction saving process
+        if (widget.isEditing) {
+          // Update existing transaction
+          await transactionsNotifier.updateTransaction(transaction);
+        } else {
+          // Add new transaction
+          await transactionsNotifier.addTransaction(transaction);
+        }
+
+        // Reload transactions for the selected account
+        await transactionsNotifier.loadTransactions(selectedAccount.id);
+      }
+
+      if (mounted) {
+        debugPrint("selectedAccount: $selectedAccount");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(widget.isEditing
+                ? 'Transaction mise à jour avec succès'
+                : 'Transaction enregistrée avec succès'),
+          ),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        debugPrint('Transaction save error: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Une erreur est survenue lors de l\'enregistrement'),
+          ),
+        );
+      }
+    }
+  }
+
+  /*Future<void> _saveTransaction() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -491,7 +596,7 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
         );
       }
     }
-  }
+  }*/
 
   @override
   Widget build(BuildContext context) {

@@ -19,6 +19,7 @@ class ChantierPage extends ConsumerWidget {
         title: const MyText(
           texte: 'Gestion des Chantiers',
           color: Colors.white,
+          fontSize: 20.0,
         ),
         backgroundColor: const Color(0xffea6b24),
         iconTheme: const IconThemeData(color: Colors.white),

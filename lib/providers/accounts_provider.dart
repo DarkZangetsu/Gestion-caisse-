@@ -1,6 +1,5 @@
 import 'package:gestion_caisse_flutter/providers/users_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../models/accounts.dart';
 import '../services/database_helper.dart';
 
@@ -24,7 +23,7 @@ class AccountsNotifier extends StateNotifier<AsyncValue<List<Account>>> {
   final DatabaseHelper _db;
 
   AccountsNotifier(this._db, String userId) : super(const AsyncValue.data([])) {
-    getAccounts(userId); // Charger les comptes lors de l'initialisation
+    getAccounts(userId); 
   }
 
   Future<void> getAccounts(String userId) async {
