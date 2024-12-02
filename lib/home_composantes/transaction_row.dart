@@ -6,6 +6,7 @@ import 'package:gestion_caisse_flutter/models/personnel.dart';
 import 'package:gestion_caisse_flutter/models/transaction.dart';
 import 'package:flutter/material.dart';
 import 'package:gestion_caisse_flutter/pages/home_page.dart';
+import 'package:gestion_caisse_flutter/providers/accounts_provider.dart';
 import 'package:gestion_caisse_flutter/providers/payment_types_provider.dart';
 import 'package:gestion_caisse_flutter/providers/personnel_provider.dart';
 import 'package:gestion_caisse_flutter/providers/users_provider.dart';
@@ -156,6 +157,14 @@ class _TransactionRowState extends ConsumerState<TransactionRow> {
                             color: Colors.grey[600],
                           ),
                         ),
+                      Consumer(
+                        builder: (context, ref, child) {
+                          final selectedAccount =
+                              ref.watch(selectedAccountProvider);
+                          return MyText(
+                              texte: "Compte: ${selectedAccount?.name}");
+                        },
+                      ),
                     ]),
               ),
               Text_transaction(

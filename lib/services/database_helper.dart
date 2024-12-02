@@ -53,10 +53,8 @@ class DatabaseHelper {
     }
   }
 
-  Future<AppUser?> signInUser(String email, String password) async {
+  /*Future<AppUser?> signInUser(String email, String password) async {
     try {
-      // Add debug print to see the values
-      print('Attempting login with email: $email');
 
       final hashedPassword = _hashPassword(password);
       print('Hashed password: $hashedPassword');
@@ -68,16 +66,35 @@ class DatabaseHelper {
           .eq('password', hashedPassword)
           .maybeSingle();
 
-      print('Supabase response: $response'); // Add debug print
-
       if (response == null) {
-        throw Exception('Email ou mot de passe incorrect');
+        throw Exception('Mot de passe incorrect');
       }
 
       return AppUser.fromJson(response);
     } catch (e) {
-      print('Error during login: $e'); // Add debug print
-      throw Exception('Erreur lors de la connexion: $e');
+      print('Error during login: $e'); 
+      throw Exception('Erreur lors de la connexion');
+    }
+  }*/
+
+  Future<AppUser?> signInUser(String email, String password) async {
+    try {
+      final hashedPassword = _hashPassword(password);
+
+      final response = await _supabase
+          .from('users')
+          .select()
+          .eq('email', email)
+          .eq('password', hashedPassword)
+          .maybeSingle();
+
+      if (response == null) {
+        throw 'Mot de passe incorrect';
+      }
+
+      return AppUser.fromJson(response);
+    } catch (e) {
+      throw e; 
     }
   }
 
@@ -350,18 +367,18 @@ class DatabaseHelper {
 
   //New change
   Future<List<Transaction>> getAllTransactions() async {
-  try {
-    final query = _supabase.from('transactions').select();
-    
-    final response = await query.order('created_at', ascending: false);
+    try {
+      final query = _supabase.from('transactions').select();
 
-    return (response as List)
-        .map((json) => Transaction.fromJson(json))
-        .toList();
-  } catch (e) {
-    throw Exception('Erreur lors de la récupération des transactions: $e');
+      final response = await query.order('created_at', ascending: false);
+
+      return (response as List)
+          .map((json) => Transaction.fromJson(json))
+          .toList();
+    } catch (e) {
+      throw Exception('Erreur lors de la récupération des transactions: $e');
+    }
   }
-}
 
   Future<Transaction> createTransaction(Transaction transaction) async {
     try {
