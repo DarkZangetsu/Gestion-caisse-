@@ -17,7 +17,7 @@ class LoginPage extends ConsumerWidget {
       next.when(
         data: (user) {
           if (user != null) {
-            Navigator.of(context).pushReplacementNamed('/home');
+            Navigator.of(context).pushReplacementNamed('/dashboard');
           }
         },
         error: (error, stackTrace) {

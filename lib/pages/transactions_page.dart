@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gestion_caisse_flutter/composants/empty_transaction_view.dart';
 import 'package:gestion_caisse_flutter/composants/tab_header.dart';
 import 'package:gestion_caisse_flutter/composants/texts.dart';
@@ -5,46 +7,22 @@ import 'package:gestion_caisse_flutter/home_composantes/transaction_row.dart';
 import 'package:gestion_caisse_flutter/models/transaction.dart';
 import 'package:gestion_caisse_flutter/providers/theme_provider.dart';
 import 'package:gestion_caisse_flutter/providers/transactions_provider.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../providers/selected_chantier_provider.dart';
-
-class TransactionPage extends ConsumerStatefulWidget {
-  final String chantierId;
-  const TransactionPage({super.key, required this.chantierId});
+class TransactionsPage extends ConsumerStatefulWidget {
+  TransactionsPage({super.key});
 
   @override
-  ConsumerState<TransactionPage> createState() => _TransactionPageState();
+  ConsumerState<TransactionsPage> createState() => _TransactionsPageState();
 }
 
-class _TransactionPageState extends ConsumerState<TransactionPage> {
-  static const filterChoice = [
-    "Tous",
-    "Quotidien",
-    "Hebdomadaire",
-    "Mensuel",
-    "Annuel"
-  ];
-
+class _TransactionsPageState extends ConsumerState<TransactionsPage> {
   DateTime? _startDate;
   DateTime? _endDate;
   String _searchQuery = '';
   String _selectedTimeframeFilter = 'Tous';
-  int _selectedFilterIndex = 0;
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref
-          .read(transactionStateProvider.notifier)
-          .loadTransactionsByChantier(widget.chantierId);
-    });
-  }
 
   @override
   void dispose() {
@@ -150,7 +128,7 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
 
   List<Transaction> _filterTransactions(List<Transaction> transactions) {
     return transactions.where((transaction) {
-      final matchesChantier = transaction.chantierId == widget.chantierId;
+      //final matchesChantier = transaction.chantierId == widget.chantierId;
       final matchesDateRange = _isWithinDateRange(transaction.transactionDate);
       final matchesSearchQuery = _matchesSearchQuery(transaction);
       final matchesTimeframe = _isWithinTimeframe(
@@ -158,7 +136,7 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
         _selectedTimeframeFilter,
       );
 
-      return matchesChantier &&
+      return 
           matchesDateRange &&
           matchesSearchQuery &&
           matchesTimeframe;
@@ -190,7 +168,6 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
   Widget build(BuildContext context) {
     final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
     final transactionsAsync = ref.watch(transactionsStateProvider);
-
     return Scaffold(
       appBar: AppBar(
         iconTheme: const IconThemeData(color: Colors.white),
@@ -202,17 +179,15 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
             Text(
               "Transactions",
               style: TextStyle(
-                fontSize: 12.0, 
+                fontSize: 12.0,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
-                height:
-                    0.5,
+                height: 0.5,
               ),
             ),
-            const SizedBox(
-                height: 8.0), 
+            const SizedBox(height: 8.0),
             SizedBox(
-              height: 40, 
+              height: 40,
               child: TextField(
                 controller: _searchController,
                 focusNode: _focusNode,
@@ -233,8 +208,7 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 14.0,
-                  height:
-                      1.4, 
+                  height: 1.4,
                 ),
                 onChanged: (value) => setState(() => _searchQuery = value),
               ),
@@ -254,7 +228,7 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
       body: SafeArea(
         child: Column(
           children: [
-            _buildFilterChips(isDarkMode),
+            //_buildFilterChips(isDarkMode),
             Expanded(
               child: _buildTransactionsList(transactionsAsync, isDarkMode),
             ),
@@ -262,52 +236,6 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
         ),
       ),
     );
-  }
-
-  Widget _buildFilterChips(bool isDarkMode) {
-    return Container(
-      padding: const EdgeInsets.all(8.0),
-      height: 60,
-      color: const Color(0xffea6b24),
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: filterChoice.length,
-        itemBuilder: (context, index) => _buildChoiceChip(index, isDarkMode),
-      ),
-    );
-  }
-
-  Widget _buildChoiceChip(int index, bool isDarkMode) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4.0),
-      child: ChoiceChip(
-        selectedColor: const Color(0xffea6b24),
-        labelPadding:
-            const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
-        side: const BorderSide(color: Colors.white),
-        label: Text(
-          filterChoice[index],
-          style: TextStyle(
-            color: _selectedFilterIndex == index
-                ? Colors.white
-                : isDarkMode
-                    ? Colors.grey[300]
-                    : Colors.black,
-            fontSize: 14.0,
-          ),
-        ),
-        selected: _selectedTimeframeFilter == filterChoice[index],
-        onSelected: (selected) => _onFilterSelected(selected, index),
-      ),
-    );
-  }
-
-  void _onFilterSelected(bool selected, int index) {
-    setState(() {
-      _selectedFilterIndex = selected ? index : 0;
-      _selectedTimeframeFilter = selected ? filterChoice[index] : 'Tous';
-    });
   }
 
   Widget _buildTransactionsList(

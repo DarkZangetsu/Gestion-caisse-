@@ -348,6 +348,21 @@ class DatabaseHelper {
     }
   }
 
+  //New change
+  Future<List<Transaction>> getAllTransactions() async {
+  try {
+    final query = _supabase.from('transactions').select();
+    
+    final response = await query.order('created_at', ascending: false);
+
+    return (response as List)
+        .map((json) => Transaction.fromJson(json))
+        .toList();
+  } catch (e) {
+    throw Exception('Erreur lors de la récupération des transactions: $e');
+  }
+}
+
   Future<Transaction> createTransaction(Transaction transaction) async {
     try {
       final response = await _supabase

@@ -2,6 +2,7 @@ import 'package:gestion_caisse_flutter/check_connexion/widget_awesome_connexion.
 import 'package:gestion_caisse_flutter/pages/ChangePasswordPage.dart';
 import 'package:gestion_caisse_flutter/pages/PersonnelPage.dart';
 import 'package:gestion_caisse_flutter/pages/chantier_page.dart';
+import 'package:gestion_caisse_flutter/pages/dashboard_page.dart';
 import 'package:gestion_caisse_flutter/pages/home_page.dart';
 import 'package:gestion_caisse_flutter/pages/login_page.dart';
 import 'package:gestion_caisse_flutter/pages/payment_page.dart';
@@ -9,6 +10,7 @@ import 'package:gestion_caisse_flutter/pages/payment_types_page.dart';
 import 'package:gestion_caisse_flutter/pages/splash.dart';
 import 'package:gestion_caisse_flutter/pages/todolist_page.dart';
 import 'package:gestion_caisse_flutter/pages/transaction.dart';
+import 'package:gestion_caisse_flutter/pages/transactions_page.dart';
 import 'package:gestion_caisse_flutter/providers/auth_guard.dart';
 import 'package:gestion_caisse_flutter/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
@@ -44,8 +46,12 @@ class MaApplication extends ConsumerWidget {
       home: Splash(),
       routes: {
         '/login': (context) => const WidgetAwareConnexion(child: LoginPage()),
+        '/dashboard': (context) =>
+            const WidgetAwareConnexion(child: DashboardPage()),
         '/home': (context) =>
             const WidgetAwareConnexion(child: AuthGuard(child: HomePage())),
+        '/transaction_page': (context) =>
+            WidgetAwareConnexion(child: TransactionsPage()),
         '/payement': (context) =>
             const WidgetAwareConnexion(child: AuthGuard(child: PaymentPage())),
         '/chantier': (context) =>

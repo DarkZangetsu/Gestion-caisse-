@@ -140,8 +140,8 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   Future<void> _loadTransactions(String accountId) async {
     await ref
-        .read(transactionsStateProvider.notifier)
-        .loadTransactions(accountId);
+        .read(transactionsStateProvider.notifier).loadTransactions();
+        //.loadTransactions(accountId);
     final transactions = ref.read(transactionsStateProvider).value ?? [];
     debugPrint('Transactions chargées: ${transactions.length}');
   }
@@ -156,8 +156,8 @@ class _HomePageState extends ConsumerState<HomePage> {
         try {
           // Chargement des transactions du compte
           await ref
-              .read(transactionsStateProvider.notifier)
-              .loadTransactions(selectedAccount.id);
+              .read(transactionsStateProvider.notifier).loadTransactions();
+              //.loadTransactions(selectedAccount.id);
 
           // Log des transactions chargées
           final transactions = ref.read(transactionsStateProvider).value ?? [];

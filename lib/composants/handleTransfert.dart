@@ -93,10 +93,10 @@ void handleTransfer(BuildContext context, WidgetRef ref) {
                     Navigator.of(context).pop();
 
                     // Rafraîchir les transactions pour les deux comptes
-                    await ref.read(transactionsStateProvider.notifier)
-                        .loadTransactions(sourceAccount!.id);
-                    await ref.read(transactionsStateProvider.notifier)
-                        .loadTransactions(destinationAccount!.id);
+                    await ref.read(transactionsStateProvider.notifier).loadTransactions();
+                        //.loadTransactions(sourceAccount!.id);
+                    await ref.read(transactionsStateProvider.notifier).loadTransactions();
+                        //.loadTransactions(destinationAccount!.id);
 
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Transfert effectué avec succès')),

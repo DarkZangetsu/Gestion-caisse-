@@ -6,12 +6,12 @@ import '../providers/chantiers_provider.dart';
 import '../providers/users_provider.dart';
 import '../widgets/chantier/chantier_card.dart';
 import '../widgets/chantier/chantier_form_dialog.dart';
-
 class ChantierPage extends ConsumerWidget {
   const ChantierPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Use .when() to handle the provider
     final userId = ref.watch(currentUserProvider)?.id;
 
     return Scaffold(
@@ -26,49 +26,57 @@ class ChantierPage extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
-            onPressed: () => _showChantierFormDialog(context, ref, null),
+            onPressed: userId != null
+                ? () => _showChantierFormDialog(context, ref, null, userId)
+                : null,
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () {
-              if (userId != null) {
-                ref.refresh(chantiersProvider(userId));
-              }
-            },
+            onPressed: userId != null
+                ? () => ref.refresh(chantiersProvider(userId))
+                : null,
           ),
         ],
       ),
       body: userId != null
           ? ref.watch(chantiersProvider(userId)).when(
-        data: (chantiers) {
-          if (chantiers.isEmpty) {
-            return const Center(child: Text('Aucun chantier trouvé'));
-          }
-          return ChantierList(chantiers: chantiers);
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stackTrace) =>
-            Center(child: Text('Erreur : $error')),
-      )
-          : const Center(child: CircularProgressIndicator()),
+                data: (chantiers) {
+                  if (chantiers.isEmpty) {
+                    return const Center(child: Text('Aucun chantier trouvé'));
+                  }
+                  return ChantierList(
+                    chantiers: chantiers,
+                    userId: userId,
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, stackTrace) =>
+                    Center(child: Text('Erreur : $error')),
+              )
+          : const Center(child: Text('Aucun utilisateur connecté')),
     );
   }
 
-  void _showChantierFormDialog(BuildContext context, WidgetRef ref, Chantier? chantier) {
+  void _showChantierFormDialog(
+      BuildContext context, WidgetRef ref, Chantier? chantier, String userId) {
     showDialog(
       context: context,
       builder: (context) => ChantierFormDialog(
         chantier: chantier,
         onSave: (newChantier) async {
           if (chantier == null) {
-            await ref.read(chantiersStateProvider.notifier).createChantier(newChantier);
+            await ref
+                .read(chantiersStateProvider.notifier)
+                .createChantier(newChantier);
           } else {
-            await ref.read(chantiersStateProvider.notifier).updateChantier(newChantier);
+            await ref
+                .read(chantiersStateProvider.notifier)
+                .updateChantier(newChantier);
           }
           if (context.mounted) {
             Navigator.of(context).pop();
             // Rafraîchir la liste après la sauvegarde
-            ref.refresh(chantiersProvider(newChantier.userId));
+            ref.refresh(chantiersProvider(userId));
           }
         },
       ),
@@ -78,8 +86,10 @@ class ChantierPage extends ConsumerWidget {
 
 class ChantierList extends ConsumerWidget {
   final List<Chantier> chantiers;
+  final String userId;
 
-  const ChantierList({super.key, required this.chantiers});
+  const ChantierList(
+      {super.key, required this.chantiers, required this.userId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -91,10 +101,12 @@ class ChantierList extends ConsumerWidget {
         final chantier = chantiers[index];
         return ChantierCard(
           chantier: chantier,
-          onTap: () => _showChantierFormDialog(context, ref, chantier),
+          onTap: () => _showChantierFormDialog(context, ref, chantier, userId),
           onDelete: () async {
             try {
-              await ref.read(chantiersStateProvider.notifier).deleteChantier(chantier.id);
+              await ref
+                  .read(chantiersStateProvider.notifier)
+                  .deleteChantier(chantier.id);
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -103,7 +115,7 @@ class ChantierList extends ConsumerWidget {
                   ),
                 );
                 // Rafraîchir la liste après la suppression
-                ref.refresh(chantiersProvider(chantier.userId));
+                ref.refresh(chantiersProvider(userId));
               }
             } catch (e) {
               if (context.mounted) {
@@ -121,7 +133,8 @@ class ChantierList extends ConsumerWidget {
     );
   }
 
-  void _showChantierFormDialog(BuildContext context, WidgetRef ref, Chantier? chantier) {
+  void _showChantierFormDialog(
+      BuildContext context, WidgetRef ref, Chantier? chantier, String userId) {
     showDialog(
       context: context,
       builder: (context) => ChantierFormDialog(
@@ -129,21 +142,27 @@ class ChantierList extends ConsumerWidget {
         onSave: (newChantier) async {
           try {
             if (chantier == null) {
-              await ref.read(chantiersStateProvider.notifier).createChantier(newChantier);
+              await ref
+                  .read(chantiersStateProvider.notifier)
+                  .createChantier(newChantier);
             } else {
-              await ref.read(chantiersStateProvider.notifier).updateChantier(newChantier);
+              await ref
+                  .read(chantiersStateProvider.notifier)
+                  .updateChantier(newChantier);
             }
             if (context.mounted) {
               Navigator.of(context).pop();
               // Afficher un message de succès
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text(chantier == null ? 'Chantier créé avec succès' : 'Chantier modifié avec succès'),
+                  content: Text(chantier == null
+                      ? 'Chantier créé avec succès'
+                      : 'Chantier modifié avec succès'),
                   backgroundColor: Colors.green,
                 ),
               );
               // Rafraîchir la liste
-              ref.refresh(chantiersProvider(newChantier.userId));
+              ref.refresh(chantiersProvider(userId));
             }
           } catch (e) {
             if (context.mounted) {

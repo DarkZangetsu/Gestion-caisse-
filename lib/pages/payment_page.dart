@@ -498,7 +498,8 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
         }
 
         // Reload transactions for the selected account
-        await transactionsNotifier.loadTransactions(selectedAccount.id);
+        //await transactionsNotifier.loadTransactions(selectedAccount.id);
+        await transactionsNotifier.loadTransactions();
       }
 
       if (mounted) {
