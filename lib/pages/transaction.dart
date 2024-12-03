@@ -20,13 +20,7 @@ class TransactionPage extends ConsumerStatefulWidget {
 }
 
 class _TransactionPageState extends ConsumerState<TransactionPage> {
-  static const filterChoice = [
-    "Tous",
-    "Quotidien",
-    "Hebdomadaire",
-    "Mensuel",
-    "Annuel"
-  ];
+  var filterChoice = ["Tous", "Ce jour", "Cette semaine", "Ce mois", "Cette année"];
 
   DateTime? _startDate;
   DateTime? _endDate;
@@ -67,10 +61,10 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
   bool _isWithinTimeframe(DateTime date, String timeframe) {
     final now = DateTime.now();
     return switch (timeframe) {
-      'Quotidien' => _isSameDay(date, now),
-      'Hebdomadaire' => _isInCurrentWeek(date, now),
-      'Mensuel' => _isInCurrentMonth(date, now),
-      'Annuel' => date.year == now.year,
+      'Ce jour' => _isSameDay(date, now),
+      'Cette semaine' => _isInCurrentWeek(date, now),
+      'Ce mois' => _isInCurrentMonth(date, now),
+      'Cette année' => date.year == now.year,
       _ => true
     };
   }

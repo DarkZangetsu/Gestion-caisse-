@@ -31,7 +31,7 @@ class HomePage extends ConsumerStatefulWidget {
 }
 
 class _HomePageState extends ConsumerState<HomePage> {
-  var filterChoice = ["Tous", "Quotidien", "Hebdomadaire", "Mensuel", "Annuel"];
+  var filterChoice = ["Tous", "Ce jour", "Cette semaine", "Ce mois", "Cette année"];
   String _searchQuery = '';
   bool isSearching = false;
   FocusNode focusNode = FocusNode();
@@ -669,13 +669,13 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   bool _matchesTimeframe(DateTime transactionDate) {
     switch (_selectedTimeframeFilter) {
-      case 'Quotidien':
+      case 'Ce jour':
         return _isToday(transactionDate);
-      case 'Hebdomadaire':
+      case 'Cette semaine':
         return _isThisWeek(transactionDate);
-      case 'Mensuel':
+      case 'Ce mois':
         return _isThisMonth(transactionDate);
-      case 'Annuel':
+      case 'Cette année':
         return _isThisYear(transactionDate);
       case 'Tous':
       default:
