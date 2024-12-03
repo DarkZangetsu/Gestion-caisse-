@@ -27,7 +27,7 @@ class TabBottomResume extends ConsumerWidget {
             Row(
               children: [
                 const MyText(
-                  texte: "Total Reçu:",
+                  texte: "Reçu:",
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
                 ),
@@ -47,7 +47,7 @@ class TabBottomResume extends ConsumerWidget {
             Row(
               children: [
                 const MyText(
-                  texte: "Total Payé:",
+                  texte: "Payé:",
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
                 ),

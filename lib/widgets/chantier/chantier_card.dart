@@ -60,10 +60,10 @@ class ChantierCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+        color: Theme.of(context).colorScheme.primary,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: Theme.of(context).dividerColor,
+          color: Theme.of(context).colorScheme.secondary,
           width: 1,
         ),
       ),
@@ -134,7 +134,8 @@ class ChantierCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Card(
-      elevation: 0.5,
+      elevation: 1,
+      color: Theme.of(context).colorScheme.primary,
       margin: EdgeInsets.symmetric(
         horizontal: isSmallScreen ? 8.0 : 16.0,
         vertical: 8.0,
@@ -201,8 +202,10 @@ class ChantierCard extends StatelessWidget {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: _getStatusColor(context).withOpacity(0.1),
+                        //color: _getStatusColor(context).withOpacity(0.1),
+                        color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(12),
+
                       ),
                       child: Text(
                         _getStatus(),

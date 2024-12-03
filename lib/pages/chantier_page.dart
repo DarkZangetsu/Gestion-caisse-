@@ -6,6 +6,7 @@ import '../providers/chantiers_provider.dart';
 import '../providers/users_provider.dart';
 import '../widgets/chantier/chantier_card.dart';
 import '../widgets/chantier/chantier_form_dialog.dart';
+
 class ChantierPage extends ConsumerWidget {
   const ChantierPage({super.key});
 
@@ -15,6 +16,7 @@ class ChantierPage extends ConsumerWidget {
     final userId = ref.watch(currentUserProvider)?.id;
 
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         title: const MyText(
           texte: 'Gestion des Chantiers',

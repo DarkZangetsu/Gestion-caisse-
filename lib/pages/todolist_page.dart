@@ -250,14 +250,14 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   validator: (value) {
-                    if (value != null && value.isNotEmpty) {
-                      final number = double.tryParse(value);
-                      if (number == null) {
-                        return 'Montant invalide';
-                      }
+                    if (value == null || value.isEmpty) {
+                      return 'Le montant est requis';
+                    }
+                    final number = double.tryParse(value);
+                    if (number == null) {
+                      return 'Montant invalide';
                     }
                     return null;
                   },
@@ -539,7 +539,7 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
               ? selectedPersonnelId
               : null,
           description: description!.trim(),
-          estimatedAmount: estimatedAmount,
+          estimatedAmount: estimatedAmount!,
           dueDate: dueDate,
           // Remove notificationTime field
           paymentMethodId: selectedPaymentMethodId?.isNotEmpty == true

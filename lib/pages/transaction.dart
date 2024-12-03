@@ -466,62 +466,59 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
           ),
         ],
       ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Row(
-                children: [
-                  const MyText(
-                    texte: "Total Reçu:",
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  const SizedBox(
-                    width: 10.0,
-                  ),
-                  MyText(
-                    texte: NumberFormat.currency(
-                      locale: 'fr_FR',
-                      symbol: 'Ar',
-                      decimalDigits: 2,
-                    ).format(totalReceived),
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green,
-                  ),
-                ],
+              Expanded(
+                  child: Row(
+                    children: [
+                      const MyText(
+                        texte: "Reçu:",
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      const SizedBox(
+                        width: 10.0,
+                      ),
+                      MyText(
+                        texte: NumberFormat.currency(
+                          locale: 'fr_FR',
+                          symbol: 'Ar',
+                          decimalDigits: 2,
+                        ).format(totalReceived),
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green,
+                      ),
+                    ],
+                  )
               ),
-              Row(
-                children: [
-                  const MyText(
-                    texte: "Total Payé:",
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  const SizedBox(
-                    width: 10.0,
-                  ),
-                  MyText(
-                    texte: NumberFormat.currency(
-                      locale: 'fr_FR',
-                      symbol: 'Ar',
-                      decimalDigits: 2,
-                    ).format(totalPaid),
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.red,
-                  ),
-                ],
+              Expanded(
+                child: Row(
+                  children: [
+                    const MyText(
+                      texte: "Payé:",
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    const SizedBox(
+                      width: 10.0,
+                    ),
+                    MyText(
+                      texte: NumberFormat.currency(
+                        locale: 'fr_FR',
+                        symbol: 'Ar',
+                        decimalDigits: 2,
+                      ).format(totalPaid),
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red,
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
-          const SizedBox(
-            height: 8.0,
-          ),
-        ],
-      ),
     );
   }
 }

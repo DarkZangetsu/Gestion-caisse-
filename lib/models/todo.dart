@@ -64,7 +64,7 @@ class Todo {
   final String? chantierId;
   final String? personnelId;
   final String description;
-  final double? estimatedAmount;
+  final double estimatedAmount;
   final DateTime? dueDate;
   final String? paymentMethodId;
   final String? paymentTypeId;
@@ -80,7 +80,7 @@ class Todo {
     this.chantierId,
     this.personnelId,
     required this.description,
-    this.estimatedAmount,
+    required this.estimatedAmount,
     this.dueDate,
     this.paymentMethodId,
     this.paymentTypeId,
@@ -109,9 +109,7 @@ class Todo {
       chantierId: json['chantier_id'],
       personnelId: json['personnel_id'],
       description: json['description'],
-      estimatedAmount: json['estimated_amount'] != null
-          ? double.parse(json['estimated_amount'].toString())
-          : null,
+      estimatedAmount: double.parse(json['estimated_amount'].toString()),
       dueDate:
           json['due_date'] != null ? DateTime.parse(json['due_date']) : null,
       paymentMethodId: json['payment_method_id'],

@@ -6,9 +6,9 @@ ThemeData lightTheme = ThemeData(
     iconTheme: IconThemeData(color: Colors.black),
   ),
   colorScheme: ColorScheme.light(
-    surface: Colors.grey[300]!,
-    primary: Colors.grey[200]!,
-    secondary: Colors.grey[300]!,
+    surface: Colors.grey[200]!,
+    primary: Colors.grey[300]!,
+    secondary: Colors.grey[400]!,
     onPrimary: Colors.white,
   ),
   textButtonTheme: TextButtonThemeData(
