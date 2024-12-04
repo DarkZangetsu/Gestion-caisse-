@@ -25,10 +25,11 @@ class TabBottomResume extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 const MyText(
                   texte: "Reçu:",
-                  fontSize: 14,
+                  fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),
                 const SizedBox(width: 10.0),
@@ -38,17 +39,18 @@ class TabBottomResume extends ConsumerWidget {
                     symbol: 'Ar',
                     decimalDigits: 2,
                   ).format(totalReceived),
-                  fontSize: 14,
+                  fontSize: 12,
                   fontWeight: FontWeight.bold,
                   color: Colors.green,
                 ),
               ],
             ),
             Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 const MyText(
                   texte: "Payé:",
-                  fontSize: 14,
+                  fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),
                 const SizedBox(width: 10.0),
@@ -58,7 +60,7 @@ class TabBottomResume extends ConsumerWidget {
                     symbol: 'Ar',
                     decimalDigits: 2,
                   ).format(totalPaid),
-                  fontSize: 14,
+                  fontSize: 12,
                   fontWeight: FontWeight.bold,
                   color: Colors.red,
                 ),

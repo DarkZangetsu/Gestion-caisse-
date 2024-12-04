@@ -186,6 +186,7 @@ class _TransactionRowState extends ConsumerState<TransactionRow> {
                           widget.transaction.description!.trim().isNotEmpty)
                         Text(
                           widget.transaction.description!,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey[600],
