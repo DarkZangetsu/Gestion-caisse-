@@ -5,21 +5,19 @@ import '../services/database_helper.dart';
 
 final chantiersStateProvider = StateNotifierProvider<ChantiersNotifier, AsyncValue<List<Chantier>>>((ref) {
   final userId = ref.watch(currentUserProvider)?.id;
-  return ChantiersNotifier(ref.read(databaseHelperProvider), userId ?? '');
+  return ChantiersNotifier(ref, ref.read(databaseHelperProvider), userId ?? '');
 });
-
 
 final chantiersProvider = FutureProvider.family<List<Chantier>, String>((ref, userId) {
   return ref.read(chantiersStateProvider.notifier).getChantiers(userId);
 });
 
-
 class ChantiersNotifier extends StateNotifier<AsyncValue<List<Chantier>>> {
+  final Ref _ref;
   final DatabaseHelper _db;
   final String _userId;
 
-  ChantiersNotifier(this._db, this._userId) : super(const AsyncValue.loading()) {
-    // Charger les chantiers initialement
+  ChantiersNotifier(this._ref, this._db, this._userId) : super(const AsyncValue.loading()) {
     loadChantiers(_userId);
   }
 
@@ -48,6 +46,8 @@ class ChantiersNotifier extends StateNotifier<AsyncValue<List<Chantier>>> {
     try {
       await _db.createChantier(chantier);
       await loadChantiers(_userId);
+      // Force refresh of other providers
+      _ref.invalidate(chantiersProvider);
     } catch (e) {
       state = AsyncValue.error(e, StackTrace.current);
     }
@@ -57,6 +57,8 @@ class ChantiersNotifier extends StateNotifier<AsyncValue<List<Chantier>>> {
     try {
       await _db.updateChantier(chantier);
       await loadChantiers(_userId);
+      // Force refresh of other providers
+      _ref.invalidate(chantiersProvider);
     } catch (e) {
       state = AsyncValue.error(e, StackTrace.current);
     }
@@ -66,6 +68,10 @@ class ChantiersNotifier extends StateNotifier<AsyncValue<List<Chantier>>> {
     try {
       await _db.deleteChantier(chantierId);
       await loadChantiers(_userId);
+      // Force refresh of other providers
+      _ref.invalidate(chantiersProvider);
+      _ref.invalidate(currentUserProvider);
+      // Add other providers that might need refreshing
     } catch (e) {
       state = AsyncValue.error(e, StackTrace.current);
     }

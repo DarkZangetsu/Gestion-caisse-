@@ -84,6 +84,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         date.isBefore(endOfYear.add(const Duration(seconds: 1)));
   }
 
+
   @override
   void initState() {
     super.initState();
@@ -197,12 +198,31 @@ class _HomePageState extends ConsumerState<HomePage> {
     final userId = ref.read(currentUserProvider)?.id;
 
     if (userId != null) {
-      // Charger toutes les données nécessaires
-      await Future.wait([
-        ref.read(chantiersStateProvider.notifier).loadChantiers(userId),
-        ref.read(personnelStateProvider.notifier).getPersonnel(userId),
-        ref.read(paymentTypesProvider.notifier).getPaymentTypes(),
-      ]);
+      try {
+        await Future.wait([
+          ref.read(chantiersStateProvider.notifier).loadChantiers(userId),
+          ref.read(personnelStateProvider.notifier).getPersonnel(userId),
+          ref.read(paymentTypesProvider.notifier).getPaymentTypes(),
+        ]);
+      } catch (e) {
+        debugPrint('Erreur lors du chargement des données: $e');
+        if (!context.mounted) return;
+
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Erreur de chargement'),
+            content: Text('Impossible de charger les détails : $e'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Fermer'),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
     }
 
     // Vérifier que le contexte est toujours valide
@@ -212,32 +232,33 @@ class _HomePageState extends ConsumerState<HomePage> {
       context: context,
       builder: (context) => Consumer(
         builder: (context, ref, child) {
-          // Vérifions l'état de chaque provider
+          // Récupérer les états des providers
           final chantiersState = ref.watch(chantiersStateProvider);
           final personnelState = ref.watch(personnelStateProvider);
           final typesState = ref.watch(paymentTypesProvider);
 
-          // Afficher un indicateur de chargement si les données ne sont pas prêtes
+          // Gestion des états de chargement et d'erreur
           if (chantiersState.isLoading ||
               personnelState.isLoading ||
               typesState.isLoading) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4)),
-              content: const Center(child: CircularProgressIndicator()),
+            return const AlertDialog(
+              content: Center(
+                child: CircularProgressIndicator(),
+              ),
             );
           }
 
-          // Afficher une erreur si le chargement a échoué
           if (chantiersState.hasError ||
               personnelState.hasError ||
               typesState.hasError) {
             return AlertDialog(
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4)),
-              title: const Text('Erreur'),
-              content: const Text(
-                  'Une erreur est survenue lors du chargement des données.'),
+              title: const Text('Erreur de chargement'),
+              content: Text(
+                'Détails non disponibles:\n'
+                    'Chantiers: ${chantiersState.error ?? "OK"}\n'
+                    'Personnel: ${personnelState.error ?? "OK"}\n'
+                    'Types de paiement: ${typesState.error ?? "OK"}',
+              ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
@@ -252,60 +273,44 @@ class _HomePageState extends ConsumerState<HomePage> {
           final personnel = personnelState.value ?? [];
           final types = typesState.value ?? [];
 
-          // Vérifier que toutes les données sont chargées
-          if (chantiers.isEmpty || personnel.isEmpty || types.isEmpty) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4)),
-              title: const Text('Données manquantes'),
-              content:
-                  const Text('Certaines données n\'ont pas pu être chargées.'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Fermer'),
-                ),
-              ],
-            );
-          }
-
           return AlertDialog(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
             title: const Text('Détails de la Transaction'),
             content: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildTransactionDetails(ref, transaction),
+                  _buildTransactionDetails(ref, transaction,
+                      chantiers: chantiers,
+                      personnel: personnel,
+                      types: types
+                  ),
                 ],
               ),
             ),
             actions: [
-              TextButton.icon(
-                icon: const Icon(Icons.edit, color: Colors.white),
-                label: const MyText(
-                  texte: 'Modifier',
-                  color: Colors.white,
-                ),
-                style: TextButton.styleFrom(
-                  backgroundColor: const Color(0xFF2196F3),
-                ),
-                onPressed: () {
-                  Navigator.pop(context);
-                  _showEditTransactionDialog(transaction);
-                },
-              ),
-              const SizedBox(width: 8),
-              TextButton(
-                style: TextButton.styleFrom(
-                    backgroundColor: const Color(0xffea6b24)),
-                onPressed: () => Navigator.of(context).pop(),
-                child: const MyText(
-                  texte: 'Fermer',
-                  color: Colors.white,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit, color: Colors.blue),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _showEditTransactionDialog(transaction);
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _showDeleteConfirmationDialog(transaction);
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Color(0xffea6b24)),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
               ),
             ],
           );
@@ -345,7 +350,15 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
-  Widget _buildTransactionDetails(WidgetRef ref, Transaction transaction) {
+  Widget _buildTransactionDetails(
+      WidgetRef ref,
+      Transaction transaction,
+      {
+        List<Chantier>? chantiers,
+        List<Personnel>? personnel,
+        List<PaymentType>? types
+      }
+      ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -361,7 +374,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         DetailRow(
           label: 'Montant:',
           value:
-              '${NumberFormat.currency(locale: 'fr_FR', symbol: 'Ar').format(transaction.amount)} Ar',
+          '${NumberFormat.currency(locale: 'fr_FR', symbol: 'Ar').format(transaction.amount)} Ar',
         ),
 
         if (transaction.description?.isNotEmpty ?? false)
@@ -369,120 +382,88 @@ class _HomePageState extends ConsumerState<HomePage> {
             label: 'Description:',
             value: transaction.description!,
           ),
+
         // Chantier
-        Consumer(
-          builder: (context, ref, _) {
-            final chantiersAsync = ref.watch(chantiersStateProvider);
-            return chantiersAsync.when(
-              data: (chantiers) {
-                final chantier = chantiers.firstWhere(
-                  (c) => c.id == transaction.chantierId,
-                  orElse: () {
-                    debugPrint(
-                        'Chantier non trouvé pour l\'ID: ${transaction.chantierId}');
-                    debugPrint(
-                        'Chantiers disponibles: ${chantiers.map((c) => '${c.id}: ${c.name}').join(', ')}');
-                    return Chantier(id: '', name: 'Non trouvé', userId: '');
-                  },
-                );
-                return DetailRow(
-                  label: 'Chantier:',
-                  value: chantier.name,
-                );
-              },
-              loading: () => const DetailRow(
-                label: 'Chantier:',
-                value: 'Chargement...',
-              ),
-              error: (error, stack) {
-                debugPrint('Erreur lors du chargement des chantiers: $error');
-                debugPrint('$stack');
-                return const DetailRow(
-                  label: 'Chantier:',
-                  value: 'Erreur de chargement',
-                );
-              },
-            );
-          },
+        DetailRow(
+          label: 'Chantier:',
+          value: chantiers?.firstWhere(
+                (c) => c.id == transaction.chantierId,
+            orElse: () => Chantier(id: '', name: 'Non trouvé', userId: ''),
+          ).name ?? 'Non disponible',
         ),
 
         // Personnel
-        Consumer(
-          builder: (context, ref, _) {
-            final personnelAsync = ref.watch(personnelStateProvider);
-            return personnelAsync.when(
-              data: (personnel) {
-                final person = personnel.firstWhere(
-                  (p) => p.id == transaction.personnelId,
-                  orElse: () {
-                    debugPrint(
-                        'Personnel non trouvé pour l\'ID: ${transaction.personnelId}');
-                    debugPrint(
-                        'Personnel disponible: ${personnel.map((p) => '${p.id}: ${p.name}').join(', ')}');
-                    return Personnel(id: '', name: 'Non trouvé', userId: '');
-                  },
-                );
-                return DetailRow(
-                  label: 'Personnel:',
-                  value: person.name,
-                );
-              },
-              loading: () => const DetailRow(
-                label: 'Personnel:',
-                value: 'Chargement...',
-              ),
-              error: (error, stack) {
-                debugPrint('Erreur lors du chargement du personnel: $error');
-                debugPrint('$stack');
-                return const DetailRow(
-                  label: 'Personnel:',
-                  value: 'Erreur de chargement',
-                );
-              },
-            );
-          },
+        DetailRow(
+          label: 'Personnel:',
+          value: personnel?.firstWhere(
+                (p) => p.id == transaction.personnelId,
+            orElse: () => Personnel(id: '', name: 'Non trouvé', userId: ''),
+          ).name ?? 'Non disponible',
         ),
 
         // Type de paiement
-        Consumer(
-          builder: (context, ref, _) {
-            final typesAsync = ref.watch(paymentTypesProvider);
-            return typesAsync.when(
-              data: (types) {
-                final type = types.firstWhere(
-                  (t) => t.id == transaction.paymentTypeId,
-                  orElse: () {
-                    debugPrint(
-                        'Type de paiement non trouvé pour l\'ID: ${transaction.paymentTypeId}');
-                    debugPrint(
-                        'Types disponibles: ${types.map((t) => '${t.id}: ${t.name}').join(', ')}');
-                    return PaymentType(
-                        id: '', name: 'Non trouvé', category: '');
-                  },
-                );
-                return DetailRow(
-                  label: 'Type de paiement:',
-                  value: '${type.name} (${type.category})',
-                );
-              },
-              loading: () => const DetailRow(
-                label: 'Type de paiement:',
-                value: 'Chargement...',
-              ),
-              error: (error, stack) {
-                debugPrint(
-                    'Erreur lors du chargement des types de paiement: $error');
-                debugPrint('$stack');
-                return const DetailRow(
-                  label: 'Type de paiement:',
-                  value: 'Erreur de chargement',
-                );
-              },
-            );
-          },
+        DetailRow(
+          label: 'Type de paiement:',
+          value: types?.firstWhere(
+                (t) => t.id == transaction.paymentTypeId,
+            orElse: () => PaymentType(id: '', name: 'Non trouvé', category: ''),
+          ).name ?? 'Non disponible',
         ),
       ],
     );
+  }
+
+// Ajouter une méthode pour la confirmation de suppression
+  void _showDeleteConfirmationDialog(Transaction transaction) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Confirmation'),
+          content: const Text('Voulez-vous vraiment supprimer cette transaction ?'),
+          actions: [
+            TextButton(
+              child: const Text('Annuler'),
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                _deleteTransaction(transaction);
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+// Méthode de suppression
+  void _deleteTransaction(Transaction transaction) async {
+    try {
+      await ref.read(transactionsStateProvider.notifier).deleteTransaction(transaction.id);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Transaction supprimée avec succès'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur lors de la suppression : $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   // Ajoutez cette méthode pour réinitialiser la date

@@ -143,6 +143,31 @@ class TransactionsNotifier
     }
   }
 
+  Future<void> deleteTransaction(String transactionId) async {
+    try {
+      print('Deleting transaction with ID: $transactionId');
+
+      // Delete the transaction from the database
+      await _db.deleteTransaction(transactionId);
+      print('Transaction successfully deleted');
+
+      // Update the state by removing the deleted transaction
+      state.whenData((currentTransactions) {
+        final updatedTransactions =
+        currentTransactions.where((t) => t.id != transactionId).toList();
+        state = AsyncValue.data(updatedTransactions);
+      });
+
+      // Reload all transactions to ensure synchronization
+      await loadTransactions();
+    } catch (e, stackTrace) {
+      print('Error in deleteTransaction: $e');
+      print('Stack trace: $stackTrace');
+      state = AsyncValue.error(e, stackTrace);
+      rethrow;
+    }
+  }
+
   Future<void> createTransferTransaction({
     required String sourceAccountId,
     required String destinationAccountId,

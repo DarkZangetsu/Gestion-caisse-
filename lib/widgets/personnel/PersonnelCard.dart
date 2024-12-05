@@ -26,18 +26,18 @@ class PersonnelCard extends StatelessWidget {
         return Card(
           elevation: 0.5,
           shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(
-          color: Colors.white,
-          width: 1,
-        ),
-      ),
+            borderRadius: BorderRadius.circular(12),
+            side: const BorderSide(
+              color: Colors.white,
+              width: 1,
+            ),
+          ),
           margin: EdgeInsets.all(paddingValue / 2),
           child: InkWell(
             onTap: onTap,
             child: Container(
               constraints: const BoxConstraints(
-                maxWidth: 600, 
+                maxWidth: 600,
               ),
               child: Padding(
                 padding: EdgeInsets.all(paddingValue),
@@ -54,10 +54,19 @@ class PersonnelCard extends StatelessWidget {
                                 .textTheme
                                 .titleMedium
                                 ?.copyWith(
-                                  fontSize: screenSize.width < 600 ? 16 : 18,
-                                ),
+                              fontSize: screenSize.width < 600 ? 16 : 18,
+                            ),
                             overflow: TextOverflow.ellipsis,
                           ),
+                        ),
+                        IconButton(
+                          icon: Icon(
+                            Icons.delete_outline,
+                            color: Colors.red.shade400,
+                            size: 20,
+                          ),
+                          onPressed: onDelete,
+                          tooltip: 'Supprimer',
                         ),
                       ],
                     ),
@@ -69,7 +78,7 @@ class PersonnelCard extends StatelessWidget {
                             context,
                             'Rôle',
                             personnel.role ?? 'Non défini',
-                            Icons.work, 
+                            Icons.work,
                           ),
                         ),
                         _buildInfoBox(
@@ -109,8 +118,8 @@ class PersonnelCard extends StatelessWidget {
               Text(
                 label,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
               Text(
                 value,
