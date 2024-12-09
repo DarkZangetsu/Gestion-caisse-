@@ -2,7 +2,6 @@ import 'package:gestion_caisse_flutter/composants/custom_search_delegate.dart';
 import 'package:gestion_caisse_flutter/composants/empty_transaction_view.dart';
 import 'package:gestion_caisse_flutter/composants/tab_bottom_resume.dart';
 import 'package:gestion_caisse_flutter/composants/tab_header.dart';
-import 'package:gestion_caisse_flutter/composants/texts.dart';
 import 'package:gestion_caisse_flutter/home_composantes/drawer.dart';
 import 'package:gestion_caisse_flutter/home_composantes/transaction_row.dart';
 import 'package:gestion_caisse_flutter/imprimer/pdf.dart';
@@ -91,6 +90,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _initializeData();
     });
+    refreshTransactions();
   }
 
   Future<void> _initializeData() async {
@@ -146,6 +146,45 @@ class _HomePageState extends ConsumerState<HomePage> {
     final transactions = ref.read(transactionsStateProvider).value ?? [];
     debugPrint('Transactions chargées: ${transactions.length}');
   }
+
+
+  Future<void> refreshTransactions() async {
+    try {
+      final selectedAccount = ref.read(selectedAccountProvider);
+      if (selectedAccount != null) {
+        // Reset the search query and time frame filter
+        setState(() {
+          _searchQuery = '';
+          _selectedTimeframeFilter = 'Tous';
+          _startDate = null;
+          _endDate = null;
+        });
+
+        // Reload transactions
+        await ref.read(transactionsStateProvider.notifier).loadTransactions();
+
+        // Show a success snackbar
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Transactions actualisées'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur lors de l\'actualisation : $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
 
   void _showAccountDialog(BuildContext context) {
     DialogCompte.show(
@@ -694,6 +733,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           ImpressionParPdf.onTapPdf(
               ref, _selectedTimeframeFilter, _startDate, _endDate);
         },
+        onRefresh:refreshTransactions,
       ),
       drawer: const MyDrawer(),
       body: SafeArea(
@@ -891,6 +931,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 }
+
 
 class DetailRow extends StatefulWidget {
   final String label;

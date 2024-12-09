@@ -12,6 +12,7 @@ class SearchableAppBar extends StatefulWidget implements PreferredSizeWidget {
   final DateTime? endDate;
   final Function()? onDateReset;
   final void Function()? onTapPdf;
+  final void Function()? onRefresh;
 
   const SearchableAppBar({
     super.key,
@@ -23,6 +24,7 @@ class SearchableAppBar extends StatefulWidget implements PreferredSizeWidget {
     this.startDate,
     this.endDate,
     this.onTapPdf,
+    this.onRefresh,
   });
 
   @override
@@ -64,6 +66,11 @@ class _SearchableAppBarState extends State<SearchableAppBar> {
       backgroundColor: const Color(0xffea6b24),
       title: isSearching ? _buildSearchField() : _buildTitle(),
       actions: [
+        if(widget.onRefresh != null)
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: widget.onRefresh,
+          ),
         PopupMenuButton(
           icon: const Icon(Icons.print),
           itemBuilder: (context) => [

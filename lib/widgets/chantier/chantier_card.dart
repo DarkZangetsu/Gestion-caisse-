@@ -6,12 +6,14 @@ class ChantierCard extends StatelessWidget {
   final Chantier chantier;
   final VoidCallback onTap;
   final VoidCallback onDelete;
+  final VoidCallback? onRefresh;
 
   const ChantierCard({
     super.key,
     required this.chantier,
     required this.onTap,
     required this.onDelete,
+    this.onRefresh,
   });
 
   String _formatDate(DateTime? date) {
@@ -321,6 +323,8 @@ class ChantierCard extends StatelessWidget {
     );
   }
 
+
+
   void _showDeleteConfirmationDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -340,6 +344,7 @@ class ChantierCard extends StatelessWidget {
               onPressed: () {
                 Navigator.of(context).pop();
                 onDelete();
+                onRefresh?.call();
               },
               child: const Text(
                 'Supprimer',
