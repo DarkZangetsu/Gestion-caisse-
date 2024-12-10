@@ -27,7 +27,7 @@ class _ModifierCompteDialogState extends ConsumerState<ModifierCompteDialog> {
     super.initState();
     _nomController = TextEditingController(text: widget.compte.name);
     _soldeController = TextEditingController(
-      text: widget.compte.solde?.toStringAsFixed(2),
+      text: widget.compte.solde.toStringAsFixed(2),
     );
   }
 
@@ -45,9 +45,7 @@ class _ModifierCompteDialogState extends ConsumerState<ModifierCompteDialog> {
       id: widget.compte.id,
       userId: widget.compte.userId,
       name: _nomController.text,
-      solde: _soldeController.text.isNotEmpty
-          ? double.tryParse(_soldeController.text)
-          : null,
+      solde: double.parse(_soldeController.text),
       createdAt: widget.compte.createdAt,
       updatedAt: DateTime.now(),
     );
@@ -97,13 +95,14 @@ class _ModifierCompteDialogState extends ConsumerState<ModifierCompteDialog> {
             const SizedBox(height: 16),
             MyTextfields(
               controller: _soldeController,
-              hintText: "Solde initial [Facultatif]",
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              hintText: "Solde initial [Obligatoire]",
+              keyboardType: TextInputType.numberWithOptions(decimal: true),
               validator: (value) {
-                if (value != null && value.isNotEmpty) {
-                  if (double.tryParse(value) == null) {
-                    return 'Veuillez entrer un nombre valide';
-                  }
+                if (value == null || value.isEmpty) {
+                  return 'Le solde initial est obligatoire';
+                }
+                if (double.tryParse(value) == null) {
+                  return 'Veuillez entrer un nombre valide';
                 }
                 return null;
               },

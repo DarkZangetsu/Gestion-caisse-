@@ -2,7 +2,7 @@ class Account {
   final String id;
   final String userId;
   final String name;
-  late final double? solde;
+  final double solde;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -10,7 +10,7 @@ class Account {
     required this.id,
     required this.userId,
     required this.name,
-    this.solde,
+    required this.solde,
     this.createdAt,
     this.updatedAt,
   });
@@ -20,7 +20,7 @@ class Account {
       id: json['id'],
       userId: json['user_id'],
       name: json['name'],
-      solde: json['solde']?.toDouble(),
+      solde: json['solde'].toDouble(),
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
     );

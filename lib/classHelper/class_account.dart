@@ -25,7 +25,7 @@ class CompteDialog extends ConsumerStatefulWidget {
 class _CompteDialogState extends ConsumerState<CompteDialog> {
   final _formKey = GlobalKey<FormState>();
   late String _nom;
-  String? _soldeInitial;
+  late String _soldeInitial;
   final _uuid = const Uuid();
 
   void _sauvegarderCompte() {
@@ -45,7 +45,7 @@ class _CompteDialogState extends ConsumerState<CompteDialog> {
       id: _uuid.v4(),
       userId: userId,
       name: _nom,
-      solde: _soldeInitial != null ? double.tryParse(_soldeInitial!) : null,
+      solde: double.parse(_soldeInitial),
       createdAt: now,
       updatedAt: now,
     );
@@ -96,13 +96,18 @@ class _CompteDialogState extends ConsumerState<CompteDialog> {
             ),
             const SizedBox(height: 16),
             MyTextfields(
-              hintText: "Solde initial [Facultatif]",
+              hintText: "Solde initial [Obligatoire]",
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               validator: (value) {
-                if (value != null && value.isNotEmpty) {
-                  if (double.tryParse(value) == null) {
-                    return 'Veuillez entrer un nombre valide';
-                  }
+                if (value == null || value.isEmpty) {
+                  return 'Le solde initial est obligatoire';
+                }
+                final parsedValue = double.tryParse(value);
+                if (parsedValue == null) {
+                  return 'Veuillez entrer un nombre valide';
+                }
+                if (parsedValue <= 0) {
+                  return 'Le solde initial doit être supérieur à 0';
                 }
                 return null;
               },

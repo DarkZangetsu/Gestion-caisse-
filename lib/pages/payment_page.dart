@@ -447,12 +447,6 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
     }
 
     final description = _descriptionController.text.trim();
-    if (description.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('La description est obligatoire')),
-      );
-      return;
-    }
 
     final now = DateTime.now();
     final transaction = widget.isEditing && widget.transaction != null
@@ -525,79 +519,6 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
     }
   }
 
-  /*Future<void> _saveTransaction() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
-    final selectedAccount = ref.read(selectedAccountProvider);
-    if (selectedAccount == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez sélectionner un compte')),
-      );
-      return;
-    }
-
-    final now = DateTime.now();
-    final transaction = widget.isEditing && widget.transaction != null
-        ? widget.transaction!.copyWith(
-            accountId: selectedAccount.id,
-            chantierId: _selectedChantierId,
-            personnelId: _selectedPersonnelId,
-            paymentTypeId: _selectedPaymentTypeId,
-            description: _descriptionController.text,
-            amount: double.parse(_amountController.text),
-            transactionDate: _transactionDate,
-            type: _type,
-            updatedAt: now,
-          )
-        : Transaction(
-            id: const Uuid().v4(),
-            accountId: selectedAccount.id,
-            chantierId: _selectedChantierId,
-            personnelId: _selectedPersonnelId,
-            paymentTypeId: _selectedPaymentTypeId,
-            description: _descriptionController.text,
-            amount: double.parse(_amountController.text),
-            transactionDate: _transactionDate,
-            type: _type,
-            createdAt: now,
-            updatedAt: now,
-          );
-
-    try {
-      if (widget.isEditing && widget.onSave != null) {
-        await widget.onSave!(transaction);
-      } else {
-        await ref
-            .read(transactionsStateProvider.notifier)
-            .addTransaction(transaction);
-        await ref
-            .read(transactionsStateProvider.notifier)
-            .loadTransactions(selectedAccount.id);
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(widget.isEditing
-                ? 'Transaction mise à jour avec succès'
-                : 'Transaction enregistrée avec succès'),
-          ),
-        );
-        Navigator.pop(context);
-      }
-    } catch (e) {
-      if (mounted) {
-        debugPrint(e.toString());
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content:
-                  Text('Une erreur est survenue lors de l\'enregistrement')),
-        );
-      }
-    }
-  }*/
 
   @override
   Widget build(BuildContext context) {
@@ -827,10 +748,10 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
   }
 
   Widget _buildDescriptionField() {
-    return TextFormField(
+    return TextField(
       controller: _descriptionController,
       decoration: const InputDecoration(
-        labelText: 'Description (optionnelle)',
+        labelText: 'Description (facultative)',
       ),
       maxLines: 3,
     );

@@ -34,32 +34,28 @@ class _TransactionRowState extends ConsumerState<TransactionRow> {
   @override
   void initState() {
     super.initState();
-    final userId = ref.read(currentUserProvider)?.id;
-    _loadPersonnel(userId);
-    _loadPaymentTypes();
-    _loadChantiers(userId);
+
+    // Use WidgetsBinding to ensure the widget is mounted before loading data
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      final userId = ref.read(currentUserProvider)?.id;
+      if (userId != null) {
+        _loadData(userId);
+      }
+    });
   }
 
-  Future<void> _loadPersonnel(String? userId) async {
-    await ref.read(personnelStateProvider.notifier).getPersonnel(userId!);
-    final personnel = ref.read(personnelStateProvider).value ?? [];
-    debugPrint('Personnel chargé: ${personnel.length}');
-    debugPrint(
-        'Personnel: ${personnel.map((p) => '${p.id}: ${p.name}').join(', ')}');
-  }
-
-  Future<void> _loadPaymentTypes() async {
-    await ref.read(paymentTypesProvider.notifier).getPaymentTypes();
-    final types = ref.read(paymentTypesProvider).value ?? [];
-    debugPrint('Types de paiement chargés: ${types.length}');
-    debugPrint('Types: ${types.map((t) => '${t.id}: ${t.name}').join(', ')}');
-  }
-
-  Future<void> _loadChantiers(String? userId) async {
-    await ref.read(chantiersStateProvider.notifier).getChantiers(userId!);
-    final chantiers = ref.read(chantiersStateProvider).value ?? [];
-    debugPrint('Chantiers chargés: ${chantiers.length}');
-    debugPrint('Chantiers: ${chantiers.map((c) => '${c.id}: ${c.name}').join(', ')}');
+  Future<void> _loadData(String userId) async {
+    try {
+      await Future.wait([
+        ref.read(personnelStateProvider.notifier).getPersonnel(userId),
+        ref.read(paymentTypesProvider.notifier).getPaymentTypes(),
+        ref.read(chantiersStateProvider.notifier).getChantiers(userId),
+      ]);
+    } catch (e) {
+      debugPrint('Error loading transaction row data: $e');
+    }
   }
 
   @override
@@ -89,20 +85,14 @@ class _TransactionRowState extends ConsumerState<TransactionRow> {
                       // Nom du personnel
                       Consumer(
                         builder: (context, ref, _) {
-                          final personnelAsync =
-                          ref.watch(personnelStateProvider);
+                          final personnelAsync = ref.watch(personnelStateProvider);
                           return personnelAsync.when(
                             data: (personnel) {
+                              if (widget.transaction.personnelId == null) return const SizedBox.shrink();
+
                               final person = personnel.firstWhere(
                                     (p) => p.id == widget.transaction.personnelId,
-                                orElse: () {
-                                  debugPrint(
-                                      'Personnel non trouvé pour l\'ID: ${widget.transaction.personnelId}');
-                                  debugPrint(
-                                      'Personnel disponible: ${personnel.map((p) => '${p.id}: ${p.name}').join(', ')}');
-                                  return Personnel(
-                                      id: '', name: 'Non trouvé', userId: '');
-                                },
+                                orElse: () => Personnel(id: '', name: '', userId: ''),
                               );
 
                               // N'afficher que si le nom n'est pas vide
@@ -125,16 +115,11 @@ class _TransactionRowState extends ConsumerState<TransactionRow> {
                           final chantiersAsync = ref.watch(chantiersStateProvider);
                           return chantiersAsync.when(
                             data: (chantiers) {
+                              if (widget.transaction.chantierId == null) return const SizedBox.shrink();
+
                               final chantier = chantiers.firstWhere(
                                     (c) => c.id == widget.transaction.chantierId,
-                                orElse: () {
-                                  debugPrint(
-                                      'Chantier non trouvé pour l\'ID: ${widget.transaction.chantierId}');
-                                  debugPrint(
-                                      'Chantiers disponibles: ${chantiers.map((c) => '${c.id}: ${c.name}').join(', ')}');
-                                  return Chantier(
-                                      id: '', name: 'Non trouvé', userId: '');
-                                },
+                                orElse: () => Chantier(id: '', name: '', userId: ''),
                               );
 
                               // N'afficher que si le nom du chantier n'est pas vide
@@ -156,19 +141,13 @@ class _TransactionRowState extends ConsumerState<TransactionRow> {
                           final typesAsync = ref.watch(paymentTypesProvider);
                           return typesAsync.when(
                             data: (types) {
+                              if (widget.transaction.paymentTypeId == null) return const SizedBox.shrink();
+
                               final type = types.firstWhere(
                                     (t) => t.id == widget.transaction.paymentTypeId,
-                                orElse: () {
-                                  debugPrint(
-                                      'Type de paiement non trouvé pour l\'ID: ${widget.transaction.paymentTypeId}');
-                                  debugPrint(
-                                      'Types disponibles: ${types.map((t) => '${t.id}: ${t.name}').join(', ')}');
-                                  return PaymentType(
-                                      id: '', name: 'Non trouvé', category: '');
-                                },
+                                orElse: () => PaymentType(id: '', name: '', category: ''),
                               );
 
-                              // N'afficher que si le nom et la catégorie ne sont pas vides
                               return (type.name.isNotEmpty && type.category.isNotEmpty)
                                   ? MyText(
                                 texte: "${type.name} (${type.category})",
@@ -199,13 +178,11 @@ class _TransactionRowState extends ConsumerState<TransactionRow> {
 
                           return accountsAsync.when(
                             data: (accounts) {
+                              if (widget.transaction.accountId == null) return const SizedBox.shrink();
+
                               final account = accounts.firstWhere(
                                     (a) => a.id == widget.transaction.accountId,
-                                orElse: () {
-                                  debugPrint('Compte non trouvé pour l\'ID: ${widget.transaction.accountId}');
-                                  debugPrint('Comptes disponibles: ${accounts.map((a) => '${a.id}: ${a.name}').join(', ')}');
-                                  return Account(id: '', name: 'Non trouvé', userId: '');
-                                },
+                                orElse: () => Account(id: '', name: '', userId: '', solde: 0.0),
                               );
 
                               // N'afficher que si le nom du compte n'est pas vide

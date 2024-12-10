@@ -43,6 +43,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   DateTime? _startDate;
   DateTime? _endDate;
 
+
   // Extension method to check dates
   bool _isToday(DateTime date) {
     final now = DateTime.now();
@@ -423,31 +424,34 @@ class _HomePageState extends ConsumerState<HomePage> {
           ),
 
         // Chantier
-        DetailRow(
-          label: 'Chantier:',
-          value: chantiers?.firstWhere(
-                (c) => c.id == transaction.chantierId,
-            orElse: () => Chantier(id: '', name: 'Non trouvé', userId: ''),
-          ).name ?? 'Non disponible',
-        ),
+        if (transaction.chantierId != null && chantiers != null)
+          DetailRow(
+            label: 'Chantier:',
+            value: chantiers.firstWhere(
+                  (c) => c.id == transaction.chantierId,
+              orElse: () => Chantier(id: '', name: '', userId: ''),
+            ).name,
+          ),
 
         // Personnel
-        DetailRow(
-          label: 'Personnel:',
-          value: personnel?.firstWhere(
-                (p) => p.id == transaction.personnelId,
-            orElse: () => Personnel(id: '', name: 'Non trouvé', userId: ''),
-          ).name ?? 'Non disponible',
-        ),
+        if (transaction.personnelId != null && personnel != null)
+          DetailRow(
+            label: 'Personnel:',
+            value: personnel.firstWhere(
+                  (p) => p.id == transaction.personnelId,
+              orElse: () => Personnel(id: '', name: '', userId: ''),
+            ).name,
+          ),
 
         // Type de paiement
-        DetailRow(
-          label: 'Type de paiement:',
-          value: types?.firstWhere(
-                (t) => t.id == transaction.paymentTypeId,
-            orElse: () => PaymentType(id: '', name: 'Non trouvé', category: ''),
-          ).name ?? 'Non disponible',
-        ),
+        if (transaction.paymentTypeId != null && types != null)
+          DetailRow(
+            label: 'Type de paiement:',
+            value: types.firstWhere(
+                  (t) => t.id == transaction.paymentTypeId,
+              orElse: () => PaymentType(id: '', name: '', category: ''),
+            ).name,
+          ),
       ],
     );
   }
