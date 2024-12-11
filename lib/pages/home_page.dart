@@ -602,13 +602,10 @@ class _HomePageState extends ConsumerState<HomePage> {
     await ref.read(paymentTypesProvider.notifier).getPaymentTypes();
   }
 
-  // Filter transactions based on search query
-  // Debug helper method
   List<Transaction> _filterTransactions(List<Transaction> transactions) {
     final selectedAccountId = ref.read(selectedAccountProvider)?.id;
     _refreshData();
 
-    // Afficher le compte actuel et le nombre total de transactions avant filtrage
     if (selectedAccountId != null) {
       print('Compte actuel: $selectedAccountId');
     }

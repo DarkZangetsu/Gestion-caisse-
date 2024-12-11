@@ -43,32 +43,15 @@ class TransactionsNotifier
   final DatabaseHelper _db;
   TransactionsNotifier(this._db) : super(const AsyncValue.loading());
 
-  /*Future<void> loadTransactions(String accountId) async {
-    print('Starting to load transactions for account: $accountId');
-
-    try {
-      state = const AsyncValue.loading();
-      final transactions = await _db.getTransactions(accountId);
-      print(
-          'Successfully loaded ${transactions.length} transactions for account $accountId');
-
-      state = AsyncValue.data(transactions);
-    } catch (e, stackTrace) {
-      print('Error loading transactions: $e');
-      print('Stack trace: $stackTrace');
-      state = AsyncValue.error(e, stackTrace);
-    }
-  }*/
-
   Future<void> loadTransactions() async {
     print('Starting to load all transactions');
 
     try {
       state = const AsyncValue.loading();
-      final transactions =
-          await _db.getAllTransactions(); // Call without accountId
+      final transactions = await _db.getAllTransactions();
       print('Successfully loaded ${transactions.length} transactions');
 
+      // Utilisez une méthode plus sûre pour mettre à jour l'état
       state = AsyncValue.data(transactions);
     } catch (e, stackTrace) {
       print('Error loading transactions: $e');
@@ -115,25 +98,23 @@ class TransactionsNotifier
     try {
       print('Updating transaction: ${transaction.toJson()}');
 
-      // Mettre à jour la transaction dans la base de données
       final updatedTransaction = await _db.updateTransaction(transaction);
-      print(
-          'Transaction successfully updated with ID: ${updatedTransaction.id}');
+      print('Transaction successfully updated with ID: ${updatedTransaction.id}');
 
-      // Mettre à jour l'état avec la transaction modifiée
-      state.whenData((currentTransactions) {
-        final index =
-            currentTransactions.indexWhere((t) => t.id == transaction.id);
+      // Utilisez une approche de mise à jour plus robuste
+      state = await AsyncValue.guard(() async {
+        final currentTransactions = state.value ?? [];
+        final index = currentTransactions.indexWhere((t) => t.id == transaction.id);
+
         if (index != -1) {
-          final updatedTransactions =
-              List<Transaction>.from(currentTransactions);
+          final updatedTransactions = List<Transaction>.from(currentTransactions);
           updatedTransactions[index] = updatedTransaction;
-          state = AsyncValue.data(updatedTransactions);
+          return updatedTransactions;
         }
+
+        return currentTransactions;
       });
 
-      // Recharger toutes les transactions pour s'assurer de la synchronisation
-      //await loadTransactions(transaction.accountId);
       await loadTransactions();
     } catch (e, stackTrace) {
       print('Error in updateTransaction: $e');

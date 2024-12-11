@@ -451,29 +451,29 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
     final now = DateTime.now();
     final transaction = widget.isEditing && widget.transaction != null
         ? widget.transaction!.copyWith(
-            accountId: selectedAccount.id,
-            chantierId: _selectedChantierId,
-            personnelId: _selectedPersonnelId,
-            paymentTypeId: _selectedPaymentTypeId,
-            description: description,
-            amount: amount,
-            transactionDate: _transactionDate,
-            type: _type,
-            updatedAt: now,
-          )
+      accountId: selectedAccount.id,
+      chantierId: _selectedChantierId,
+      personnelId: _selectedPersonnelId,
+      paymentTypeId: _selectedPaymentTypeId,
+      description: description,
+      amount: amount,
+      transactionDate: _transactionDate,
+      type: _type,
+      updatedAt: now,
+    )
         : Transaction(
-            id: const Uuid().v4(),
-            accountId: selectedAccount.id,
-            chantierId: _selectedChantierId,
-            personnelId: _selectedPersonnelId,
-            paymentTypeId: _selectedPaymentTypeId,
-            description: description,
-            amount: amount,
-            transactionDate: _transactionDate,
-            type: _type,
-            createdAt: now,
-            updatedAt: now,
-          );
+      id: const Uuid().v4(),
+      accountId: selectedAccount.id,
+      chantierId: _selectedChantierId,
+      personnelId: _selectedPersonnelId,
+      paymentTypeId: _selectedPaymentTypeId,
+      description: description,
+      amount: amount,
+      transactionDate: _transactionDate,
+      type: _type,
+      createdAt: now,
+      updatedAt: now,
+    );
 
     try {
       final transactionsNotifier = ref.read(transactionsStateProvider.notifier);
@@ -491,13 +491,11 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
           await transactionsNotifier.addTransaction(transaction);
         }
 
-        // Reload transactions for the selected account
-        //await transactionsNotifier.loadTransactions(selectedAccount.id);
+        // Load transactions
         await transactionsNotifier.loadTransactions();
       }
 
       if (mounted) {
-        debugPrint("selectedAccount: $selectedAccount");
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(widget.isEditing
@@ -505,7 +503,9 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
                 : 'Transaction enregistrée avec succès'),
           ),
         );
-        Navigator.pop(context);
+
+        // Ensure we're not on the home page already before navigating
+        Navigator.of(context).popUntil((route) => route.isFirst);
       }
     } catch (e) {
       if (mounted) {
