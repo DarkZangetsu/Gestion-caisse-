@@ -14,6 +14,7 @@ import 'package:gestion_caisse_flutter/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gestion_caisse_flutter/services/work_manager_service.dart';
+import 'check_connexion/service_connexion_reseau.dart';
 import 'config/supabase_config.dart';
 import 'mode/dark_mode.dart';
 import 'mode/light_mode.dart';
@@ -25,11 +26,12 @@ void main() async {
 
   runApp(
     const ProviderScope(
-      child: MaApplication(),
+      child: ConnexionGlobale(
+        child: MaApplication(),
+      ),
     ),
   );
 }
-
 class MaApplication extends ConsumerWidget {
   const MaApplication({super.key});
 

@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 
@@ -13,6 +12,9 @@ class ServiceConnexionReseau {
   bool _boiteDialogueAffichee = false;
 
   void initialiserSuiviConnexion(BuildContext context) {
+    // Annuler l'abonnement précédent s'il existe
+    _abonnementConnexion?.cancel();
+
     _abonnementConnexion = _connectivity.onConnectivityChanged.listen((resultats) {
       _gererChangementConnexion(context, resultats);
     });
@@ -63,5 +65,38 @@ class ServiceConnexionReseau {
 
   void dispose() {
     _abonnementConnexion?.cancel();
+  }
+}
+
+class ConnexionGlobale extends StatefulWidget {
+  final Widget child;
+
+  const ConnexionGlobale({Key? key, required this.child}) : super(key: key);
+
+  @override
+  _ConnexionGlobaleState createState() => _ConnexionGlobaleState();
+}
+
+class _ConnexionGlobaleState extends State<ConnexionGlobale> {
+  late ServiceConnexionReseau _serviceReseau;
+
+  @override
+  void initState() {
+    super.initState();
+    _serviceReseau = ServiceConnexionReseau();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _serviceReseau.initialiserSuiviConnexion(context);
+    });
+  }
+
+  @override
+  void dispose() {
+    _serviceReseau.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return widget.child;
   }
 }
