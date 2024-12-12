@@ -11,15 +11,15 @@ import 'package:intl/intl.dart';
 
 import '../providers/selected_chantier_personnel_provider.dart';
 
-class TransactionPage extends ConsumerStatefulWidget {
-  final String chantierId;
-  const TransactionPage({super.key, required this.chantierId});
+class TransactionPersonnelPage extends ConsumerStatefulWidget {
+  final String personnelId;
+  const TransactionPersonnelPage({super.key, required this.personnelId});
 
   @override
-  ConsumerState<TransactionPage> createState() => _TransactionPageState();
+  ConsumerState<TransactionPersonnelPage> createState() => _TransactionPersonnelPageState();
 }
 
-class _TransactionPageState extends ConsumerState<TransactionPage> {
+class _TransactionPersonnelPageState extends ConsumerState<TransactionPersonnelPage> {
   var filterChoice = ["Tous", "Ce jour", "Cette semaine", "Ce mois", "Cette année"];
 
   DateTime? _startDate;
@@ -36,7 +36,7 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref
           .read(transactionStateProvider.notifier)
-          .loadTransactionsByChantier(widget.chantierId);
+          .loadTransactionsByPersonnel(widget.personnelId);
     });
   }
 
@@ -111,16 +111,16 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
     return Theme(
       data: Theme.of(context).copyWith(
         colorScheme: Theme.of(context).colorScheme.copyWith(
-              primary: const Color(0xffea6b24),
-              onPrimary: Colors.white,
-            ),
+          primary: const Color(0xffea6b24),
+          onPrimary: Colors.white,
+        ),
       ),
       child: Column(
         children: [
           if (child != null) Expanded(child: child),
           Padding(
             padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
@@ -144,7 +144,7 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
 
   List<Transaction> _filterTransactions(List<Transaction> transactions) {
     return transactions.where((transaction) {
-      final matchesChantier = transaction.chantierId == widget.chantierId;
+      final matchesPersonnel = transaction.personnelId == widget.personnelId;
       final matchesDateRange = _isWithinDateRange(transaction.transactionDate);
       final matchesSearchQuery = _matchesSearchQuery(transaction);
       final matchesTimeframe = _isWithinTimeframe(
@@ -152,20 +152,19 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
         _selectedTimeframeFilter,
       );
 
-      return matchesChantier &&
-          matchesDateRange &&
+      return matchesPersonnel &&
+        matchesDateRange &&
           matchesSearchQuery &&
           matchesTimeframe;
     }).toList();
   }
-
   bool _isWithinDateRange(DateTime date) {
     if (_startDate == null || _endDate == null) return true;
 
     final startDateTime =
-        DateTime(_startDate!.year, _startDate!.month, _startDate!.day);
+    DateTime(_startDate!.year, _startDate!.month, _startDate!.day);
     final endDateTime =
-        DateTime(_endDate!.year, _endDate!.month, _endDate!.day, 23, 59, 59);
+    DateTime(_endDate!.year, _endDate!.month, _endDate!.day, 23, 59, 59);
 
     return date.isAtSameMomentAs(startDateTime) ||
         date.isAtSameMomentAs(endDateTime) ||
@@ -175,8 +174,8 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
   bool _matchesSearchQuery(Transaction transaction) {
     return _searchQuery.isEmpty ||
         transaction.description
-                ?.toLowerCase()
-                .contains(_searchQuery.toLowerCase()) ==
+            ?.toLowerCase()
+            .contains(_searchQuery.toLowerCase()) ==
             true;
   }
 
@@ -196,17 +195,17 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
             Text(
               "Transactions",
               style: TextStyle(
-                fontSize: 12.0, 
+                fontSize: 12.0,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
                 height:
-                    0.5,
+                0.5,
               ),
             ),
             const SizedBox(
-                height: 8.0), 
+                height: 8.0),
             SizedBox(
-              height: 40, 
+              height: 40,
               child: TextField(
                 controller: _searchController,
                 focusNode: _focusNode,
@@ -216,19 +215,19 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
                   filled: true,
                   fillColor: Colors.white24,
                   contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                     borderSide: BorderSide.none,
                   ),
                   prefixIcon:
-                      const Icon(Icons.search, color: Colors.white70, size: 20),
+                  const Icon(Icons.search, color: Colors.white70, size: 20),
                 ),
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 14.0,
                   height:
-                      1.4, 
+                  1.4,
                 ),
                 onChanged: (value) => setState(() => _searchQuery = value),
               ),
@@ -277,7 +276,7 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
       child: ChoiceChip(
         selectedColor: const Color(0xffea6b24),
         labelPadding:
-            const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
+        const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
         side: const BorderSide(color: Colors.white),
         label: Text(
@@ -286,8 +285,8 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
             color: _selectedFilterIndex == index
                 ? Colors.white
                 : isDarkMode
-                    ? Colors.grey[300]
-                    : Colors.black,
+                ? Colors.grey[300]
+                : Colors.black,
             fontSize: 14.0,
           ),
         ),
@@ -305,9 +304,9 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
   }
 
   Widget _buildTransactionsList(
-    AsyncValue<List<Transaction>> transactionsAsync,
-    bool isDarkMode,
-  ) {
+      AsyncValue<List<Transaction>> transactionsAsync,
+      bool isDarkMode,
+      ) {
     return transactionsAsync.when(
       data: (transactions) =>
           _buildTransactionsContent(transactions, isDarkMode),
@@ -468,57 +467,57 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Expanded(
-                  child: Row(
-                    children: [
-                      const MyText(
-                        texte: "Reçu:",
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      const SizedBox(
-                        width: 10.0,
-                      ),
-                      MyText(
-                        texte: NumberFormat.currency(
-                          locale: 'fr_FR',
-                          symbol: 'Ar',
-                          decimalDigits: 2,
-                        ).format(totalReceived),
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green,
-                      ),
-                    ],
-                  )
-              ),
-              Expanded(
-                child: Row(
-                  children: [
-                    const MyText(
-                      texte: "Payé:",
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    const SizedBox(
-                      width: 10.0,
-                    ),
-                    MyText(
-                      texte: NumberFormat.currency(
-                        locale: 'fr_FR',
-                        symbol: 'Ar',
-                        decimalDigits: 2,
-                      ).format(totalPaid),
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.red,
-                    ),
-                  ],
-                ),
-              ),
-            ],
+        children: [
+          Expanded(
+              child: Row(
+                children: [
+                  const MyText(
+                    texte: "Reçu:",
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  const SizedBox(
+                    width: 10.0,
+                  ),
+                  MyText(
+                    texte: NumberFormat.currency(
+                      locale: 'fr_FR',
+                      symbol: 'Ar',
+                      decimalDigits: 2,
+                    ).format(totalReceived),
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
+                  ),
+                ],
+              )
           ),
+          Expanded(
+            child: Row(
+              children: [
+                const MyText(
+                  texte: "Payé:",
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+                const SizedBox(
+                  width: 10.0,
+                ),
+                MyText(
+                  texte: NumberFormat.currency(
+                    locale: 'fr_FR',
+                    symbol: 'Ar',
+                    decimalDigits: 2,
+                  ).format(totalPaid),
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

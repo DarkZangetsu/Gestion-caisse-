@@ -147,13 +147,18 @@ class _SearchableAppBarState extends State<SearchableAppBar> {
     return TextButton(
       onPressed: widget.onAccountTap,
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            widget.selectedAccount?.name ?? 'Livre de Caisse',
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 14.0,
+          Expanded(  // Replace Flexible with Expanded
+            child: Text(
+              widget.selectedAccount?.name ?? 'Livre de Caisse',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 14.0,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
             ),
           ),
           const Icon(Icons.arrow_drop_down_outlined, color: Colors.white),

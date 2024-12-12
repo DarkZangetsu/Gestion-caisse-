@@ -189,7 +189,7 @@ class DatabaseHelper {
       print("Réponse brute des chantiers : $response");
       return (response as List).map((json) => Chantier.fromJson(json)).toList();
     } catch (e) {
-      throw Exception('Erreur lors de la récupération des chantiers: $e');
+      throw Exception('Erreur lors de la récupération des chantiers');
     }
   }
 
@@ -514,7 +514,8 @@ class DatabaseHelper {
       final response = await _supabase
           .from('transactions')
           .select()
-          .eq('personnel_id', personnelId);
+          .eq('personnel_id', personnelId)
+          .order('transaction_date', ascending: false);
 
       return (response as List)
           .map((json) => Transaction.fromJson(json))
@@ -522,6 +523,25 @@ class DatabaseHelper {
     } catch (e) {
       throw Exception(
           'Erreur lors de la récupération des transactions du personnel: $e');
+    }
+  }
+
+  Future<List<Transaction>> getTransactionsByPaymentType(String paymentTypeId) async {
+    try {
+      final response = await _supabase
+          .from('transactions')
+          .select()
+          .eq('payment_type_id', paymentTypeId)
+          .order('transaction_date', ascending: false);
+
+      print('Transactions récupérées: $response'); // Debug print
+
+      return (response as List)
+          .map((json) => Transaction.fromJson(json))
+          .toList();
+    } catch (e) {
+      print('Erreur lors de la récupération des transactions: $e');
+      throw Exception('Erreur lors de la récupération des transactions du paymentType: $e');
     }
   }
 

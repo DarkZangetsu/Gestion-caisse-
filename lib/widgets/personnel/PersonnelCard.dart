@@ -5,18 +5,22 @@ class PersonnelCard extends StatelessWidget {
   final Personnel personnel;
   final VoidCallback onTap;
   final VoidCallback onDelete;
+  final VoidCallback? onRefresh;
 
   const PersonnelCard({
     super.key,
     required this.personnel,
     required this.onTap,
     required this.onDelete,
+    this.onRefresh,
   });
 
   @override
   Widget build(BuildContext context) {
     // Obtenir la taille de l'écran
-    final screenSize = MediaQuery.of(context).size;
+    final screenSize = MediaQuery
+        .of(context)
+        .size;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -50,7 +54,8 @@ class PersonnelCard extends StatelessWidget {
                         Expanded(
                           child: Text(
                             personnel.name,
-                            style: Theme.of(context)
+                            style: Theme
+                                .of(context)
                                 .textTheme
                                 .titleMedium
                                 ?.copyWith(
@@ -58,6 +63,13 @@ class PersonnelCard extends StatelessWidget {
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.more_vert),
+                          onPressed: () {
+                            _showOptionsMenu(
+                                context, personnel, onDelete, onRefresh);
+                          },
                         ),
                         IconButton(
                           icon: Icon(
@@ -99,12 +111,16 @@ class PersonnelCard extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoBox(
-      BuildContext context, String label, String value, IconData icon) {
+  Widget _buildInfoBox(BuildContext context, String label, String value,
+      IconData icon) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+        color: Theme
+            .of(context)
+            .colorScheme
+            .surfaceVariant
+            .withOpacity(0.3),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -117,18 +133,64 @@ class PersonnelCard extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                style: Theme
+                    .of(context)
+                    .textTheme
+                    .labelSmall
+                    ?.copyWith(
+                  color: Theme
+                      .of(context)
+                      .colorScheme
+                      .onSurfaceVariant,
                 ),
               ),
               Text(
                 value,
-                style: Theme.of(context).textTheme.bodyMedium,
+                style: Theme
+                    .of(context)
+                    .textTheme
+                    .bodyMedium,
               ),
             ],
           ),
         ],
       ),
+    );
+  }
+
+  // Moved outside the class to resolve undefined name issues
+  void _showOptionsMenu(BuildContext context,
+      Personnel personnel,
+      VoidCallback onDelete,
+      VoidCallback? onRefresh) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) =>
+          SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(
+                      Icons.menu_book_sharp, color: Colors.blue),
+                  title: const Text(
+                    'Consulter transaction',
+                    style: TextStyle(color: Colors.blue),
+                  ),
+                  onTap: () {
+                    Navigator.pushNamed(
+                        context,
+                        '/transaction-personnel',
+                        arguments: {'personnelId': personnel.id}
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
     );
   }
 }

@@ -9,6 +9,7 @@ import 'package:gestion_caisse_flutter/pages/payment_types_page.dart';
 import 'package:gestion_caisse_flutter/pages/splash.dart';
 import 'package:gestion_caisse_flutter/pages/todolist_page.dart';
 import 'package:gestion_caisse_flutter/pages/transaction.dart';
+import 'package:gestion_caisse_flutter/pages/transaction_personnel.dart';
 import 'package:gestion_caisse_flutter/providers/auth_guard.dart';
 import 'package:gestion_caisse_flutter/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
@@ -60,6 +61,7 @@ class MaApplication extends ConsumerWidget {
             const WidgetAwareConnexion(child: PaymentTypesPage()),
         '/change-password': (context) =>
             const WidgetAwareConnexion(child: ChangePasswordPage()),
+
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/transaction') {
@@ -72,6 +74,17 @@ class MaApplication extends ConsumerWidget {
             ),
           );
         }
+        if (settings.name == '/transaction-personnel') {
+          final args = settings.arguments as Map;
+          return MaterialPageRoute(
+            builder: (context) => WidgetAwareConnexion(
+              child: TransactionPersonnelPage(
+                personnelId: args['personnelId'] as String,
+              ),
+            ),
+          );
+        }
+        return null;
       },
     );
   }

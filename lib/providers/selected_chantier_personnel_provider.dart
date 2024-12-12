@@ -6,8 +6,6 @@ import '../services/database_helper.dart';
 // Provider pour le DatabaseHelper
 final databaseHelperProvider = Provider((ref) => DatabaseHelper());
 
-// Provider pour le chantier sélectionné
-final selectedChantierProvider = StateProvider<Chantier?>((ref) => null);
 
 // Provider pour les transactions
 final transactionStateProvider = StateNotifierProvider<TransactionNotifier, AsyncValue<List<Transaction>>>((ref) {
@@ -32,6 +30,31 @@ class TransactionNotifier extends StateNotifier<AsyncValue<List<Transaction>>> {
       print('Attempting to load transactions for chantierId: $chantierId');
 
       final transactions = await _databaseHelper.getTransactionsByChantier(chantierId);
+
+      print('Transactions loaded: ${transactions.length}');
+      print('Transaction details: ${transactions.map((t) => t.toJson())}');
+
+      state = AsyncValue.data(transactions);
+    } catch (error, stackTrace) {
+      print('Full error loading transactions: $error');
+      print('Stacktrace: $stackTrace');
+      state = AsyncValue.error(error, stackTrace);
+    }
+  }
+
+
+  Future<void> loadTransactionsByPersonnel(String personnelId) async {
+    try {
+      state = const AsyncValue.loading();
+
+      if (personnelId.isEmpty) {
+        print('Error: Empty chantierId');
+        throw Exception('ID du chantier invalide');
+      }
+
+      print('Attempting to load transactions for personnelId: $personnelId');
+
+      final transactions = await _databaseHelper.getTransactionsByPersonnel(personnelId);
 
       print('Transactions loaded: ${transactions.length}');
       print('Transaction details: ${transactions.map((t) => t.toJson())}');

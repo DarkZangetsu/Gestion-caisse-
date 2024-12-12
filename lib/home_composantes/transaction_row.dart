@@ -98,7 +98,7 @@ class _TransactionRowState extends ConsumerState<TransactionRow> {
                               // N'afficher que si le nom n'est pas vide
                               return person.name.isNotEmpty
                                   ? MyText(
-                                texte: "Nom: ${person.name}",
+                                texte: "${person.name}",
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
                               )
@@ -125,7 +125,7 @@ class _TransactionRowState extends ConsumerState<TransactionRow> {
                               // N'afficher que si le nom du chantier n'est pas vide
                               return chantier.name.isNotEmpty
                                   ? MyText(
-                                texte: "Chantier: ${chantier.name}",
+                                texte: "${chantier.name}",
                                 fontSize: 12.0,
                               )
                                   : const SizedBox.shrink();
@@ -188,7 +188,7 @@ class _TransactionRowState extends ConsumerState<TransactionRow> {
                               // N'afficher que si le nom du compte n'est pas vide
                               return account.name.isNotEmpty
                                   ? MyText(
-                                texte: "Compte: ${account.name}",
+                                texte: "${account.name}",
                                 fontSize: 12.0,
                               )
                                   : const SizedBox.shrink();

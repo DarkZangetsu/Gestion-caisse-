@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/payment_type.dart';
 import '../../providers/payment_types_provider.dart';
+import '../../providers/selected_chantier_personnel_provider.dart';
 import 'payment_type_form.dart';
 
 class PaymentTypeCard extends ConsumerWidget {
@@ -39,9 +40,9 @@ class PaymentTypeCard extends ConsumerWidget {
     );
   }
 
-  void _showDeleteDialog(BuildContext context, WidgetRef ref) {
+  void _showDeleteDialog(BuildContext parentContext, WidgetRef ref) {
     showDialog(
-      context: context,
+      context: parentContext,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
         title: const Text('Confirmer la suppression'),
@@ -52,9 +53,59 @@ class PaymentTypeCard extends ConsumerWidget {
             child: const Text('Annuler'),
           ),
           TextButton(
-            onPressed: () {
-              ref.read(paymentTypesProvider.notifier).deletePaymentType(paymentType.id);
-              Navigator.pop(context);
+            onPressed: () async {
+              try {
+                // Vérifier les transactions avant la suppression
+                final transactions = await ref.read(databaseHelperProvider)
+                    .getTransactionsByPaymentType(paymentType.id);
+
+                // Si des transactions existent, afficher un dialogue d'interdiction
+                if (transactions.isNotEmpty) {
+                  if (parentContext.mounted) {
+                    await showDialog(
+                      context: parentContext,
+                      builder: (dialogContext) => AlertDialog(
+                        title: const Text('Suppression impossible'),
+                        content: Text('Ce type de paiement est utilisé dans ${transactions.length} transaction(s). '
+                            'Vous ne pouvez pas le supprimer tant que ces transactions existent.'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(dialogContext),
+                            child: const Text('OK'),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  return;
+                }
+
+                // Supprimer le type de paiement
+                await ref.read(paymentTypesProvider.notifier)
+                    .deletePaymentType(paymentType.id);
+
+                // Fermer les dialogues
+                if (parentContext.mounted) {
+                  Navigator.pop(context); // Ferme le dialogue de confirmation
+                }
+              } catch (e) {
+                // Gérer les erreurs potentielles
+                if (parentContext.mounted) {
+                  await showDialog(
+                    context: parentContext,
+                    builder: (dialogContext) => AlertDialog(
+                      title: const Text('Erreur'),
+                      content: Text('Une erreur est survenue : $e'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(dialogContext),
+                          child: const Text('OK'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+              }
             },
             child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
           ),
