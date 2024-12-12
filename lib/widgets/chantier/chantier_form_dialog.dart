@@ -1,13 +1,15 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart';
+
 import 'package:gestion_caisse_flutter/composants/MyTextFormField.dart';
 import 'package:gestion_caisse_flutter/composants/texts.dart';
 import 'package:gestion_caisse_flutter/mode/dark_mode.dart';
 import 'package:gestion_caisse_flutter/mode/light_mode.dart';
-import 'package:gestion_caisse_flutter/providers/theme_provider.dart';
-import 'package:flutter/material.dart';
 import 'package:gestion_caisse_flutter/models/chantier.dart';
-import 'package:intl/intl.dart';
-import 'package:uuid/uuid.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gestion_caisse_flutter/providers/theme_provider.dart';
 import 'package:gestion_caisse_flutter/providers/users_provider.dart';
 
 class ChantierFormDialog extends ConsumerStatefulWidget {
@@ -29,16 +31,19 @@ class _ChantierFormDialogState extends ConsumerState<ChantierFormDialog> {
   late final TextEditingController _budgetController;
   late DateTime? _dateDebut;
   late DateTime? _dateFin;
+  Color? _selectedColor;
   final uuid = Uuid();
 
   @override
   void initState() {
     super.initState();
     _nomController = TextEditingController(text: widget.chantier?.name);
-    _budgetController =
-        TextEditingController(text: widget.chantier?.budgetMax?.toString());
+    _budgetController = TextEditingController(
+      text: widget.chantier?.budgetMax?.toString(),
+    );
     _dateDebut = widget.chantier?.startDate;
     _dateFin = widget.chantier?.endDate;
+    _selectedColor = widget.chantier?.colorValue;
   }
 
   @override
@@ -61,21 +66,7 @@ class _ChantierFormDialogState extends ConsumerState<ChantierFormDialog> {
       confirmText: 'Confirmer',
       builder: (context, Widget? child) {
         return Theme(
-          data: isDarkMode
-              ? darkTheme.copyWith(
-                  textButtonTheme: TextButtonThemeData(
-                    style: TextButton.styleFrom(
-                      foregroundColor: isDarkMode ? Colors.white : Colors.black,
-                    ),
-                  ),
-                )
-              : lightTheme.copyWith(
-                  textButtonTheme: TextButtonThemeData(
-                    style: TextButton.styleFrom(
-                      foregroundColor: isDarkMode ? Colors.white : Colors.black,
-                    ),
-                  ),
-                ),
+          data: isDarkMode ? darkTheme : lightTheme,
           child: child ?? const SizedBox(),
         );
       },
@@ -106,8 +97,10 @@ class _ChantierFormDialogState extends ConsumerState<ChantierFormDialog> {
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
           ),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 8,
+          ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -116,7 +109,9 @@ class _ChantierFormDialogState extends ConsumerState<ChantierFormDialog> {
               date != null
                   ? DateFormat('dd/MM/yyyy').format(date)
                   : 'Sélectionner',
-              style: date == null ? const TextStyle(color: Colors.grey) : null,
+              style: date == null
+                  ? const TextStyle(color: Colors.grey)
+                  : null,
             ),
             const Icon(Icons.calendar_today, size: 20),
           ],
@@ -125,19 +120,46 @@ class _ChantierFormDialogState extends ConsumerState<ChantierFormDialog> {
     );
   }
 
+  Future<void> _pickColor(BuildContext context) async {
+    Color pickedColor = await showDialog<Color>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Choisissez une couleur'),
+        content: SingleChildScrollView(
+          child: ColorPicker(
+            pickerColor: _selectedColor ?? Colors.blue,
+            onColorChanged: (color) {
+              Navigator.of(context).pop(color);
+            },
+            showLabel: true,
+            pickerAreaHeightPercent: 0.8,
+          ),
+        ),
+      ),
+    ) ?? Colors.blue;
+
+    setState(() {
+      _selectedColor = pickedColor;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
+
     return Consumer(
       builder: (context, ref, child) {
         final userId = ref.watch(currentUserProvider)?.id ?? '';
 
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(4),
+          ),
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final dialogWidth =
-                  constraints.maxWidth > 600 ? 600.0 : constraints.maxWidth;
+              final dialogWidth = constraints.maxWidth > 600
+                  ? 600.0
+                  : constraints.maxWidth;
 
               return Container(
                 width: dialogWidth,
@@ -165,7 +187,20 @@ class _ChantierFormDialogState extends ConsumerState<ChantierFormDialog> {
                         budgetController: _budgetController,
                         labelText: 'Budget Maximum (optionnel)',
                         keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true),
+                          decimal: true,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () => _pickColor(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _selectedColor,
+                        ),
+                        child: Text(
+                          _selectedColor == null
+                              ? 'Choisir une couleur'
+                              : 'Modifier la couleur',
+                        ),
                       ),
                       const SizedBox(height: 16),
                       LayoutBuilder(
@@ -227,23 +262,25 @@ class _ChantierFormDialogState extends ConsumerState<ChantierFormDialog> {
                           const SizedBox(width: 12),
                           ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xffea6b24)),
+                              backgroundColor: const Color(0xffea6b24),
+                            ),
                             onPressed: () {
-                              // Validation uniquement pour le nom du chantier
                               if (_nomController.text.isEmpty) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                      content: Text(
-                                          'Le nom du chantier est requis')),
+                                    content: Text(
+                                      'Le nom du chantier est requis',
+                                    ),
+                                  ),
                                 );
                                 return;
                               }
 
-                              // Parse le budget seulement s'il est renseigné
                               double? budget;
                               if (_budgetController.text.isNotEmpty) {
-                                budget =
-                                    double.tryParse(_budgetController.text);
+                                budget = double.tryParse(
+                                  _budgetController.text,
+                                );
                               }
 
                               final nouveauChantier = Chantier(
@@ -253,14 +290,19 @@ class _ChantierFormDialogState extends ConsumerState<ChantierFormDialog> {
                                 budgetMax: budget,
                                 startDate: _dateDebut,
                                 endDate: _dateFin,
-                                createdAt: widget.chantier?.createdAt ??
-                                    DateTime.now(),
+                                color: _selectedColor?.value,
+                                createdAt: widget.chantier?.createdAt
+                                    ?? DateTime.now(),
                                 updatedAt: DateTime.now(),
                               );
+
                               widget.onSave(nouveauChantier);
+                              Navigator.of(context).pop();
                             },
                             icon: Icon(
-                              widget.chantier == null ? Icons.add : Icons.save,
+                              widget.chantier == null
+                                  ? Icons.add
+                                  : Icons.save,
                               color: Colors.white,
                             ),
                             label: MyText(

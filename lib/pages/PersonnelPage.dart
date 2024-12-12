@@ -120,19 +120,47 @@ class PersonnelList extends ConsumerWidget {
       context: context,
       builder: (context) => PersonnelFormDialog(
         personnel: personnel,
-        onSave: (newPersonnel) {
-          Future.delayed(Duration.zero, () {
+        onSave: (newPersonnel) async {
+          try {
+            final userId = ref.read(currentUserProvider)?.id;
+            if (userId == null) {
+              throw Exception('Utilisateur non connecté');
+            }
+
             if (personnel == null) {
-              ref
+              await ref
                   .read(personnelStateProvider.notifier)
                   .createPersonnel(newPersonnel);
             } else {
-              ref
+              await ref
                   .read(personnelStateProvider.notifier)
                   .updatePersonnel(newPersonnel);
             }
-          });
-          Navigator.of(context).pop();
+
+            if (context.mounted) {
+              Navigator.of(context).pop();
+              // Afficher un message de succès
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(personnel == null
+                      ? 'Personnel créé avec succès'
+                      : 'Personnel modifié avec succès'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+              // Rafraîchir la liste
+              ref.refresh(personnelStateProvider);
+            }
+          } catch (e) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Erreur: $e'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          }
         },
       ),
     );

@@ -61,160 +61,168 @@ class _TransactionRowState extends ConsumerState<TransactionRow> {
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
-    return InkWell(
-      onTap: widget.onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: Colors.grey[200]!),
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            children: [
-              Expanded(
-                flex: 2,
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+
+    return Consumer(
+      builder: (context, ref, _) {
+        final chantiersAsync = ref.watch(chantiersStateProvider);
+
+        return chantiersAsync.when(
+          data: (chantiers) {
+            final chantier = chantiers.firstWhere(
+                  (c) => c.id == widget.transaction.chantierId,
+              orElse: () => Chantier(id: '', name: '', userId: ''),
+            );
+
+            debugPrint('Chantier color: ${chantier.color}');
+            debugPrint('Chantier colorValue: ${chantier.colorValue}');
+
+            return InkWell(
+              onTap: widget.onTap,
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: chantier.colorValue ?? Colors.grey[200]!,
+                      width: 4,
+                    ),
+                  ),
+                  color: chantier.colorValue != null
+                      ? chantier.colorValue!.withOpacity(0.2)
+                      : Colors.white,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
                     children: [
-                      Text(
-                        dateFormat.format(widget.transaction.transactionDate),
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                      // Nom du personnel
-                      Consumer(
-                        builder: (context, ref, _) {
-                          final personnelAsync = ref.watch(personnelStateProvider);
-                          return personnelAsync.when(
-                            data: (personnel) {
-                              if (widget.transaction.personnelId == null) return const SizedBox.shrink();
+                      Expanded(
+                        flex: 2,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              dateFormat.format(widget.transaction.transactionDate),
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                            // Nom du personnel
+                            Consumer(
+                              builder: (context, ref, _) {
+                                final personnelAsync = ref.watch(personnelStateProvider);
+                                return personnelAsync.when(
+                                  data: (personnel) {
+                                    if (widget.transaction.personnelId == null) return const SizedBox.shrink();
 
-                              final person = personnel.firstWhere(
-                                    (p) => p.id == widget.transaction.personnelId,
-                                orElse: () => Personnel(id: '', name: '', userId: ''),
-                              );
+                                    final person = personnel.firstWhere(
+                                          (p) => p.id == widget.transaction.personnelId,
+                                      orElse: () => Personnel(id: '', name: '', userId: ''),
+                                    );
 
-                              // N'afficher que si le nom n'est pas vide
-                              return person.name.isNotEmpty
-                                  ? MyText(
-                                texte: "${person.name}",
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              )
-                                  : const SizedBox.shrink();
-                            },
-                            loading: () => const SizedBox.shrink(),
-                            error: (error, stackTrace) => const SizedBox.shrink(),
-                          );
-                        },
-                      ),
-                      // Nom du chantier
-                      Consumer(
-                        builder: (context, ref, _) {
-                          final chantiersAsync = ref.watch(chantiersStateProvider);
-                          return chantiersAsync.when(
-                            data: (chantiers) {
-                              if (widget.transaction.chantierId == null) return const SizedBox.shrink();
-
-                              final chantier = chantiers.firstWhere(
-                                    (c) => c.id == widget.transaction.chantierId,
-                                orElse: () => Chantier(id: '', name: '', userId: ''),
-                              );
-
-                              // N'afficher que si le nom du chantier n'est pas vide
-                              return chantier.name.isNotEmpty
-                                  ? MyText(
+                                    // N'afficher que si le nom n'est pas vide
+                                    return person.name.isNotEmpty
+                                        ? MyText(
+                                      texte: "${person.name}",
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    )
+                                        : const SizedBox.shrink();
+                                  },
+                                  loading: () => const SizedBox.shrink(),
+                                  error: (error, stackTrace) => const SizedBox.shrink(),
+                                );
+                              },
+                            ),
+                            // Nom du chantier
+                            if (chantier.name.isNotEmpty)
+                              MyText(
                                 texte: "${chantier.name}",
                                 fontSize: 12.0,
-                              )
-                                  : const SizedBox.shrink();
-                            },
-                            loading: () => const SizedBox.shrink(),
-                            error: (error, stackTrace) => const SizedBox.shrink(),
-                          );
-                        },
-                      ),
-                      // Type de paiement
-                      Consumer(
-                        builder: (context, ref, _) {
-                          final typesAsync = ref.watch(paymentTypesProvider);
-                          return typesAsync.when(
-                            data: (types) {
-                              if (widget.transaction.paymentTypeId == null) return const SizedBox.shrink();
+                              ),
+                            // Type de paiement
+                            Consumer(
+                              builder: (context, ref, _) {
+                                final typesAsync = ref.watch(paymentTypesProvider);
+                                return typesAsync.when(
+                                  data: (types) {
+                                    if (widget.transaction.paymentTypeId == null) return const SizedBox.shrink();
 
-                              final type = types.firstWhere(
-                                    (t) => t.id == widget.transaction.paymentTypeId,
-                                orElse: () => PaymentType(id: '', name: '', category: ''),
-                              );
+                                    final type = types.firstWhere(
+                                          (t) => t.id == widget.transaction.paymentTypeId,
+                                      orElse: () => PaymentType(id: '', name: '', category: ''),
+                                    );
 
-                              return (type.name.isNotEmpty && type.category.isNotEmpty)
-                                  ? MyText(
-                                texte: "${type.name} (${type.category})",
-                                fontSize: 12.0,
-                              )
-                                  : const SizedBox.shrink();
-                            },
-                            loading: () => const SizedBox.shrink(),
-                            error: (error, stackTrace) => const SizedBox.shrink(),
-                          );
-                        },
-                      ),
-                      // Description (reste inchangé mais avec une vérification supplémentaire)
-                      if (widget.transaction.description != null &&
-                          widget.transaction.description!.trim().isNotEmpty)
-                        Text(
-                          widget.transaction.description!,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
+                                    return (type.name.isNotEmpty && type.category.isNotEmpty)
+                                        ? MyText(
+                                      texte: "${type.name} (${type.category})",
+                                      fontSize: 12.0,
+                                    )
+                                        : const SizedBox.shrink();
+                                  },
+                                  loading: () => const SizedBox.shrink(),
+                                  error: (error, stackTrace) => const SizedBox.shrink(),
+                                );
+                              },
+                            ),
+                            // Description (reste inchangé mais avec une vérification supplémentaire)
+                            if (widget.transaction.description != null &&
+                                widget.transaction.description!.trim().isNotEmpty)
+                              Text(
+                                widget.transaction.description!,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            // Compte correspondant à la transaction
+                            Consumer(
+                              builder: (context, ref, child) {
+                                final accountsAsync = ref.watch(accountsStateProvider);
+
+                                return accountsAsync.when(
+                                  data: (accounts) {
+                                    if (widget.transaction.accountId == null) return const SizedBox.shrink();
+
+                                    final account = accounts.firstWhere(
+                                          (a) => a.id == widget.transaction.accountId,
+                                      orElse: () => Account(id: '', name: '', userId: '', solde: 0.0),
+                                    );
+
+                                    // N'afficher que si le nom du compte n'est pas vide
+                                    return account.name.isNotEmpty
+                                        ? MyText(
+                                      texte: "${account.name}",
+                                      fontSize: 12.0,
+                                    )
+                                        : const SizedBox.shrink();
+                                  },
+                                  loading: () => const SizedBox.shrink(),
+                                  error: (error, stackTrace) => const SizedBox.shrink(),
+                                );
+                              },
+                            )
+                          ],
                         ),
-                      // Compte correspondant à la transaction
-                      Consumer(
-                        builder: (context, ref, child) {
-                          final accountsAsync = ref.watch(accountsStateProvider);
-
-                          return accountsAsync.when(
-                            data: (accounts) {
-                              if (widget.transaction.accountId == null) return const SizedBox.shrink();
-
-                              final account = accounts.firstWhere(
-                                    (a) => a.id == widget.transaction.accountId,
-                                orElse: () => Account(id: '', name: '', userId: '', solde: 0.0),
-                              );
-
-                              // N'afficher que si le nom du compte n'est pas vide
-                              return account.name.isNotEmpty
-                                  ? MyText(
-                                texte: "${account.name}",
-                                fontSize: 12.0,
-                              )
-                                  : const SizedBox.shrink();
-                            },
-                            loading: () => const SizedBox.shrink(),
-                            error: (error, stackTrace) => const SizedBox.shrink(),
-                          );
-                        },
-                      )
-                    ]),
+                      ),
+                      // Indicateurs de montant de transaction
+                      Text_transaction(
+                        text: 'reçu',
+                        transaction: widget.transaction,
+                        color: Colors.green,
+                      ),
+                      Text_transaction(
+                        text: 'payé',
+                        transaction: widget.transaction,
+                        color: Colors.red,
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              // Indicateurs de montant de transaction
-              Text_transaction(
-                text: 'reçu',
-                transaction: widget.transaction,
-                color: Colors.green,
-              ),
-              Text_transaction(
-                text: 'payé',
-                transaction: widget.transaction,
-                color: Colors.red,
-              ),
-            ],
-          ),
-        ),
-      ),
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, stackTrace) => Text('Erreur de chargement: $error'),
+        );
+      },
     );
   }
 }

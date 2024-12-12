@@ -31,6 +31,10 @@ class ChantierCard extends StatelessWidget {
   }
 
   Color _getStatusColor(BuildContext context) {
+    if (chantier.colorValue != null) {
+      return chantier.colorValue!;
+    }
+
     if (chantier.endDate == null || chantier.startDate == null) {
       return Colors.grey;
     }
@@ -62,7 +66,7 @@ class ChantierCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary,
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: Theme.of(context).colorScheme.secondary,
@@ -134,18 +138,19 @@ class ChantierCard extends StatelessWidget {
     final screenWidth = MediaQuery.of(context).size.width;
     final isSmallScreen = screenWidth < 600;
     final theme = Theme.of(context);
+    final statusColor = _getStatusColor(context);
 
     return Card(
       elevation: 1,
-      color: Theme.of(context).colorScheme.primary,
+      color: Colors.white,
       margin: EdgeInsets.symmetric(
         horizontal: isSmallScreen ? 8.0 : 16.0,
         vertical: 8.0,
       ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(
-          color: Colors.white,
+        side: BorderSide(
+          color: statusColor.withOpacity(0.5), // Semi-transparent border
           width: 1,
         ),
       ),
@@ -172,7 +177,7 @@ class ChantierCard extends StatelessWidget {
                                 height: 12,
                                 margin: const EdgeInsets.only(right: 8),
                                 decoration: BoxDecoration(
-                                  color: _getStatusColor(context),
+                                  color: statusColor,
                                   shape: BoxShape.circle,
                                 ),
                               ),
@@ -204,15 +209,13 @@ class ChantierCard extends StatelessWidget {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        //color: _getStatusColor(context).withOpacity(0.1),
-                        color: Theme.of(context).colorScheme.surface,
+                        color: statusColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
-
                       ),
                       child: Text(
                         _getStatus(),
                         style: TextStyle(
-                          color: _getStatusColor(context),
+                          color: statusColor,
                           fontSize: isSmallScreen ? 12 : 14,
                           fontWeight: FontWeight.w500,
                         ),
@@ -255,14 +258,7 @@ class ChantierCard extends StatelessWidget {
                       horizontal: 8,
                       vertical: 4,
                     ),
-                    color: theme.primaryColor.withOpacity(0.1),
-                    child: Text(
-                      'ID: ${chantier.id}',
-                      style: TextStyle(
-                        color: theme.primaryColor,
-                        fontSize: isSmallScreen ? 10 : 12,
-                      ),
-                    ),
+                    color: statusColor.withOpacity(0.1),
                   ),
                 ),
               ),
@@ -290,7 +286,6 @@ class ChantierCard extends StatelessWidget {
                 style: TextStyle(color: Colors.blue),
               ),
               onTap: () {
-                // Use chantier.id instead of undefined chantierId
                 Navigator.pushNamed(
                     context,
                     '/transaction',
@@ -322,8 +317,6 @@ class ChantierCard extends StatelessWidget {
       ),
     );
   }
-
-
 
   void _showDeleteConfirmationDialog(BuildContext context) {
     showDialog(
@@ -358,12 +351,12 @@ class ChantierCard extends StatelessWidget {
   }
 
   Widget _buildInfoItem(
-    BuildContext context,
-    IconData icon,
-    String label,
-    String value,
-    bool isSmallScreen,
-  ) {
+      BuildContext context,
+      IconData icon,
+      String label,
+      String value,
+      bool isSmallScreen,
+      ) {
     return Container(
       constraints: BoxConstraints(
         minWidth: isSmallScreen ? 130 : 150,
