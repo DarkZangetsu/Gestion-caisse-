@@ -94,7 +94,7 @@ class DatabaseHelper {
 
       return AppUser.fromJson(response);
     } catch (e) {
-      throw e; 
+      throw e;
     }
   }
 
@@ -547,6 +547,7 @@ class DatabaseHelper {
 
   Future<List<Todo>> getTodosByChantier(String chantierId) async {
     try {
+
       final response =
           await _supabase.from('todos').select().eq('chantier_id', chantierId);
 
@@ -569,6 +570,75 @@ class DatabaseHelper {
     } catch (e) {
       throw Exception(
           'Erreur lors de la récupération des todos en attente: $e');
+    }
+  }
+
+
+// Fonctionnalité en plus pour le calcule de la valeur de reste a payé a un personnel par type de paiment salaire :
+  Future<double> getRemainingPaymentForPersonnel(String personnelId) async {
+    try {
+      // Récupérer le personnel avec son salaire max
+      final personnelResponse = await _supabase
+          .from('personnel')
+          .select('salaire_max')
+          .eq('id', personnelId)
+          .single();
+
+      double salaireMax = personnelResponse['salaire_max'] != null
+          ? double.parse(personnelResponse['salaire_max'].toString())
+          : 0.0;
+
+      print('Salaire Max pour le personnel $personnelId: $salaireMax');
+
+      // Récupérer les types de paiement avec "salaire" (case-insensitive)
+      final paymentTypesResponse = await _supabase
+          .from('payment_types')
+          .select('id, name')
+          .or('name.ilike.%salaire%,name.ilike.%salary%');
+
+      List<String> salairePaymentTypeIds = (paymentTypesResponse as List)
+          .map((type) => type['id'].toString())
+          .toList();
+
+      print('Types de paiement de salaire trouvés: $salairePaymentTypeIds');
+
+      // Si aucun type de paiement de salaire n'est trouvé, retourner le salaire max
+      if (salairePaymentTypeIds.isEmpty) {
+        print('Aucun type de paiement de salaire trouvé');
+        return salaireMax;
+      }
+
+      // Récupérer les transactions de salaire pour ce personnel
+      final transactionsResponse = await _supabase
+          .from('transactions')
+          .select('id, amount, payment_type_id, transaction_date')
+          .eq('personnel_id', personnelId)
+          .filter('payment_type_id', 'in', salairePaymentTypeIds);
+
+      // Log des détails des transactions
+      print('Nombre de transactions de salaire: ${transactionsResponse.length}');
+      for (var transaction in transactionsResponse) {
+        print('Transaction - ID: ${transaction['id']}, '
+            'Amount: ${transaction['amount']}, '
+            'Payment Type ID: ${transaction['payment_type_id']}, '
+            'Date: ${transaction['transaction_date']}');
+      }
+
+      // Calculer le montant total des salaires déjà payés
+      double totalSalairePaye = (transactionsResponse as List)
+          .map((transaction) => double.parse(transaction['amount'].toString()))
+          .fold(0.0, (prev, amount) => prev + amount);
+
+      print('Total Salaire Payé: $totalSalairePaye');
+
+      // Calculer le reste à payer
+      double resteAPayer = salaireMax - totalSalairePaye;
+      print('Reste à Payer: $resteAPayer');
+
+      return resteAPayer;
+    } catch (e) {
+      print('Erreur lors du calcul du reste à payer: $e');
+      return 0.0; // Retourne 0 en cas d'erreur
     }
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/personnel.dart';
 import '../providers/personnel_provider.dart';
+import '../providers/remainingPaymentProvider.dart';
 import '../providers/users_provider.dart';
 import '../widgets/personnel/PersonnelCard.dart';
 import '../widgets/personnel/PersonnelFormDialog.dart';
@@ -15,13 +16,22 @@ class PersonnelPage extends ConsumerWidget {
     final userId = ref.watch(currentUserProvider)?.id;
     final personnelAsyncValue = ref.watch(personnelStateProvider);
 
+    void refreshAllData() {
+      // Refresh both personnelStateProvider and any dependent providers
+      ref.refresh(personnelStateProvider);
+      ref.invalidate(remainingPaymentProvider);
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title:
-            const MyText(texte: 'Gestion des Personnels', color: Colors.white),
+        title: const MyText(texte: 'Gestion des Personnels', color: Colors.white),
         backgroundColor: const Color(0xffea6b24),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: refreshAllData,
+          ),
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () => _showPersonnelFormDialog(context, ref, null),
@@ -30,16 +40,16 @@ class PersonnelPage extends ConsumerWidget {
       ),
       body: userId != null
           ? personnelAsyncValue.when(
-              data: (personnelList) {
-                if (personnelList.isEmpty) {
-                  return const Center(child: Text('Aucun personnel trouvé'));
-                }
-                return PersonnelList(personnelList: personnelList);
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, stackTrace) =>
-                  Center(child: Text('Erreur : $error')),
-            )
+        data: (personnelList) {
+          if (personnelList.isEmpty) {
+            return const Center(child: Text('Aucun personnel trouvé'));
+          }
+          return PersonnelList(personnelList: personnelList);
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stackTrace) =>
+            Center(child: Text('Erreur : $error')),
+      )
           : const Center(child: Text('Veuillez vous connecter')),
     );
   }
@@ -61,6 +71,9 @@ class PersonnelPage extends ConsumerWidget {
                   .read(personnelStateProvider.notifier)
                   .updatePersonnel(newPersonnel);
             }
+
+            // Refresh remaining payment provider
+            ref.invalidate(remainingPaymentProvider);
           });
           Navigator.of(context).pop();
         },
@@ -105,6 +118,10 @@ class PersonnelList extends ConsumerWidget {
           TextButton(
             onPressed: () {
               ref.read(personnelStateProvider.notifier).deletePersonnel(personnel.id);
+
+              // Refresh remaining payment provider after deletion
+              ref.invalidate(remainingPaymentProvider);
+
               Navigator.of(context).pop();
             },
             child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
@@ -148,8 +165,9 @@ class PersonnelList extends ConsumerWidget {
                   backgroundColor: Colors.green,
                 ),
               );
-              // Rafraîchir la liste
+              // Rafraîchir la liste et le provider de paiement restant
               ref.refresh(personnelStateProvider);
+              ref.invalidate(remainingPaymentProvider);
             }
           } catch (e) {
             if (context.mounted) {

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gestion_caisse_flutter/models/personnel.dart';
 
-class PersonnelCard extends StatelessWidget {
+import '../../providers/remainingPaymentProvider.dart';
+
+class PersonnelCard extends ConsumerWidget {
   final Personnel personnel;
   final VoidCallback onTap;
   final VoidCallback onDelete;
@@ -16,11 +19,9 @@ class PersonnelCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     // Obtenir la taille de l'écran
-    final screenSize = MediaQuery
-        .of(context)
-        .size;
+    final screenSize = MediaQuery.of(context).size;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -54,11 +55,7 @@ class PersonnelCard extends StatelessWidget {
                         Expanded(
                           child: Text(
                             personnel.name,
-                            style: Theme
-                                .of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
                               fontSize: screenSize.width < 600 ? 16 : 18,
                             ),
                             overflow: TextOverflow.ellipsis,
@@ -101,6 +98,9 @@ class PersonnelCard extends StatelessWidget {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 8),
+                    // Ajout du reste à payer
+                    _buildRemainingPaymentSection(context, ref),
                   ],
                 ),
               ),
@@ -111,16 +111,51 @@ class PersonnelCard extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoBox(BuildContext context, String label, String value,
-      IconData icon) {
+  Widget _buildRemainingPaymentSection(BuildContext context, WidgetRef ref) {
+    final remainingPaymentAsync = ref.watch(remainingPaymentProvider(personnel.id));
+
+    return remainingPaymentAsync.when(
+      data: (remainingPayment) => _buildInfoBox(
+        context,
+        'Reste à Payer',
+        remainingPayment.toStringAsFixed(2),
+        Icons.payment,
+        backgroundColor: remainingPayment > 0
+            ? Colors.orange.shade100
+            : Colors.green.shade100,
+      ),
+      loading: () => Center(
+        child: SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: Theme.of(context).primaryColor,
+          ),
+        ),
+      ),
+      error: (error, stack) => _buildInfoBox(
+        context,
+        'Reste à Payer',
+        'Erreur',
+        Icons.error_outline,
+        backgroundColor: Colors.red.shade100,
+      ),
+    );
+  }
+
+  Widget _buildInfoBox(
+      BuildContext context,
+      String label,
+      String value,
+      IconData icon, {
+        Color? backgroundColor,
+      }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: Theme
-            .of(context)
-            .colorScheme
-            .surfaceVariant
-            .withOpacity(0.3),
+        color: backgroundColor ??
+            Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -133,23 +168,13 @@ class PersonnelCard extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: Theme
-                    .of(context)
-                    .textTheme
-                    .labelSmall
-                    ?.copyWith(
-                  color: Theme
-                      .of(context)
-                      .colorScheme
-                      .onSurfaceVariant,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
               Text(
                 value,
-                style: Theme
-                    .of(context)
-                    .textTheme
-                    .bodyMedium,
+                style: Theme.of(context).textTheme.bodyMedium,
               ),
             ],
           ),
@@ -158,7 +183,6 @@ class PersonnelCard extends StatelessWidget {
     );
   }
 
-  // Moved outside the class to resolve undefined name issues
   void _showOptionsMenu(BuildContext context,
       Personnel personnel,
       VoidCallback onDelete,
@@ -168,29 +192,28 @@ class PersonnelCard extends StatelessWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) =>
-          SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ListTile(
-                  leading: const Icon(
-                      Icons.menu_book_sharp, color: Colors.blue),
-                  title: const Text(
-                    'Consulter transaction',
-                    style: TextStyle(color: Colors.blue),
-                  ),
-                  onTap: () {
-                    Navigator.pushNamed(
-                        context,
-                        '/transaction-personnel',
-                        arguments: {'personnelId': personnel.id}
-                    );
-                  },
-                ),
-              ],
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(
+                  Icons.menu_book_sharp, color: Colors.blue),
+              title: const Text(
+                'Consulter transaction',
+                style: TextStyle(color: Colors.blue),
+              ),
+              onTap: () {
+                Navigator.pushNamed(
+                    context,
+                    '/transaction-personnel',
+                    arguments: {'personnelId': personnel.id}
+                );
+              },
             ),
-          ),
+          ],
+        ),
+      ),
     );
   }
 }

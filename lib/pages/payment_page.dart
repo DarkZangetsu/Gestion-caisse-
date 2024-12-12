@@ -408,19 +408,23 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
   }
 
   bool shouldShowPersonnelField() {
-    final selectedType = ref.read(paymentTypesProvider).when(
-          data: (types) =>
-              types.where((t) => t.id == _selectedPaymentTypeId).firstOrNull,
-          loading: () => null,
-          error: (_, __) => null,
-        );
+    final selectedType = ref.watch(paymentTypesProvider).whenOrNull(
+      data: (types) =>
+      types.where((t) => t.id == _selectedPaymentTypeId).firstOrNull,
+    );
+
+    debugPrint("Selected Payment Type ID: $_selectedPaymentTypeId");
+    debugPrint("Selected Payment Type: $selectedType");
 
     if (selectedType == null) return false;
 
     final typeName = selectedType.name.toLowerCase();
-    return typeName.contains('salaire') || typeName.contains('karama');
-  }
+    final shouldShow = typeName.contains('salaire') || typeName.contains('karama');
 
+    debugPrint("Should show personnel field: $shouldShow");
+
+    return shouldShow;
+  }
   Future<void> _saveTransaction() async {
     // Form validation
     if (!_formKey.currentState!.validate()) {
@@ -711,23 +715,35 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
     );
   }
 
-  Widget _buildPaymentTypeDropdown(List<PaymentType> filteredPaymentTypes) {
+  _buildPaymentTypeDropdown(filteredPaymentTypes) {
     return DropdownButtonFormField<String>(
       value: _selectedPaymentTypeId,
+      hint: const Text('Type de paiement'),
       decoration: const InputDecoration(
-        labelText: 'Type de paiement (optionnel)',
-        labelStyle: TextStyle(color: Colors.grey),
+        border: OutlineInputBorder(),
+        labelText: 'Type de paiement',
       ),
-      items: filteredPaymentTypes
-          .map((type) => DropdownMenuItem(
-                value: type.id,
-                child: Text(type.name),
-              ))
-          .toList(),
-      onChanged: (value) => setState(() => _selectedPaymentTypeId = value),
+      items: filteredPaymentTypes.map<DropdownMenuItem<String>>((PaymentType type) {
+        return DropdownMenuItem<String>(
+          value: type.id,
+          child: Text(type.name),
+        );
+      }).toList(),
+      onChanged: (String? newValue) {
+        setState(() {
+          _selectedPaymentTypeId = newValue;
+          // Réinitialiser le personnel si nécessaire
+          _selectedPersonnelId = null;
+        });
+      },
+      validator: (value) {
+        if (value == null) {
+          return 'Veuillez sélectionner un type de paiement';
+        }
+        return null;
+      },
     );
   }
-
   Widget _buildPersonnelDropdown(AsyncValue<List<Personnel>> personnelAsync) {
     return personnelAsync.when(
       data: (personnelList) => SearchableDropdown<Personnel>(
