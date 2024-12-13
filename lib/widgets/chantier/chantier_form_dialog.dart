@@ -145,13 +145,18 @@ class _ChantierFormDialogState extends ConsumerState<ChantierFormDialog> {
             child: const Text('Annuler'),
           ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
             onPressed: () {
               setState(() {
                 _selectedColor = pickedColor;
               });
               Navigator.of(context).pop();
             },
-            child: const Text('Confirmer'),
+            child: const Text('Confirmer',
+              style: TextStyle(
+                color: Colors.white,
+              ),
+            ),
           ),
         ],
       ),
@@ -161,6 +166,7 @@ class _ChantierFormDialogState extends ConsumerState<ChantierFormDialog> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Consumer(
       builder: (context, ref, child) {
@@ -206,15 +212,62 @@ class _ChantierFormDialogState extends ConsumerState<ChantierFormDialog> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: () => _pickColor(context),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _selectedColor,
-                        ),
-                        child: Text(
-                          _selectedColor == null
-                              ? 'Choisir une couleur'
-                              : 'Modifier la couleur',
+                      GestureDetector(
+                        onTap: () => _pickColor(context),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: _selectedColor ?? colorScheme.surfaceVariant,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isDarkMode
+                                  ? colorScheme.outline.withOpacity(0.3)
+                                  : colorScheme.outline.withOpacity(0.2),
+                              width: 1,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                spreadRadius: 1,
+                                blurRadius: 3,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                _selectedColor == null
+                                    ? 'Sélectionner une couleur'
+                                    : 'Couleur sélectionnée',
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: _selectedColor == null
+                                      ? (isDarkMode ? Colors.white70 : Colors.black54)
+                                      : Colors.white,
+                                ),
+                              ),
+                              Container(
+                                width: 30,
+                                height: 30,
+                                decoration: BoxDecoration(
+                                  color: _selectedColor ?? colorScheme.primary,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: 2,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.2),
+                                      spreadRadius: 1,
+                                      blurRadius: 3,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                       const SizedBox(height: 16),

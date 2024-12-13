@@ -84,7 +84,7 @@ class ChantierCard extends ConsumerWidget {
           Icon(
             Icons.date_range,
             size: isSmallScreen ? 16 : 20,
-            color: Theme.of(context).primaryColor,
+            color: Colors.orange,
           ),
           const SizedBox(width: 8),
           Flexible(
@@ -95,7 +95,7 @@ class ChantierCard extends ConsumerWidget {
                   'Période',
                   style: TextStyle(
                     fontSize: isSmallScreen ? 12 : 14,
-                    color: Colors.grey[600],
+                    //color: Colors.grey[600],
                   ),
                 ),
                 Row(
@@ -149,7 +149,7 @@ class ChantierCard extends ConsumerWidget {
 
     return Card(
       elevation: 1,
-      color: Colors.white,
+      color: Theme.of(context).colorScheme.primary,
       margin: EdgeInsets.symmetric(
         horizontal: isSmallScreen ? 8.0 : 16.0,
         vertical: 8.0,
@@ -216,13 +216,13 @@ class ChantierCard extends ConsumerWidget {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: statusColor.withOpacity(0.1),
+                        color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         _getStatus(),
                         style: TextStyle(
-                          color: statusColor,
+                          //color: statusColor,
                           fontSize: isSmallScreen ? 12 : 14,
                           fontWeight: FontWeight.w500,
                         ),
@@ -462,7 +462,7 @@ class ChantierCard extends ConsumerWidget {
       ),
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+        color: Theme.of(context).colorScheme.secondary,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: Theme.of(context).dividerColor,
@@ -475,7 +475,7 @@ class ChantierCard extends ConsumerWidget {
           Icon(
             icon,
             size: isSmallScreen ? 16 : 20,
-            color: Theme.of(context).primaryColor,
+            color: Colors.orange,
           ),
           const SizedBox(width: 8),
           Flexible(
@@ -486,7 +486,7 @@ class ChantierCard extends ConsumerWidget {
                   label,
                   style: TextStyle(
                     fontSize: isSmallScreen ? 12 : 14,
-                    color: Colors.grey[600],
+                    //color: Colors.grey[600],
                   ),
                 ),
                 Text(

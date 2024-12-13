@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:gestion_caisse_flutter/models/personnel.dart';
 
 import '../../providers/remainingPaymentProvider.dart';
@@ -17,6 +18,13 @@ class PersonnelCard extends ConsumerWidget {
     required this.onDelete,
     this.onRefresh,
   });
+
+  // French number formatter with two decimal places
+  String _formatCurrency(double? value) {
+    if (value == null) return 'N/A';
+    final formatter = NumberFormat('#,##0.00', 'fr_FR');
+    return '${formatter.format(value)} Ar';
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -93,7 +101,7 @@ class PersonnelCard extends ConsumerWidget {
                         _buildInfoBox(
                           context,
                           'Salaire Max',
-                          personnel.salaireMax?.toStringAsFixed(2) ?? 'N/A',
+                          _formatCurrency(personnel.salaireMax),
                           Icons.wallet,
                         ),
                       ],
@@ -118,7 +126,7 @@ class PersonnelCard extends ConsumerWidget {
       data: (remainingPayment) => _buildInfoBox(
         context,
         'Reste à Payer',
-        remainingPayment.toStringAsFixed(2),
+        _formatCurrency(remainingPayment),
         Icons.payment,
         backgroundColor: remainingPayment > 0
             ? Colors.orange.shade100
@@ -153,9 +161,9 @@ class PersonnelCard extends ConsumerWidget {
       }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      margin: const EdgeInsets.only(right: 8.0),
       decoration: BoxDecoration(
-        color: backgroundColor ??
-            Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+        color: Theme.of(context).colorScheme.primary,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(

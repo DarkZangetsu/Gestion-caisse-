@@ -138,7 +138,7 @@ class DatabaseHelper {
       final response =
           await _supabase.from('accounts').select().eq('user_id', userId);
 
-      return (response as List).map((json) => Account.fromJson(json)).toList();
+      return (response as List).map((json) => Account.fromJson(json)).toList()..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     } catch (e) {
       throw Exception('Erreur lors de la récupération des comptes: $e');
     }

@@ -88,7 +88,7 @@ class _TransactionRowState extends ConsumerState<TransactionRow> {
                   ),
                   color: chantier.colorValue != null
                       ? chantier.colorValue!.withOpacity(0.2)
-                      : Colors.white,
+                      : Theme.of(context).colorScheme.primary,
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
