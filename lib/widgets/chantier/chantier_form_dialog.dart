@@ -121,26 +121,41 @@ class _ChantierFormDialogState extends ConsumerState<ChantierFormDialog> {
   }
 
   Future<void> _pickColor(BuildContext context) async {
-    Color pickedColor = await showDialog<Color>(
+    Color pickedColor = _selectedColor ?? Colors.blue;
+
+    await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Choisissez une couleur'),
         content: SingleChildScrollView(
           child: ColorPicker(
-            pickerColor: _selectedColor ?? Colors.blue,
+            pickerColor: pickedColor,
             onColorChanged: (color) {
-              Navigator.of(context).pop(color);
+              pickedColor = color;
             },
             showLabel: true,
             pickerAreaHeightPercent: 0.8,
           ),
         ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _selectedColor = pickedColor;
+              });
+              Navigator.of(context).pop();
+            },
+            child: const Text('Confirmer'),
+          ),
+        ],
       ),
-    ) ?? Colors.blue;
-
-    setState(() {
-      _selectedColor = pickedColor;
-    });
+    );
   }
 
   @override
