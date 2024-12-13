@@ -187,7 +187,7 @@ class DatabaseHelper {
       final response =
           await _supabase.from('chantiers').select().eq('user_id', userId);
       print("Réponse brute des chantiers : $response");
-      return (response as List).map((json) => Chantier.fromJson(json)).toList();
+      return (response as List).map((json) => Chantier.fromJson(json)).toList()..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     } catch (e) {
       throw Exception('Erreur lors de la récupération des chantiers');
     }
@@ -240,7 +240,8 @@ class DatabaseHelper {
       print("Réponse brute des personnel : $response");
       return (response as List)
           .map((json) => Personnel.fromJson(json))
-          .toList();
+          .toList()
+        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     } catch (e) {
       throw Exception('Erreur lors de la récupération du personnel: $e');
     }
