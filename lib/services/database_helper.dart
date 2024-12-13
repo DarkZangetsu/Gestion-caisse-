@@ -641,4 +641,42 @@ class DatabaseHelper {
       return 0.0; // Retourne 0 en cas d'erreur
     }
   }
+
+
+  //Total des transaction recu ou bien payé par chantier  :
+  Future<Map<String, double>> getChantierTransactionTotals(String chantierId) async {
+    try {
+      final response = await _supabase
+          .from('transactions')
+          .select('amount, type')
+          .eq('chantier_id', chantierId);
+
+      double totalRecu = 0.0;
+      double totalPaye = 0.0;
+
+      for (var transaction in response) {
+        double amount = double.parse(transaction['amount'].toString());
+        String type = transaction['type'];
+
+        if (type == 'reçu') {
+          totalRecu += amount;
+        } else if (type == 'payé') {
+          totalPaye += amount;
+        }
+      }
+
+      return {
+        'totalRecu': totalRecu,
+        'totalPaye': totalPaye,
+        'solde': totalRecu - totalPaye
+      };
+    } catch (e) {
+      print('Erreur lors du calcul des totaux du chantier: $e');
+      return {
+        'totalRecu': 0.0,
+        'totalPaye': 0.0,
+        'solde': 0.0
+      };
+    }
+  }
 }

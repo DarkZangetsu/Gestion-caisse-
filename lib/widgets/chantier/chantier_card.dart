@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:gestion_caisse_flutter/models/chantier.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class ChantierCard extends StatelessWidget {
+import '../../providers/chantierTransactionsTotalProvider.dart';
+
+
+class ChantierCard extends ConsumerWidget {
   final Chantier chantier;
   final VoidCallback onTap;
   final VoidCallback onDelete;
@@ -61,6 +65,7 @@ class ChantierCard extends StatelessWidget {
     }
     return 'En cours';
   }
+
 
   Widget _buildDateRange(BuildContext context, bool isSmallScreen) {
     return Container(
@@ -134,11 +139,13 @@ class ChantierCard extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isSmallScreen = screenWidth < 600;
     final theme = Theme.of(context);
     final statusColor = _getStatusColor(context);
+
+    final transactionsAsync = ref.watch(chantierTransactionsProvider(chantier.id ?? ''));
 
     return Card(
       elevation: 1,
@@ -238,6 +245,18 @@ class ChantierCard extends StatelessWidget {
                           _buildDateRange(context, isSmallScreen),
                       ],
                     ),
+                    const SizedBox(height: 12),
+                    // Nouveau widget pour afficher les transactions
+                    transactionsAsync.when(
+                        data: (transactions) => _buildTransactionSummary(
+                            context,
+                            transactions['totalRecu'] ?? 0.0,
+                            transactions['totalPaye'] ?? 0.0,
+                            isSmallScreen
+                        ),
+                        loading: () => const Center(child: CircularProgressIndicator()),
+                        error: (error, stack) => Text('Erreur: $error')
+                    ),
                   ],
                 ),
               ),
@@ -268,6 +287,86 @@ class ChantierCard extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildTransactionSummary(
+      BuildContext context,
+      double totalRecu,
+      double totalPaye,
+      bool isSmallScreen
+      ) {
+    final currencyFormat = NumberFormat.currency(
+      locale: 'fr_FR',
+      symbol: 'Ar',
+      decimalDigits: 2,
+    );
+
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.green.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.green.withOpacity(0.3)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Reçu',
+                  style: TextStyle(
+                    color: Colors.green,
+                    fontSize: isSmallScreen ? 12 : 14,
+                  ),
+                ),
+                Text(
+                  currencyFormat.format(totalRecu),
+                  style: TextStyle(
+                    color: Colors.green,
+                    fontWeight: FontWeight.bold,
+                    fontSize: isSmallScreen ? 14 : 16,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.red.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.red.withOpacity(0.3)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Payé',
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontSize: isSmallScreen ? 12 : 14,
+                  ),
+                ),
+                Text(
+                  currencyFormat.format(totalPaye),
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                    fontSize: isSmallScreen ? 14 : 16,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
 
   void _showOptionsMenu(BuildContext context) {
     showModalBottomSheet(
