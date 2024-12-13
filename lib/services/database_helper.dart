@@ -53,29 +53,6 @@ class DatabaseHelper {
     }
   }
 
-  /*Future<AppUser?> signInUser(String email, String password) async {
-    try {
-
-      final hashedPassword = _hashPassword(password);
-      print('Hashed password: $hashedPassword');
-
-      final response = await _supabase
-          .from('users')
-          .select()
-          .eq('email', email)
-          .eq('password', hashedPassword)
-          .maybeSingle();
-
-      if (response == null) {
-        throw Exception('Mot de passe incorrect');
-      }
-
-      return AppUser.fromJson(response);
-    } catch (e) {
-      print('Error during login: $e'); 
-      throw Exception('Erreur lors de la connexion');
-    }
-  }*/
 
   Future<AppUser?> signInUser(String email, String password) async {
     try {
@@ -98,10 +75,6 @@ class DatabaseHelper {
     }
   }
 
-  Future<void> signOutUser() async {
-    // Ici vous pouvez implémenter une logique de déconnexion locale
-    // comme effacer les données en cache ou les préférences utilisateur
-  }
 
   Future<AppUser?> getCurrentUser(String userId) async {
     try {
@@ -135,10 +108,13 @@ class DatabaseHelper {
   // Account Methods
   Future<List<Account>> getAccounts(String userId) async {
     try {
-      final response =
-          await _supabase.from('accounts').select().eq('user_id', userId);
+      final response = await _supabase
+          .from('accounts')
+          .select()
+          .eq('user_id', userId)
+          .order('name', ascending: true);
 
-      return (response as List).map((json) => Account.fromJson(json)).toList()..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      return (response as List).map((json) => Account.fromJson(json)).toList();
     } catch (e) {
       throw Exception('Erreur lors de la récupération des comptes: $e');
     }

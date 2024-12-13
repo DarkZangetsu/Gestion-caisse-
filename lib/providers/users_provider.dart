@@ -38,8 +38,4 @@ class UserNotifier extends StateNotifier<AsyncValue<AppUser?>> {
     }
   }
 
-  Future<void> signOutUser() async {
-    state = const AsyncValue.data(null);
-    await _db.signOutUser();
-  }
 }
