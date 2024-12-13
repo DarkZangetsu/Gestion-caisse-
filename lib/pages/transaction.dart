@@ -9,6 +9,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../models/chantier.dart';
+import '../models/payment_type.dart';
+import '../models/personnel.dart';
+import '../providers/chantiers_provider.dart';
+import '../providers/payment_types_provider.dart';
+import '../providers/personnel_provider.dart';
 import '../providers/selected_chantier_personnel_provider.dart';
 
 class TransactionPage extends ConsumerStatefulWidget {
@@ -173,13 +179,66 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
   }
 
   bool _matchesSearchQuery(Transaction transaction) {
-    return _searchQuery.isEmpty ||
-        transaction.description
-                ?.toLowerCase()
-                .contains(_searchQuery.toLowerCase()) ==
-            true;
-  }
+    if (_searchQuery.isEmpty) return true;
 
+    final searchTerms = _searchQuery.toLowerCase().split(' ');
+
+    // Get the current state of providers
+    final chantierAsync = ref.watch(chantiersStateProvider);
+    final personnelAsync = ref.watch(personnelStateProvider);
+    final paymentTypeAsync = ref.watch(paymentTypesProvider);
+
+    // Helper function to find name for a specific entity type
+    String _findName(AsyncValue<List<dynamic>> asyncValue, String? id) {
+      return asyncValue.whenOrNull(
+        data: (items) {
+          // Ensure type-specific search and return
+          if (items is List<Chantier>) {
+            final found = items.firstWhere(
+                  (item) => item.id == id,
+              orElse: () => Chantier(id: '', name: '', userId: ''),
+            );
+            return found.name.toLowerCase();
+          }
+          if (items is List<Personnel>) {
+            final found = items.firstWhere(
+                  (item) => item.id == id,
+              orElse: () => Personnel(id: '', name: '', userId: ''),
+            );
+            return found.name.toLowerCase();
+          }
+          if (items is List<PaymentType>) {
+            final found = items.firstWhere(
+                  (item) => item.id == id,
+              orElse: () => PaymentType(id: '', name: '', category: ''),
+            );
+            return found.name.toLowerCase();
+          }
+          return '';
+        },
+      ) ?? '';
+    }
+
+    // Prepare search details
+    final chantierName = _findName(chantierAsync, transaction.chantierId);
+    final personnelName = _findName(personnelAsync, transaction.personnelId);
+    final paymentTypeName = _findName(paymentTypeAsync, transaction.paymentTypeId);
+    final description = transaction.description?.toLowerCase() ?? '';
+
+    // Check if ALL search terms are found in ANY of the details
+    return searchTerms.every((term) =>
+        [
+          description,
+          transaction.type.toLowerCase(),
+          chantierName,
+          personnelName,
+          paymentTypeName
+        ].any((detail) =>
+        // More flexible matching: partial word match
+        detail.contains(term)
+        )
+    );
+  }
   @override
   Widget build(BuildContext context) {
     final isDarkMode = ref.watch(themeProvider) == ThemeMode.dark;
@@ -196,7 +255,7 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
             Text(
               "Transactions",
               style: TextStyle(
-                fontSize: 12.0, 
+                fontSize: 12.0,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
                 height:
@@ -204,9 +263,9 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
               ),
             ),
             const SizedBox(
-                height: 8.0), 
+                height: 8.0),
             SizedBox(
-              height: 40, 
+              height: 40,
               child: TextField(
                 controller: _searchController,
                 focusNode: _focusNode,
@@ -228,7 +287,7 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
                   color: Colors.white,
                   fontSize: 14.0,
                   height:
-                      1.4, 
+                      1.4,
                 ),
                 onChanged: (value) => setState(() => _searchQuery = value),
               ),
