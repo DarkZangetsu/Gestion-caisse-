@@ -19,6 +19,11 @@ class ChantierTransactionsNotifier extends StateNotifier<AsyncValue<Map<String, 
     loadTransactionTotals();
   }
 
+  final chantierTransactionsProvider = FutureProvider.family<Map<String, double>, String>((ref, chantierId) async {
+    final databaseHelper = ref.read(databaseHelperProvider);
+    return databaseHelper.getChantierTransactionTotals(chantierId);
+  });
+
   Future<void> loadTransactionTotals() async {
     state = const AsyncValue.loading();
     try {

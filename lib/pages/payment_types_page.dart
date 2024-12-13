@@ -5,7 +5,7 @@ import 'package:uuid/uuid.dart';
 import '../models/payment_type.dart';
 import '../providers/payment_types_provider.dart';
 import '../widgets/paymenttype/payment_type_form.dart';
-import '../widgets/paymenttype/payment_type_list.dart';
+import '../widgets/paymenttype/payment_type_card.dart';
 
 class PaymentTypesPage extends ConsumerStatefulWidget {
   const PaymentTypesPage({super.key});
@@ -15,6 +15,9 @@ class PaymentTypesPage extends ConsumerStatefulWidget {
 }
 
 class _PaymentTypesPageState extends ConsumerState<PaymentTypesPage> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
   @override
   void initState() {
     super.initState();
@@ -72,9 +75,14 @@ class _PaymentTypesPageState extends ConsumerState<PaymentTypesPage> {
 
   @override
   Widget build(BuildContext context) {
+    final paymentTypesAsyncValue = ref.watch(paymentTypesProvider);
+
     return Scaffold(
       appBar: AppBar(
-        title: const MyText(texte: 'Types de paiement', color: Colors.white,),
+        title: const MyText(
+          texte: 'Types de paiement',
+          color: Colors.white,
+        ),
         backgroundColor: const Color(0xffea6b24),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
@@ -84,11 +92,72 @@ class _PaymentTypesPageState extends ConsumerState<PaymentTypesPage> {
           ),
         ],
       ),
-      body: const PaymentTypeList(),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Rechercher un type de paiement...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() {
+                      _searchQuery = '';
+                    });
+                  },
+                )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value.toLowerCase();
+                });
+              },
+            ),
+          ),
+          Expanded(
+            child: paymentTypesAsyncValue.when(
+              data: (paymentTypeList) {
+                // Filtrer les types de paiement en fonction de la recherche
+                final filteredPaymentTypes = paymentTypeList.where((paymentType) {
+                  return paymentType.name.toLowerCase().contains(_searchQuery) ||
+                      (paymentType.category.toLowerCase().contains(_searchQuery));
+                }).toList();
+
+                if (filteredPaymentTypes.isEmpty) {
+                  return const Center(child: Text('Aucun type de paiement trouvé'));
+                }
+                return ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: filteredPaymentTypes.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 16),
+                  itemBuilder: (context, index) {
+                    final paymentType = filteredPaymentTypes[index];
+                    return PaymentTypeCard(paymentType: paymentType);
+                  },
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, stackTrace) => Center(child: Text('Erreur : $error')),
+            ),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xffea6b24),
         onPressed: _showAddDialog,
-        child: const Icon(Icons.add, color: Colors.white,),
+        child: const Icon(
+          Icons.add,
+          color: Colors.white,
+        ),
       ),
     );
   }

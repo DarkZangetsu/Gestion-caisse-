@@ -304,12 +304,14 @@ class DatabaseHelper {
 
       return (response as List)
           .map((json) => PaymentType.fromJson(json))
-          .toList();
+          .toList()
+        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     } catch (e) {
       throw Exception(
           'Erreur lors de la récupération des types de paiement: $e');
     }
   }
+
 
   Future<PaymentType> createPaymentType(PaymentType paymentType) async {
     try {

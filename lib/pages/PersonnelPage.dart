@@ -8,19 +8,26 @@ import '../providers/users_provider.dart';
 import '../widgets/personnel/PersonnelCard.dart';
 import '../widgets/personnel/PersonnelFormDialog.dart';
 
-class PersonnelPage extends ConsumerWidget {
+class PersonnelPage extends ConsumerStatefulWidget {
   const PersonnelPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PersonnelPage> createState() => _PersonnelPageState();
+}
+
+class _PersonnelPageState extends ConsumerState<PersonnelPage> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  void refreshAllData() {
+    ref.refresh(personnelStateProvider);
+    ref.invalidate(remainingPaymentProvider);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final userId = ref.watch(currentUserProvider)?.id;
     final personnelAsyncValue = ref.watch(personnelStateProvider);
-
-    void refreshAllData() {
-      // Refresh both personnelStateProvider and any dependent providers
-      ref.refresh(personnelStateProvider);
-      ref.invalidate(remainingPaymentProvider);
-    }
 
     return Scaffold(
       appBar: AppBar(
@@ -39,16 +46,57 @@ class PersonnelPage extends ConsumerWidget {
         ],
       ),
       body: userId != null
-          ? personnelAsyncValue.when(
-        data: (personnelList) {
-          if (personnelList.isEmpty) {
-            return const Center(child: Text('Aucun personnel trouvé'));
-          }
-          return PersonnelList(personnelList: personnelList);
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stackTrace) =>
-            Center(child: Text('Erreur : $error')),
+          ? Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Rechercher un personnel...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() {
+                      _searchQuery = '';
+                    });
+                  },
+                )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value.toLowerCase();
+                });
+              },
+            ),
+          ),
+          Expanded(
+            child: personnelAsyncValue.when(
+              data: (personnelList) {
+                // Filtrer les personnels en fonction de la recherche
+                final filteredPersonnelList = personnelList.where((personnel) {
+                  return personnel.name.toLowerCase().contains(_searchQuery) ||
+                      personnel.role != null && personnel.role!.toLowerCase().contains(_searchQuery);
+                }).toList();
+
+                if (filteredPersonnelList.isEmpty) {
+                  return const Center(child: Text('Aucun personnel trouvé'));
+                }
+                return PersonnelList(personnelList: filteredPersonnelList);
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, stackTrace) =>
+                  Center(child: Text('Erreur : $error')),
+            ),
+          ),
+        ],
       )
           : const Center(child: Text('Veuillez vous connecter')),
     );
@@ -60,22 +108,48 @@ class PersonnelPage extends ConsumerWidget {
       context: context,
       builder: (context) => PersonnelFormDialog(
         personnel: personnel,
-        onSave: (newPersonnel) {
-          Future.delayed(Duration.zero, () {
+        onSave: (newPersonnel) async {
+          try {
+            final userId = ref.read(currentUserProvider)?.id;
+            if (userId == null) {
+              throw Exception('Utilisateur non connecté');
+            }
+
             if (personnel == null) {
-              ref
+              await ref
                   .read(personnelStateProvider.notifier)
                   .createPersonnel(newPersonnel);
             } else {
-              ref
+              await ref
                   .read(personnelStateProvider.notifier)
                   .updatePersonnel(newPersonnel);
             }
 
-            // Refresh remaining payment provider
-            ref.invalidate(remainingPaymentProvider);
-          });
-          Navigator.of(context).pop();
+            if (context.mounted) {
+              Navigator.of(context).pop();
+              // Afficher un message de succès
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(personnel == null
+                      ? 'Personnel créé avec succès'
+                      : 'Personnel modifié avec succès'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+              // Rafraîchir la liste et le provider de paiement restant
+              ref.refresh(personnelStateProvider);
+              ref.invalidate(remainingPaymentProvider);
+            }
+          } catch (e) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Erreur: $e'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          }
         },
       ),
     );
