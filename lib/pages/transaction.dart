@@ -3,12 +3,14 @@ import 'package:gestion_caisse_flutter/composants/tab_header.dart';
 import 'package:gestion_caisse_flutter/composants/texts.dart';
 import 'package:gestion_caisse_flutter/home_composantes/transaction_row.dart';
 import 'package:gestion_caisse_flutter/models/transaction.dart';
+import 'package:gestion_caisse_flutter/providers/accounts_provider.dart';
 import 'package:gestion_caisse_flutter/providers/theme_provider.dart';
 import 'package:gestion_caisse_flutter/providers/transactions_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../models/accounts.dart';
 import '../models/chantier.dart';
 import '../models/payment_type.dart';
 import '../models/personnel.dart';
@@ -187,6 +189,7 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
     final chantierAsync = ref.watch(chantiersStateProvider);
     final personnelAsync = ref.watch(personnelStateProvider);
     final paymentTypeAsync = ref.watch(paymentTypesProvider);
+    final accountAsync = ref.watch(accountsStateProvider);
 
     // Helper function to find name for a specific entity type
     String _findName(AsyncValue<List<dynamic>> asyncValue, String? id) {
@@ -214,6 +217,13 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
             );
             return found.name.toLowerCase();
           }
+          if (items is List<Account>) {
+            final found = items.firstWhere(
+                  (item) => item.id == id,
+              orElse: () => Account(id: '', name: '', userId: '', solde: 0.0),
+            );
+            return found.name.toLowerCase();
+          }
           return '';
         },
       ) ?? '';
@@ -223,6 +233,7 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
     final chantierName = _findName(chantierAsync, transaction.chantierId);
     final personnelName = _findName(personnelAsync, transaction.personnelId);
     final paymentTypeName = _findName(paymentTypeAsync, transaction.paymentTypeId);
+    final accountName = _findName(accountAsync, transaction.accountId);
     final description = transaction.description?.toLowerCase() ?? '';
 
     // Check if ALL search terms are found in ANY of the details
@@ -232,9 +243,9 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
           transaction.type.toLowerCase(),
           chantierName,
           personnelName,
-          paymentTypeName
+          paymentTypeName,
+          accountName
         ].any((detail) =>
-        // More flexible matching: partial word match
         detail.contains(term)
         )
     );
