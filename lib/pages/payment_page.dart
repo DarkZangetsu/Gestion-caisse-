@@ -715,8 +715,7 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
     );
   }
 
-  _buildPaymentTypeDropdown(filteredPaymentTypes) {
-    return DropdownButtonFormField<String>(
+  _buildPaymentTypeDropdown(filteredPaymentTypes) => DropdownButtonFormField<String>(
       value: _selectedPaymentTypeId,
       hint: const Text('Type de paiement'),
       decoration: const InputDecoration(
@@ -743,25 +742,45 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
         return null;
       },
     );
-  }
-  Widget _buildPersonnelDropdown(AsyncValue<List<Personnel>> personnelAsync) {
-    return personnelAsync.when(
-      data: (personnelList) => SearchableDropdown<Personnel>(
-        items: personnelList,
-        value: personnelList
-            .where((p) => p.id == _selectedPersonnelId)
-            .firstOrNull,
-        getLabel: (personnel) => personnel.name,
-        getSearchString: (personnel) => personnel.name,
-        onChanged: (personnel) =>
-            setState(() => _selectedPersonnelId = personnel?.id),
-        label: 'Personnel (optionnel)',
-        controller: _personnelSearchController,
-      ),
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (_, __) => const Text('Erreur de chargement du personnel'),
-    );
-  }
+
+    Widget _buildPersonnelDropdown(AsyncValue<List<Personnel>> personnelAsync) {
+      return personnelAsync.when(
+        data: (personnelList) {
+          final selectedPersonnel = personnelList.firstWhere(
+                (p) => p.id == _selectedPersonnelId,
+            orElse: () => Personnel(id: '', name: 'Aucun', userId: ''),
+          );
+
+          return InputDecorator(
+            decoration: InputDecoration(
+              labelText: 'Personnel (optionnel)',
+              border: OutlineInputBorder(),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<Personnel>(
+                isExpanded: true,
+                value: selectedPersonnel.id.isEmpty ? null : selectedPersonnel,
+                items: personnelList.map((personnel) {
+                  return DropdownMenuItem<Personnel>(
+                    value: personnel,
+                    child: Text(personnel.name),
+                  );
+                }).toList(),
+                onChanged: (personnel) {
+                  setState(() {
+                    _selectedPersonnelId = personnel?.id;
+                  });
+                },
+                hint: const Text('Sélectionnez un personnel'),
+              ),
+            ),
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (_, __) => const Text('Erreur de chargement du personnel'),
+      );
+    }
+
 
   Widget _buildDescriptionField() {
     return TextField(
