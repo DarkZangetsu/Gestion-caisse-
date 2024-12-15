@@ -28,80 +28,65 @@ class EnhancedTransaction {
 }
 
 class ImpressionParPdf {
-
   static String _getAssociatedName(
       List<dynamic> items,
       String? id,
       String Function(dynamic) nameExtractor,
       ) {
-    if (id == null || items.isEmpty) return 'N/A';
+    if (id == null || items.isEmpty) return '';
 
     try {
-      final item = items.firstWhere(
-              (item) => item.id == id,
-          orElse: () => null
-      );
-
-      return item != null ? nameExtractor(item) : 'N/A';
+      for (var item in items) {
+        if (item.id.toString() == id.toString()) {
+          return nameExtractor(item);
+        }
+      }
+      print('No matching item found for ID: $id');
+      return ''; // Aucun élément trouvé
     } catch (e) {
-      return 'N/A';
+      print('Error in _getAssociatedName: $e');
+      return '';
     }
   }
+
+
   // Pre-fetch associated names for transactions
   static Future<List<EnhancedTransaction>> _prepareEnhancedTransactions(
       WidgetRef ref,
-      List<Transaction> transactions
+      List<Transaction> transactions,
       ) async {
-    // Properly extract values from AsyncValue providers
-    final accountsState = await ref.read(accountsStateProvider);
-    final chantiersState = await ref.read(chantiersStateProvider);
-    final personnelsState = await ref.read(personnelStateProvider);
-    final paymentTypesState = await ref.read(paymentTypesProvider);
+    final accounts = ref.read(accountsStateProvider).value ?? [];
+    final chantiers = ref.read(chantiersStateProvider).value ?? [];
+    final personnels = ref.read(personnelStateProvider).value ?? [];
+    final paymentTypes = ref.read(paymentTypesProvider).value ?? [];
 
-    // Safely extract lists, providing empty lists as fallback
-    final accounts = accountsState is AsyncValue<List<dynamic>>
-        ? (accountsState as AsyncValue<List<dynamic>>).value ?? []
-        : [];
-
-    final chantiers = chantiersState is AsyncValue<List<dynamic>>
-        ? (chantiersState as AsyncValue<List<dynamic>>).value ?? []
-        : [];
-
-    final personnels = personnelsState is AsyncValue<List<dynamic>>
-        ? (personnelsState as AsyncValue<List<dynamic>>).value ?? []
-        : [];
-
-    final paymentTypes = paymentTypesState is AsyncValue<List<dynamic>>
-        ? (paymentTypesState as AsyncValue<List<dynamic>>).value ?? []
-        : [];
-
-    // Map transactions to enhanced transactions
     return transactions.map((transaction) {
       return EnhancedTransaction(
         transaction: transaction,
         accountName: _getAssociatedName(
-            accounts,
-            transaction.accountId,
-                (account) => account.name
+          accounts,
+          transaction.accountId,
+              (account) => account.name,
         ),
         chantierName: _getAssociatedName(
-            chantiers,
-            transaction.chantierId,
-                (chantier) => chantier.name
+          chantiers,
+          transaction.chantierId,
+              (chantier) => chantier.name,
         ),
         personnelName: _getAssociatedName(
-            personnels,
-            transaction.personnelId,
-                (personnel) => personnel.name
+          personnels,
+          transaction.personnelId,
+              (personnel) => personnel.name,
         ),
         paymentTypeName: _getAssociatedName(
-            paymentTypes,
-            transaction.paymentTypeId,
-                (type) => type.name
+          paymentTypes,
+          transaction.paymentTypeId,
+              (type) => type.name,
         ),
       );
     }).toList();
   }
+
 
   static Future<void> generatePdf(
       WidgetRef ref,
@@ -124,7 +109,7 @@ class ImpressionParPdf {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              // Header with logo (same as before)
+              // Header with logo
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
@@ -157,7 +142,6 @@ class ImpressionParPdf {
               pw.SizedBox(height: 30),
 
               // Enhanced Transaction Table
-              // Enhanced Transaction Table
               pw.Container(
                 decoration: pw.BoxDecoration(
                   borderRadius: pw.BorderRadius.circular(8),
@@ -168,9 +152,9 @@ class ImpressionParPdf {
                     width: 0.5,
                   ),
                   columnWidths: {
-                    0: const pw.FlexColumnWidth(2),  // Date column (wider to accommodate more info)
-                    1: const pw.FlexColumnWidth(1),  // Received column
-                    2: const pw.FlexColumnWidth(1),  // Paid column
+                    0: const pw.FlexColumnWidth(2),
+                    1: const pw.FlexColumnWidth(1),
+                    2: const pw.FlexColumnWidth(1),
                   },
                   children: [
                     // Table Header
@@ -216,23 +200,32 @@ class ImpressionParPdf {
                                   DateFormat('dd/MM/yyyy')
                                       .format(transaction.transactionDate),
                                 ),
-                                pw.Text(
-                                  'Compte: ${enhancedTransaction.accountName}',
-                                  style: const pw.TextStyle(fontSize: 9),
-                                ),
-                                pw.Text(
-                                  'Chantier: ${enhancedTransaction.chantierName}',
-                                  style: const pw.TextStyle(fontSize: 9),
-                                ),
-                                pw.Text(
-                                  'Personnel: ${enhancedTransaction.personnelName}',
-                                  style: const pw.TextStyle(fontSize: 9),
-                                ),
-                                pw.Text(
-                                  'Méthode: ${enhancedTransaction.paymentTypeName}',
-                                  style: const pw.TextStyle(fontSize: 9),
-                                ),
-                                pw.Text(transaction.description ?? 'N/A', style: const pw.TextStyle(fontSize: 9)),
+                                if (enhancedTransaction.accountName.isNotEmpty)
+                                  pw.Text(
+                                    '${enhancedTransaction.accountName}',
+                                    style: const pw.TextStyle(fontSize: 9),
+                                  ),
+                                if (enhancedTransaction.chantierName.isNotEmpty)
+                                  pw.Text(
+                                    '${enhancedTransaction.chantierName}',
+                                    style: const pw.TextStyle(fontSize: 9),
+                                  ),
+                                if (enhancedTransaction.personnelName.isNotEmpty)
+                                  pw.Text(
+                                    '${enhancedTransaction.personnelName}',
+                                    style: const pw.TextStyle(fontSize: 9),
+                                  ),
+                                if (enhancedTransaction.paymentTypeName.isNotEmpty)
+                                  pw.Text(
+                                    '${enhancedTransaction.paymentTypeName}',
+                                    style: const pw.TextStyle(fontSize: 9),
+                                  ),
+                                if (transaction.description != null &&
+                                    transaction.description!.isNotEmpty)
+                                  pw.Text(
+                                      transaction.description!,
+                                      style: const pw.TextStyle(fontSize: 9)
+                                  ),
                               ],
                             ),
                           ),
@@ -261,7 +254,7 @@ class ImpressionParPdf {
                 ),
               ),
 
-              // Summary section (same as before)
+              // Summary section
               pw.SizedBox(height: 30),
               pw.Container(
                 padding: const pw.EdgeInsets.all(16),
