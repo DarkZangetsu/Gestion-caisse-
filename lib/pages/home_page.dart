@@ -714,7 +714,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     final secondary = theme.colorScheme.secondary;
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.background,
+      backgroundColor: theme.colorScheme.primary,
       appBar: SearchableAppBar(
         onTap: _showDateRangePicker,
         selectedAccount: selectedAccount ??
@@ -744,7 +744,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               padding: EdgeInsets.symmetric(
                   horizontal: MediaQuery.of(context).size.width * 0.02),
               height: 60,
-              decoration: const BoxDecoration(color: Color(0xffea6b24)),
+              decoration: const BoxDecoration(color: Color(0xff121212)),
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 itemCount: filterChoice.length,
@@ -880,7 +880,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
       child: ChoiceChip(
         backgroundColor: Colors.white,
-        selectedColor: const Color(0xffea6b24),
+        selectedColor: const Color(0xff121212),
         labelPadding: EdgeInsets.symmetric(
           horizontal: screenWidth * 0.03,
           vertical: screenWidth * 0.01,

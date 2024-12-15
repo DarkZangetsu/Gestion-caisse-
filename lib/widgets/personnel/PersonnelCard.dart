@@ -41,7 +41,7 @@ class PersonnelCard extends ConsumerWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: const BorderSide(
-              color: Colors.white,
+              color: Colors.black,
               width: 1,
             ),
           ),
@@ -98,17 +98,24 @@ class PersonnelCard extends ConsumerWidget {
                             Icons.work,
                           ),
                         ),
-                        _buildInfoBox(
-                          context,
-                          'Salaire Max',
-                          _formatCurrency(personnel.salaireMax),
-                          Icons.wallet,
-                        ),
                       ],
                     ),
                     const SizedBox(height: 8),
-                    // Ajout du reste à payer
-                    _buildRemainingPaymentSection(context, ref),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildInfoBox(
+                            context,
+                            'Salaire Max',
+                            _formatCurrency(personnel.salaireMax),
+                            Icons.wallet,
+                          ),
+                        ),
+                        Expanded(
+                          child: _buildRemainingPaymentSection(context, ref),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -118,6 +125,7 @@ class PersonnelCard extends ConsumerWidget {
       },
     );
   }
+
 
   Widget _buildRemainingPaymentSection(BuildContext context, WidgetRef ref) {
     final remainingPaymentAsync = ref.watch(remainingPaymentProvider(personnel.id));

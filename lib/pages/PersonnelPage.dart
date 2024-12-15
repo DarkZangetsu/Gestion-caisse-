@@ -32,7 +32,7 @@ class _PersonnelPageState extends ConsumerState<PersonnelPage> {
     return Scaffold(
       appBar: AppBar(
         title: const MyText(texte: 'Gestion des Personnels', color: Colors.white),
-        backgroundColor: const Color(0xffea6b24),
+        backgroundColor: const Color(0xff000000),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(

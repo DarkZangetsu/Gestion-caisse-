@@ -21,10 +21,11 @@ class Text_transaction extends StatelessWidget {
       child: MyText(
         texte: transaction.type == text
             ? NumberFormat.currency(
-                    locale: 'fr_FR', symbol: 'Ar', decimalDigits: 2)
+                    locale: 'fr_FR', symbol: 'Ar', decimalDigits: 0)
                 .format(transaction.amount)
             : '',
         color: color,
+        fontSize: 12,
         fontWeight: FontWeight.bold,
         textAlign: TextAlign.right,
       ),

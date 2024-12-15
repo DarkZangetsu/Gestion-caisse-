@@ -7,8 +7,7 @@ ThemeData darkTheme = ThemeData(
   ),
   cardColor: Colors.grey,
   colorScheme: ColorScheme.dark(
-    background: const Color(0x89000000),
-    primary: Colors.grey[900]!,
+    primary: Colors.black,
     secondary: Colors.grey[800]!,
     onPrimary: Colors.white,
   ),

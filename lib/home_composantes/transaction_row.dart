@@ -73,27 +73,30 @@ class _TransactionRowState extends ConsumerState<TransactionRow> {
               orElse: () => Chantier(id: '', name: '', userId: ''),
             );
 
-            debugPrint('Chantier color: ${chantier.color}');
-            debugPrint('Chantier colorValue: ${chantier.colorValue}');
-
             return InkWell(
               onTap: widget.onTap,
               child: Container(
                 decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(
-                      color: chantier.colorValue ?? Colors.grey[200]!,
-                      width: 4,
-                    ),
-                  ),
-                  color: chantier.colorValue != null
-                      ? chantier.colorValue!.withOpacity(0.2)
-                      : Theme.of(context).colorScheme.primary,
+                  color: Colors.grey[800],
+                  borderRadius: BorderRadius.circular(8),
                 ),
+                margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Row(
                     children: [
+                      // Colored dot for chantier
+                      if (chantier.colorValue != null)
+                        Container(
+                          margin: const EdgeInsets.only(right: 12),
+                          width: 16,
+                          height: 16,
+                          decoration: BoxDecoration(
+                            color: chantier.colorValue,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+
                       Expanded(
                         flex: 2,
                         child: Column(
@@ -101,7 +104,10 @@ class _TransactionRowState extends ConsumerState<TransactionRow> {
                           children: [
                             Text(
                               dateFormat.format(widget.transaction.transactionDate),
-                              style: const TextStyle(fontSize: 14),
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.white, // White text for date
+                              ),
                             ),
                             // Nom du personnel
                             Consumer(
@@ -122,6 +128,7 @@ class _TransactionRowState extends ConsumerState<TransactionRow> {
                                       texte: "${person.name}",
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
+                                      color: Colors.white, // White text
                                     )
                                         : const SizedBox.shrink();
                                   },
@@ -135,6 +142,7 @@ class _TransactionRowState extends ConsumerState<TransactionRow> {
                               MyText(
                                 texte: "${chantier.name}",
                                 fontSize: 12.0,
+                                color: Colors.white, // White text
                               ),
                             // Type de paiement
                             Consumer(
@@ -153,6 +161,7 @@ class _TransactionRowState extends ConsumerState<TransactionRow> {
                                         ? MyText(
                                       texte: "${type.name} (${type.category})",
                                       fontSize: 12.0,
+                                      color: Colors.white70, // Slightly translucent white
                                     )
                                         : const SizedBox.shrink();
                                   },
@@ -161,7 +170,7 @@ class _TransactionRowState extends ConsumerState<TransactionRow> {
                                 );
                               },
                             ),
-                            // Description (reste inchangé mais avec une vérification supplémentaire)
+                            // Description (reste inchangé mais avec une couleur différente)
                             if (widget.transaction.description != null &&
                                 widget.transaction.description!.trim().isNotEmpty)
                               Text(
@@ -169,7 +178,7 @@ class _TransactionRowState extends ConsumerState<TransactionRow> {
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.grey[600],
+                                  color: Colors.white54, // Light, translucent white
                                 ),
                               ),
                             // Compte correspondant à la transaction
@@ -191,6 +200,7 @@ class _TransactionRowState extends ConsumerState<TransactionRow> {
                                         ? MyText(
                                       texte: "${account.name}",
                                       fontSize: 12.0,
+                                      color: Colors.white70, // Slightly translucent white
                                     )
                                         : const SizedBox.shrink();
                                   },

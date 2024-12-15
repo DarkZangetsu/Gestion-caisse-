@@ -63,7 +63,7 @@ class _SearchableAppBarState extends State<SearchableAppBar> {
   Widget build(BuildContext context) {
     return AppBar(
       iconTheme: const IconThemeData(color: Colors.white),
-      backgroundColor: const Color(0xffea6b24),
+      backgroundColor: const Color(0xff121212),
       title: isSearching ? _buildSearchField() : _buildTitle(),
       actions: [
         if(widget.onRefresh != null)

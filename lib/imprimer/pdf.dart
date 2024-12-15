@@ -1,18 +1,120 @@
 import 'package:gestion_caisse_flutter/models/transaction.dart';
 import 'package:gestion_caisse_flutter/providers/accounts_provider.dart';
 import 'package:gestion_caisse_flutter/providers/transactions_provider.dart';
+import 'package:gestion_caisse_flutter/providers/personnel_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
 import 'package:pdf/widgets.dart' as pw;
 
+import '../providers/chantiers_provider.dart';
+import '../providers/payment_types_provider.dart';
+
+class EnhancedTransaction {
+  final Transaction transaction;
+  final String accountName;
+  final String chantierName;
+  final String personnelName;
+  final String paymentTypeName;
+
+  EnhancedTransaction({
+    required this.transaction,
+    required this.accountName,
+    required this.chantierName,
+    required this.personnelName,
+    required this.paymentTypeName,
+  });
+}
+
 class ImpressionParPdf {
-  static Future<void> generatePdf(List<Transaction> transactions,
-      double totalReceived, double totalPaid, double totalBalance) async {
+
+  static String _getAssociatedName(
+      List<dynamic> items,
+      String? id,
+      String Function(dynamic) nameExtractor,
+      ) {
+    if (id == null || items.isEmpty) return 'N/A';
+
+    try {
+      final item = items.firstWhere(
+              (item) => item.id == id,
+          orElse: () => null
+      );
+
+      return item != null ? nameExtractor(item) : 'N/A';
+    } catch (e) {
+      return 'N/A';
+    }
+  }
+  // Pre-fetch associated names for transactions
+  static Future<List<EnhancedTransaction>> _prepareEnhancedTransactions(
+      WidgetRef ref,
+      List<Transaction> transactions
+      ) async {
+    // Properly extract values from AsyncValue providers
+    final accountsState = await ref.read(accountsStateProvider);
+    final chantiersState = await ref.read(chantiersStateProvider);
+    final personnelsState = await ref.read(personnelStateProvider);
+    final paymentTypesState = await ref.read(paymentTypesProvider);
+
+    // Safely extract lists, providing empty lists as fallback
+    final accounts = accountsState is AsyncValue<List<dynamic>>
+        ? (accountsState as AsyncValue<List<dynamic>>).value ?? []
+        : [];
+
+    final chantiers = chantiersState is AsyncValue<List<dynamic>>
+        ? (chantiersState as AsyncValue<List<dynamic>>).value ?? []
+        : [];
+
+    final personnels = personnelsState is AsyncValue<List<dynamic>>
+        ? (personnelsState as AsyncValue<List<dynamic>>).value ?? []
+        : [];
+
+    final paymentTypes = paymentTypesState is AsyncValue<List<dynamic>>
+        ? (paymentTypesState as AsyncValue<List<dynamic>>).value ?? []
+        : [];
+
+    // Map transactions to enhanced transactions
+    return transactions.map((transaction) {
+      return EnhancedTransaction(
+        transaction: transaction,
+        accountName: _getAssociatedName(
+            accounts,
+            transaction.accountId,
+                (account) => account.name
+        ),
+        chantierName: _getAssociatedName(
+            chantiers,
+            transaction.chantierId,
+                (chantier) => chantier.name
+        ),
+        personnelName: _getAssociatedName(
+            personnels,
+            transaction.personnelId,
+                (personnel) => personnel.name
+        ),
+        paymentTypeName: _getAssociatedName(
+            paymentTypes,
+            transaction.paymentTypeId,
+                (type) => type.name
+        ),
+      );
+    }).toList();
+  }
+
+  static Future<void> generatePdf(
+      WidgetRef ref,
+      List<Transaction> transactions,
+      double totalReceived,
+      double totalPaid,
+      double totalBalance
+      ) async {
+    // Pre-fetch enhanced transactions
+    final enhancedTransactions = await _prepareEnhancedTransactions(ref, transactions);
+
     final pdf = pw.Document();
 
-    // Chargement de l'image locale
     final logoImage = await imageFromAssetBundle('img/Logo.png');
 
     pdf.addPage(
@@ -22,7 +124,7 @@ class ImpressionParPdf {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              // En-tête avec logo
+              // Header with logo (same as before)
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
@@ -35,7 +137,7 @@ class ImpressionParPdf {
                     crossAxisAlignment: pw.CrossAxisAlignment.end,
                     children: [
                       pw.Text(
-                        'Rapport des Transactions',
+                        'Rapport des Transactions Détaillé',
                         style: pw.TextStyle(
                           fontSize: 24,
                           fontWeight: pw.FontWeight.bold,
@@ -54,7 +156,8 @@ class ImpressionParPdf {
               ),
               pw.SizedBox(height: 30),
 
-              // Tableau des transactions
+              // Enhanced Transaction Table
+              // Enhanced Transaction Table
               pw.Container(
                 decoration: pw.BoxDecoration(
                   borderRadius: pw.BorderRadius.circular(8),
@@ -65,12 +168,12 @@ class ImpressionParPdf {
                     width: 0.5,
                   ),
                   columnWidths: {
-                    0: const pw.FlexColumnWidth(2),
-                    1: const pw.FlexColumnWidth(1.5),
-                    2: const pw.FlexColumnWidth(1.5),
+                    0: const pw.FlexColumnWidth(2),  // Date column (wider to accommodate more info)
+                    1: const pw.FlexColumnWidth(1),  // Received column
+                    2: const pw.FlexColumnWidth(1),  // Paid column
                   },
                   children: [
-                    // En-tête du tableau
+                    // Table Header
                     pw.TableRow(
                       decoration: const pw.BoxDecoration(
                         color: PdfColors.blue100,
@@ -79,7 +182,7 @@ class ImpressionParPdf {
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(8),
                           child: pw.Text(
-                            'Date',
+                            'Détails',
                             style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                           ),
                         ),
@@ -99,38 +202,57 @@ class ImpressionParPdf {
                         ),
                       ],
                     ),
-                    // Lignes de données
-                    ...transactions.map((transaction) {
+                    // Transaction rows
+                    ...enhancedTransactions.map((enhancedTransaction) {
+                      final transaction = enhancedTransaction.transaction;
                       return pw.TableRow(
                         children: [
                           pw.Padding(
-                              padding: const pw.EdgeInsets.all(8),
-                              child: pw.Column(children: [
+                            padding: const pw.EdgeInsets.all(8),
+                            child: pw.Column(
+                              crossAxisAlignment: pw.CrossAxisAlignment.start,
+                              children: [
                                 pw.Text(
                                   DateFormat('dd/MM/yyyy')
                                       .format(transaction.transactionDate),
                                 ),
                                 pw.Text(
-                                  "${transaction.description}"
+                                  'Compte: ${enhancedTransaction.accountName}',
+                                  style: const pw.TextStyle(fontSize: 9),
                                 ),
-                              ])),
-                          pw.Padding(
-                            padding: const pw.EdgeInsets.all(8),
-                            child: pw.Text(
-                              transaction.type == 'reçu'
-                                  ? transaction.amount.toStringAsFixed(2)
-                                  : '-',
-                              textAlign: pw.TextAlign.right,
+                                pw.Text(
+                                  'Chantier: ${enhancedTransaction.chantierName}',
+                                  style: const pw.TextStyle(fontSize: 9),
+                                ),
+                                pw.Text(
+                                  'Personnel: ${enhancedTransaction.personnelName}',
+                                  style: const pw.TextStyle(fontSize: 9),
+                                ),
+                                pw.Text(
+                                  'Méthode: ${enhancedTransaction.paymentTypeName}',
+                                  style: const pw.TextStyle(fontSize: 9),
+                                ),
+                                pw.Text(transaction.description ?? 'N/A', style: const pw.TextStyle(fontSize: 9)),
+                              ],
                             ),
                           ),
                           pw.Padding(
                             padding: const pw.EdgeInsets.all(8),
-                            child: pw.Text(
-                              transaction.type == 'payé'
-                                  ? transaction.amount.toStringAsFixed(2)
-                                  : '-',
-                              textAlign: pw.TextAlign.right,
-                            ),
+                            child: transaction.type == 'reçu'
+                                ? pw.Text(
+                              transaction.amount.toStringAsFixed(2),
+                              style: pw.TextStyle(color: PdfColors.green700),
+                            )
+                                : pw.Text(''),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(8),
+                            child: transaction.type == 'payé'
+                                ? pw.Text(
+                              transaction.amount.toStringAsFixed(2),
+                              style: pw.TextStyle(color: PdfColors.red700),
+                            )
+                                : pw.Text(''),
                           ),
                         ],
                       );
@@ -139,9 +261,8 @@ class ImpressionParPdf {
                 ),
               ),
 
+              // Summary section (same as before)
               pw.SizedBox(height: 30),
-
-              // Résumé
               pw.Container(
                 padding: const pw.EdgeInsets.all(16),
                 decoration: pw.BoxDecoration(
@@ -213,6 +334,7 @@ class ImpressionParPdf {
     );
   }
 
+  // Rest of the code remains the same as in the previous implementation
   static void onTapPdf(WidgetRef ref, String selectedTimeframeFilter,
       DateTime? startDate, DateTime? endDate) async {
     final selectedAccount = ref.watch(selectedAccountProvider);
@@ -223,7 +345,7 @@ class ImpressionParPdf {
           .where((t) => t.accountId == selectedAccount?.id)
           .toList();
 
-      // Appliquer le filtre en fonction du choix de l'utilisateur
+      // Apply filter based on user's choice
       final filteredTransactions = _filterTransactions(
           transactions, selectedTimeframeFilter, startDate, endDate);
 
@@ -243,31 +365,36 @@ class ImpressionParPdf {
       final totalBalance = balance + (selectedAccount?.solde ?? 0.0);
 
       await generatePdf(
-          filteredTransactions, totalReceived, totalPaid, totalBalance);
+          ref,
+          filteredTransactions,
+          totalReceived,
+          totalPaid,
+          totalBalance
+      );
     }
   }
 
-// Ajoutez cette méthode pour filtrer les transactions
+  // Transaction filtering method remains the same as in the previous implementation
   static List<Transaction> _filterTransactions(List<Transaction> transactions,
       String timeframeFilter, DateTime? startDate, DateTime? endDate) {
     DateTime now = DateTime.now();
 
     return transactions.where((transaction) {
-      // Vérification de la plage de dates
+      // Date range verification
       bool matchesDateRange = true;
 
       if (startDate != null && endDate != null) {
-        // Créer des DateTime pour le début et la fin de la journée
+        // Create DateTime for the start and end of the day
         final startDateTime =
-            DateTime(startDate.year, startDate.month, startDate.day);
+        DateTime(startDate.year, startDate.month, startDate.day);
         final endDateTime =
-            DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
+        DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
 
         matchesDateRange = transaction.transactionDate.isAfter(startDateTime) &&
             transaction.transactionDate.isBefore(endDateTime);
       }
 
-      // Vérification du filtre temporel
+      // Timeframe verification
       bool matchesTimeframe = true;
       switch (timeframeFilter) {
         case 'Quotidien':
@@ -277,7 +404,7 @@ class ImpressionParPdf {
           break;
         case 'Hebdomadaire':
           matchesTimeframe = transaction.transactionDate
-                  .isAfter(now.subtract(Duration(days: now.weekday - 1))) &&
+              .isAfter(now.subtract(Duration(days: now.weekday - 1))) &&
               transaction.transactionDate
                   .isBefore(now.add(Duration(days: 7 - now.weekday)));
           break;
@@ -290,7 +417,7 @@ class ImpressionParPdf {
           break;
         case 'Tous':
         default:
-          matchesTimeframe = true; // Inclure toutes les transactions
+          matchesTimeframe = true;
       }
 
       return matchesDateRange && matchesTimeframe;

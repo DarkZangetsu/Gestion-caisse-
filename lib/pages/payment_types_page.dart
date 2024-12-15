@@ -83,7 +83,7 @@ class _PaymentTypesPageState extends ConsumerState<PaymentTypesPage> {
           texte: 'Types de paiement',
           color: Colors.white,
         ),
-        backgroundColor: const Color(0xffea6b24),
+        backgroundColor: const Color(0xff000000),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(

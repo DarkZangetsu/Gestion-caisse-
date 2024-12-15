@@ -494,7 +494,6 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
       }
     } catch (e) {
       print('Erreur lors de la sauvegarde de la date d\'échéance: $e');
-      // Ne pas lever d'exception pour ne pas interrompre le flux principal
     }
   }
 
@@ -610,7 +609,7 @@ class _TodoListPageState extends ConsumerState<TodoListPage>
           texte: 'Liste des tâches',
           color: Colors.white,
         ),
-        backgroundColor: const Color(0xffea6b24),
+        backgroundColor: const Color(0xff000000),
         bottom: TabBar(
           labelColor: Colors.white,
           controller: _tabController,

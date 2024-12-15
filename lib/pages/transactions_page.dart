@@ -242,7 +242,7 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
     return Scaffold(
       appBar: AppBar(
         iconTheme: const IconThemeData(color: Colors.white),
-        backgroundColor: const Color(0xffea6b24),
+        backgroundColor: const Color(0xff121212),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -381,8 +381,8 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
 
   Widget _buildTransactionsTable(
       List<Transaction> transactions, bool isDarkMode) {
-    final cardColor = isDarkMode ? Colors.grey[800] : Colors.grey[100];
-    final headerColor = isDarkMode ? Colors.grey[850] : Colors.grey[200];
+    final cardColor = isDarkMode ? Color(0xff121212) : Colors.grey[300];
+    final headerColor = isDarkMode ? Colors.grey[850] : Colors.grey[800];
     final textColor = isDarkMode ? Colors.white : Colors.black;
     final shadowColor = isDarkMode
         ? Colors.black.withOpacity(0.3)
@@ -417,11 +417,11 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
     );
   }
 
-  Widget _buildTableHeader(Color headerColor, Color textColor) {
+  Widget _buildTableHeader(Color secondary, Color textColor) {
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
-        color: headerColor,
+        color: secondary ,
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(8),
           topRight: Radius.circular(8),

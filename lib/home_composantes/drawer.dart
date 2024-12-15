@@ -30,7 +30,7 @@ class MyDrawer extends ConsumerWidget {
               children: [
                 DrawerHeader(
                   decoration: const BoxDecoration(
-                    color: Color(0xffea6b24),
+                    color: Color(0xff121212),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,

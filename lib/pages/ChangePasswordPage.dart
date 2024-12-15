@@ -14,7 +14,7 @@ class ChangePasswordPage extends StatelessWidget {
           texte: 'Modifier le mot de passe',
           color: Colors.white,
         ),
-          backgroundColor: const Color(0xffea6b24),
+          backgroundColor: const Color(0xff000000),
       ),
       body: const SingleChildScrollView(
         child: Padding(
