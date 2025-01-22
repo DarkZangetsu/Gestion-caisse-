@@ -404,7 +404,7 @@ class DatabaseHelper {
 
       return (response as List).map((json) => Todo.fromJson(json)).toList();
     } catch (e) {
-      throw Exception('Erreur lors de la récupération des todos: $e');
+      throw Exception('Erreur lors de la récupération des todos');
     }
   }
 
